@@ -1,0 +1,59 @@
+--- 
+Symbol_Types: 
+  L: 6
+  l: 5
+  x: 8
+  b: 3
+  d: 4
+  q: 7
+  f: 1
+  s: 2
+  i: 0
+Subtask_Status: 
+  new: 0
+  pending: 1
+  processed: 3
+  inactive: 6
+  blocked: 5
+  deleted: 7
+  cleanup: 4
+  processing: 2
+Packet_Types: 
+  advertise: 9
+  mm: 6
+  reference: 3
+  error: 0
+  code: 2
+  lookup: 7
+  request: 4
+  address: 8
+  subtask: 1
+  data: 5
+Symbol_Kinds: 
+  L: 3
+  B: 6
+  C: 5
+  D: 1
+  Q: 7
+  R: 4
+  S: 0
+  LABEL: 15
+  U: 2
+  Unknown: 16
+Data_Status: 
+  error: 3
+  cleared: 4
+  present: 1
+  requested: 2
+  absent: 0
+Core_Status: 
+  managed: 4
+  done: 3
+  busy: 2
+  ready: 1
+  idle: 0
+Code_Status: 
+  ActReq: 1
+  Reset: 3
+  Absent: 0
+  Present: 2

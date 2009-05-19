@@ -1,0 +1,67 @@
+# For SystemC, it seems both service id and address must be contiguous
+# And we must have exactly 15 services!
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads], Addr: Service NoC Address }
+
+--- # SystemConfiguration.rb
+System:
+  NServices: 15 # excluding gateway
+  Services:
+    0: { GATEWAY: [0, sba_GATEWAY, 1, [0, 0]], Addr: 15 }    
+    1: { IO: [0, ls_IO, 1, [1, 1]], Addr: 3 }
+    2: { BEGIN: [0, ls_BEGIN, 1, [1, 1]], Addr: 2 }    
+    3: { LET: [0, ls_LET, 1, [1, 1]], Addr: 1 }
+    4: { IF: [0, ls_IF, 1, [0, 0]], Addr: 4 }    
+    5: { RAND: [0, ls_RAND, 1, [0, 0]], Addr: 5 }            
+    7: { ALU: [0, ls_ALU, 1, [0, 1]], Addr: 7 }   
+    8: { NONE0: [0, none, 1, [0, 0]], Addr: 8 }     
+    9: { NONE1: [0, none, 1, [0, 0]], Addr: 9 }
+    10: { NONE2: [0, none, 1, [0, 0]], Addr: 10 }
+    11: { NONE3: [0, none, 1, [0, 0]], Addr: 11 }
+    12: { NONE4: [0, none, 1, [0, 0]], Addr: 12 }
+    13: { NONE5: [0, none, 1, [0, 0]], Addr: 13 }
+    14: { NONE6: [0, none, 1, [0, 0]], Addr: 14 }
+    15: { NONE7: [0, none, 1, [0, 0]], Addr: 0 }
+    6: { NONE8: [0, none, 1, [0, 0]], Addr: 6 }     
+    
+    # Compiler needs lambda even if it's not used ...
+    16: { LAMBDA: [0, none, 1, [0, 0]], Addr: 16 }    
+  Aliases:
+  # Alias Name: [Service Name, Service Id, Opcode]
+    NONE: [NONE, 0, 0, [0, 0]]
+    'plus': [ALU, 7, 9, [0, 1]]
+    minus: [ALU, 7, 10, [0, 1]]
+    times: [ALU, 7, 11, [0, 1]]
+    over: [ALU, 7, 12, [0, 18]]
+    lt: [ALU, 7, 13, [0, 1]]
+    gt: [ALU, 7, 14, [0, 1]]
+    eq: [ALU, 7, 15, [0, 1]]
+    not: [ALU, 7, 21, [0, 1]] # (! 1) :  0; (! 0) :  1; otherwise :  Error
+    RETURN: [IF, 4, 1, [0, 0]]    
+    RETURNTC: [IF, 4, 2, [0, 0]]
+    IFTC: [IF, 4, 3, [0, 0]]
+    FOPEN: [IO, 1, 1, [0, 0]]
+    FCLOSE: [IO, 1, 2, [0, 0]]
+    IOREAD: [IO, 1, 3, [0, 0]]
+    IOWRITE: [IO, 1, 4, [0, 0]]
+    DISPLAY: [IO, 1, 5, [0, 0]]
+    ASSIGN: [LET, 3, 1, [0, 0]]
+    UPDATE: [LET, 3, 3, [0, 0]]
+    READ: [LET, 3, 2, [0, 0]]
+    LIST: [LET, 3, 4, [0, 0]]
+    HEAD: [LET, 3, 5, [0, 0]]
+    TAIL: [LET, 3, 6, [0, 0]]
+    LENGTH: [LET, 3, 7, [0, 0]]
+    CONS: [LET, 3, 8, [0, 0]]
+    APPEND: [LET, 3, 9, [0, 0]]
+    LETTC: [LET, 3, 10, [0, 0]]
+  ALU_Names:
+    '+': 'plus'
+    '-': minus
+    '*': times
+    '/': over
+    '<': lt
+    '>': gt
+    '==': eq
+    '!': not
+    

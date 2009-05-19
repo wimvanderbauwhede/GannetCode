@@ -1,0 +1,18 @@
+#env = Environment(CPPFLAGS = '-g ')
+env = Environment(CPPFLAGS = '-Wall ')
+env.Append(CPPFLAGS = '-O3 ')
+env.Append(CPPFLAGS = '-DDUMP ')
+env.Append(CPPFLAGS = '-DDEBUG ')
+env.Append(CPPFLAGS = '-DVERBOSE ')
+env.Append(CPPFLAGS = ' -DWORDSZ=32 ')
+
+com_files = Split("""
+	Socket.cc
+	DataTransfer.cc
+	""")
+
+GannetClient_files = com_files + ['Client.cc', 'gclient.cc']
+
+
+env.Program('gclient', GannetClient_files)
+

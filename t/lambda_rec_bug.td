@@ -1,0 +1,11 @@
+(let
+    (assign 'v1 '42)
+    (assign 'v2 '43)
+	(assign 'f (lambda 'n 'acc 'f_ '(if (> n '5) 
+						'(return acc)
+						'(applytc (read f_) (+ n '1) (* acc n) f_)
+					)
+			)
+	)
+	'(apply (read 'f) '1 '1 'f)
+)

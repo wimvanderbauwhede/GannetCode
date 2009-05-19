@@ -1,0 +1,68 @@
+# For SystemC, it seems both service id and address must be contiguous
+# This is a config file for simulating matrix operations. 
+# For SystemC we must include 2 fields with timing information
+# These can be different per core and indeed per opcode
+# So we must have that information in the Alias record if there are aliases
+# and otherwise in the Core field. That is a bit ugly
+# I seems we need a different organisation
+# We should put all opcode info in "Aliases", even if there is only one.
+# We'll have to do this in stages, for the moment the timing goes into the service core record as a pair
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads], Addr: Service NoC Address }
+
+--- # SystemConfiguration.rb
+System:
+  NServices: 15 # excluding gateway
+  Services:
+    0: { GATEWAY: [0, sba_GATEWAY, 1, [0, 0]], Addr: 15 }
+    1: { A: [0, ls_RND_MATRIX, 1, [0, 1]], Addr: 1 }
+    2: { B: [0, ls_RND_MATRIX, 1, [0, 1]], Addr: 2 }
+    3: { LET: [0, ls_LET, 1, [1, 1]], Addr: 3 }    
+    4: { IF: [0, ls_IF, 1, [0, 0]], Addr: 4 }    
+    5: { DET1: [0, ls_PROC_MATRIX, 1, [8192, 0]], Addr: 5 }       
+    6: { DET2: [0, ls_PROC_MATRIX, 1, [8192, 0]], Addr: 6 }   
+    7: { ALU: [0, ls_ALU, 1, [0, 1]], Addr: 7 }   
+    8: { TRAN: [0, ls_PROC_MATRIX, 1, [128, 0]], Addr: 8 }
+    9: { MMULT: [0, ls_PROC_MATRIX, 1, [1024, 0]], Addr: 9 }
+    10: { MADD: [0, ls_PROC_MATRIX, 1, [240, 0]], Addr: 10 }
+    11: { INV1: [0, ls_PROC_MATRIX, 1, [28672, 0]], Addr: 11 } 
+    12: { INV2: [0, ls_PROC_MATRIX, 1, [28672, 0]], Addr: 12 }        
+    13: { SCALE: [0, ls_PROC_MATRIX, 1, [240, 0]], Addr: 13 }
+    14: { CROSS: [0, ls_PROC_MATRIX, 1, [240, 0]], Addr: 14 }
+    15: { NONE15: [0, none, 1, [0, 0]], Addr: 0 }
+    # Compiler needs lambda even if it's not used ...
+    16: { LAMBDA: [0, none, 1, [0, 0]], Addr: 16 }    
+  Aliases:
+  # Alias Name: [Service Name, Service Id, Opcode]
+    NONE: [NONE, 0, 0, [0, 0]]
+    'plus': [ALU, 7, 9, [0, 1]]
+    minus: [ALU, 7, 10, [0, 1]]
+    times: [ALU, 7, 11, [0, 1]]
+    over: [ALU, 7, 12, [0, 18]]
+    lt: [ALU, 7, 13, [0, 1]]
+    gt: [ALU, 7, 14, [0, 1]]
+    eq: [ALU, 7, 15, [0, 1]]
+    not: [ALU, 7, 21, [0, 1]] # (! 1) :  0; (! 0) :  1; otherwise :  Error
+    RETURN: [IF, 4, 1, [0, 0]]    
+    RETURNTC: [IF, 4, 2, [0, 0]]
+    IFTC: [IF, 4, 3, [0, 0]]
+    ASSIGN: [LET, 3, 1, [0, 0]]
+    UPDATE: [LET, 3, 3, [0, 0]]
+    READ: [LET, 3, 2, [0, 0]]
+    LIST: [LET, 3, 4, [0, 0]]
+    HEAD: [LET, 3, 5, [0, 0]]
+    TAIL: [LET, 3, 6, [0, 0]]
+    LENGTH: [LET, 3, 7, [0, 0]]
+    CONS: [LET, 3, 8, [0, 0]]
+    APPEND: [LET, 3, 9, [0, 0]]
+    LETTC: [LET, 3, 10, [0, 0]]
+  ALU_Names:
+    '+': 'plus'
+    '-': minus
+    '*': times
+    '/': over
+    '<': lt
+    '>': gt
+    '==': eq
+    '!': not
+    

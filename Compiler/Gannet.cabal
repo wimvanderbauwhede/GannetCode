@@ -1,0 +1,18 @@
+Name: Gannet
+Version: 0.0.1
+Cabal-Version: >= 1.2
+Build-Type: Simple
+License: GPL
+License-file: ../../gpl-2.txt
+Author: WV
+Synopsis: Gannet bytecode compiler
+Build-Depends: mtl, base, containers, parsec, pugs-HsSyck == 0.2
+GHC-Options: -fglasgow-exts 
+-- Exposed-Modules: Gannet.Tokenizer, Gannet.Symbolizer, Gannet.Packetizer, Gannet.Bytecodizer
+Exposed-Modules: Gannet.SBA.Types Gannet.SBA.SystemConfiguration Gannet.State.SymbolTree Gannet.State.Context Gannet.State.Scope Gannet.Tokenizer Gannet.TokenParser Gannet.Packetizer Gannet.Symbolizer Gannet.Symbolizer.InferTypes Gannet.Numerifier Gannet.Symbolizer.Internals Gannet.Bytecodizer Gannet.Emitters.Puffin
+
+Executable: gannetc
+Main-is: Main.hs
+Hs-Source-Dirs: .
+
+Extensions: CPP

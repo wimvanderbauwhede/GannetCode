@@ -1,0 +1,33 @@
+""" \file SConstruct
+   
+ \brief Gannet SBA - SCons script for building ServiceCoreLibrary for C++ GannetVM & SystemC
+"""
+
+# $Id$
+
+import os
+import re
+import commands
+import sys
+sys.path+=['/usr/lib/scons/']
+
+
+# Generate source files for inclusion is SystemC
+
+sc_prefix='SC_'
+script='split_sc_module_src.pl' 
+
+sources=Split("""
+ServiceManager
+Gateway
+""")
+
+env_scgen = Environment()
+
+for src_module in sources:
+	src_file = sc_prefix+src_module+'.cc' 
+	target_file=src_module+'/generated_on'
+	cmd='perl '+script+' < '+src_file
+	gen=env_scgen.Command(target_file, src_file, cmd)
+	env_scgen.Depends(gen,script)
+    

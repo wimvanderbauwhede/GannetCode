@@ -1,0 +1,29 @@
+GANNET_DIR=`pwd`
+
+# SystemC paths, required for the hardware model
+SYSTEMC="/opt/systemc-2.2"
+SYSTEMC_INC="$SYSTEMC/include"
+SYSTEMC_TLM="$SYSTEMC_INC/tlm"
+SYSTEMC_LIB="$SYSTEMC/lib-macosx"
+
+# Cross-compilation for VM (Linux)
+# Only required to deploy the VM on a Virtex FPGA
+GANNET_XC_PATH="$HOME/opt/crosstool/gcc-3.4.4-glibc-2.3.3/powerpc-405-linux-gnu/bin"
+
+# LLVM (Linux)
+# Not required, simply an alternative to gcc
+GANNET_LLVM_PATH="/home/wim/ARCHS/llvm-gcc/install/bin"
+
+# C++ Boost Libraries (Linux)
+# Currently, Gannet does not use boost, but the option is there in case
+BOOST_INC="/usr/include/boost"
+BOOST_LIB="boost_program_options"
+
+# Gambit Scheme (required only for the Scheme backend Skua)
+GAMBIT_PATH="/Library/Gambit-C/current"
+
+PATH="$PATH:$GANNET_DIR/bin"
+
+export GANNET_DIR SYSTEMC SYSTEMC_INC SYSTEMC_TLM SYSTEMC_LIB GANNET_XC_PATH GANNET_LLVM_PATH BOOST_INC BOOST_LIB GAMBIT_PATH PATH
+
+

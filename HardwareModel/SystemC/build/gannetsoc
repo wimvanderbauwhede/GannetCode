@@ -1,0 +1,1 @@
+SC_SIGNAL_WRITE_CHECK=DISABLE ./gannet_sc $*

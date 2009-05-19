@@ -1,0 +1,36 @@
+WN: 2008-10-28
+============== 
+
+
+1. ABOUT
+   =====
+   
+   This the testbench folder of the SystemC model of Gannet Hardware.
+   
+
+2. DIRECTORY STRUCTURE AND FILE NAMES
+   ==================================
+   
+   README       => This file
+   sc_main.cpp  => main
+   Makefile     => The makefile for the test bench
+   
+   plus Eclipse project files, log files and object/executables.
+   
+   
+3. BUILD INSTRUCTIONS
+   ==================
+   
+   This library is made on SystemC 2.1.v1 and TLM-2005-04-08. 
+   Your compiler should have at these or later versions installed and compiled and 
+   your make files should include the path to these two libraries.
+   
+   The following two path variables inside the Make file need to be set correctly
+   
+    SYSTEMC     => Path to the System C library
+    SYSTEMC_TLM => Path to the TLM library
+    
+   Also, set TARGET_ARCH in the Makefile accordingly
+   
+   TODO: Make should automatically detect and set the TARGET_ARCH
+  
