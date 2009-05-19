@@ -20,6 +20,21 @@ if ( $opts{'h'} or (not scalar %opts and not @ARGV)) {
 my $tdfile=shift @ARGV;
 my $verbose= $opts{'v'}?1:0;
 my $ymlfile = $opts{'Y'}||"$gannet_dir/SystemConfigurations/SBA.yml";
+open(my $TD, '<', $tdfile);
+while (my $line=<$TD>) {
+	if ($line=~/^\s*\;\s*[Ss]ys(?:tem)*\s*[cC]onfig(?:uration)*\s*[\:\=\/]?\s*([\w\.]+)/) {
+		my $maybe_yml_file=$1;
+		if ($maybe_yml_file!~/\.yml/) {
+			$maybe_yml_file.='.yml';
+		}
+		if (-e "$gannet_dir/SystemConfigurations/$maybe_yml_file") {
+			print "Found YAML-file $maybe_yml_file\n";
+			$ymlfile="$gannet_dir/SystemConfigurations/$maybe_yml_file";
+		}
+	last;
+	}
+}
+close $TD;
 
 system("gannetc -Y $ymlfile $tdfile");
 
