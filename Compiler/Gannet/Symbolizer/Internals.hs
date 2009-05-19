@@ -248,3 +248,8 @@ symCount tl@([t]) kind
     | otherwise = 1              
     where
 		t=head tl                    
+symCount tl@(t:_) kind 
+    | (kind==K_S) && ((stringInToken t)/="data") = toInteger (length tl)
+    | (kind==K_S) && ((stringInToken t)=="data") = toInteger  ((length tl) - 1) -- because we skip the value
+    | kind==K_B = toInteger (length tl) -- rather 'ad hoc' but should do the job
+    | otherwise = 1

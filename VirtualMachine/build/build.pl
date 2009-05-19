@@ -20,7 +20,7 @@ getopts( 'hvNsVdbgcY:', \%opts );
 
 if ( $opts{'h'} or not scalar %opts) {
 	die "
-    Gannnet build script for VirtualMachine GannetVM
+    Gannet build script for VirtualMachine GannetVM
     $0 [opts] 
     -Y YAML-file.yml: SBA config file to use
     -v: verbose (for debugging)

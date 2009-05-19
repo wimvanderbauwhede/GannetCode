@@ -151,7 +151,7 @@
                     } else {
                     }
 #ifdef VERBOSE
-                    cout << "" <<service<< " parse_subtask(" <<parent_subtask<< "): storing K_B " <<ppPayload(elt_val)<< " in address " <<data_address<< ""<<endl;
+                    cout << "" <<service<< " parse_subtask(" <<parent_subtask<< "): storing " <<ppPayload(elt_val)<< " in address " <<data_address<< ""<<endl;
 #endif // VERBOSE
                     data_store.mput(data_address,elt_val);
                     symbol_table[data_address]=setStatus(symbol_table[data_address],DS_present);

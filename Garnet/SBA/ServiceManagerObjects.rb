@@ -40,6 +40,7 @@ require "SBA/Network.rb"
 require "SBA/Memory.rb"
 
 class SBA_RequestTable
+    attr_accessor :table
     def initialize
         @table=[]
         for i in 0..NREGS-1

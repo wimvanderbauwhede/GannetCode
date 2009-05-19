@@ -11,11 +11,8 @@ if ($s!~/^\-/ and $s ne "") {
     $infile=$s;
     print "input file: $infile\n";
 }
-if (-e "./dist/build/gannet/gannetc" and $s ne '-r'){
-    unlink "./dist/build/gannet/gannetc";
-}
-if (-e "./dist/build/Gannet/gannetc" and $s ne '-r'){
-    unlink "./dist/build/Gannet/gannetc";
+if (-e "./dist/build/gannetc/gannetc" and $s ne '-r'){
+    unlink "./dist/build/gannetc/gannetc";
 }
 #chdir "$wd/src";
 if ($s eq '-c') {

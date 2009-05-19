@@ -1301,7 +1301,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
     def SBA_SCLib.ls_PROC_MATRIX(sba_system,sba_tile,parent,addresses)#t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
         result_list=[] #C++ Word_List result_list;
-        operation=parent.opcode #t Uint
+#        operation=parent.opcode #t Uint
         first=true #t bool
         for address in addresses #t MemAddresses
             matrix=sba_tile.data_store.mget(address) #t Word_List

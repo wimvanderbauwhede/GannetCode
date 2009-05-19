@@ -221,7 +221,7 @@ end
     
     if ENV.has_key?('GANNET_DIR') and (SBA_YML=='SBA.yml')
 #cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/Garnet-HW/SBA.yml"))
-        cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/Garnet-HW/#{SBA_YML}"))
+        cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{SBA_YML}"))
     else
 #cfg = YAML.load(File.open('SBA.yml'))
         cfg = YAML.load(File.open(SBA_YML))

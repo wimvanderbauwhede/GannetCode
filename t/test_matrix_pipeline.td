@@ -1,3 +1,4 @@
+; SystemConfiguration: MatrixPipeline.SBA.yml
 ; simple test for pipeline of matrix operations
 (let
    '(buf 'b1 (a))

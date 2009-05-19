@@ -1260,7 +1260,7 @@ so we have:
                         #                    elt_val=[elt] #C++ elt_val.push_back(elt);
                     end
 #iv
-                    puts "#{@service} parse_subtask(#{parent_subtask}): storing K_B #{ppPayload(elt_val)} in address #{data_address}"
+                    puts "#{@service} parse_subtask(#{parent_subtask}): storing #{ppPayload(elt_val)} in address #{data_address}"
 #ev                                        
                     @sba_tile.data_store.mput(data_address,elt_val)
                     @symbol_table[data_address]=setStatus(@symbol_table[data_address],DS_present)
@@ -1503,6 +1503,7 @@ so we have:
             fsize=@subtask_list.fsize(@current_subtask) #t uint
             if mode==M_normal
                 results=@results_store #C++ Word_List results = (Word_List)results_store;
+                puts results.inspect #skip
                 packet_payload=getField(results,offset,fsize)
                 payload_length=packet_payload.length
             else
@@ -2043,15 +2044,14 @@ end # VM
         #iv
         if @debug_all or @service==@debug_service
             if @v #skip
-                puts "#{@service}: clean_up #{@current_subtask}:  ADDRESSES: #{args.inspect}" #skip
+                puts "#{@service}: clean_up #{@current_subtask}:  ADDRESSES: #{arg_addresses.inspect},nargs:#{nargs}" #skip
             else #skip
                 puts "#{@service}: clean_up #{@current_subtask}:  ADDRESSES: #{nargs}" #sysc
             end #skip
         end
         #ev
-#        for arg_address in args #t Word_List               
-#        for arg_address in @arg_addresses #t Word_List
-            for iter_ in 0..nargs-1 #t uint
+        if nargs>0
+        for iter_ in 0..nargs-1 #t uint
             arg_address=arg_addresses[iter_] #t MemAddress
             #iv
             if @debug_all or @service==@debug_service
@@ -2073,6 +2073,7 @@ end # VM
 
             end # if DS_present
         end # of for        
+        end
         
     end # of clean_up
     #endif

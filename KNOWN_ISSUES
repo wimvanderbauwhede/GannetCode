@@ -1,0 +1,29 @@
+Known Issues for Gannet release 0.1
+
+LAMBDA:
+
+(let
+ 	(assign 'f (lambda ...))
+	(apply (read 'f) ...)
+)
+
+does not work as the read call will fail because it's non-blocking. Instead, use either
+
+(let
+ 	(assign 'f (lambda ...))
+	'(apply (read 'f) ...)
+)
+
+or
+
+ (let
+ 	'(assign 'f (lambda ...))
+	'(apply (read 'f) ...)
+)
+or
+
+(let
+ 	(assign 'f (lambda ...))
+	(apply f ...)
+)
+

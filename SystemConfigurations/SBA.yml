@@ -1,66 +1,59 @@
+# For SystemC, it seems both service id and address must be contiguous
+# And we must have exactly 15 services!
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads], Addr: Service NoC Address }
+
 --- # SystemConfiguration.rb
 System:
-  NServices: 17 # Note all services with Addr> GATEWAY:Addr are ignored!
+  NServices: 15 # excluding gateway
   Services:
-    0: { GATEWAY: [0, sba_GATEWAY, 1], Addr: 17 }
-    1: { LET: [0, ls_LET, 1], Addr: 0 } 
-    2: { DCT1: [0, cs_DCT, 1], Addr: 2 }
-    3: { DCT2: [0, cs_DCT, 1], Addr: 3 }
-    4: { DCT3: [0, cs_DCT, 1], Addr: 4 }
-    5: { DCT4: [0, cs_DCT, 1], Addr: 5 }
-    6: { DCT5: [0, cs_DCT, 1], Addr: 6 }
-    7: { ALU: [0, ls_ALU, 1], Addr: 7 }
-    8: { DCT7: [0, cs_DCT, 1], Addr: 8 }
-    9: { DCT8: [0, cs_DCT, 1], Addr: 9 }
-    10: { DCT9: [0, cs_DCT, 1], Addr: 10 }
-    11: { DCT10: [0, cs_DCT, 1], Addr: 11 }
-    12: { DCT11: [0, cs_DCT, 1], Addr: 12 }
-    13: { DCT12: [0, cs_DCT, 1], Addr: 13 }
-    14: { DCT13: [0, cs_DCT, 1], Addr: 14 }
-    15: { DCT14: [0, cs_DCT, 1], Addr: 15 }
-    16: { DCT15: [0, cs_DCT, 1], Addr: 16 }
-    17: { DCT16: [0, cs_DCT, 1], Addr: 1 }
-    18: { LAMBDA: [0, ls_LAMBDA, 1], Addr: 19 }
-    19: { APPLY: [0, ls_APPLY, 1], Addr: 20 }
-    20: { ALU2: [0, ls_ALU, 1], Addr: 21 }
-    21: { FIFO: [0, ls_FIFO, 1], Addr: 22 }
-    22: { IO: [0, ls_IO, 1], Addr: 23 }
-    23: { IF: [0, ls_IF, 1], Addr: 24 }
+    0: { GATEWAY: [0, sba_GATEWAY, 1, [0, 0]], Addr: 15 }    
+    1: { IO: [0, ls_IO, 1, [1, 1]], Addr: 3 }
+    2: { BEGIN: [0, ls_BEGIN, 1, [1, 1]], Addr: 2 }    
+    3: { LET: [0, ls_LET, 1, [1, 1]], Addr: 1 }
+    4: { IF: [0, ls_IF, 1, [0, 0]], Addr: 4 }    
+    5: { RAND: [0, ls_RAND, 1, [0, 0]], Addr: 5 }            
+    7: { ALU: [0, ls_ALU, 1, [0, 1]], Addr: 7 }   
+    8: { APPLY: [0, ls_APPLY, 1, [0, 0]], Addr: 8 }     
+    9: { LAMBDA: [0, ls_LAMBDA, 1, [0, 0]], Addr: 9 }    
+    10: { NONE2: [0, none, 1, [0, 0]], Addr: 10 }
+    11: { NONE3: [0, none, 1, [0, 0]], Addr: 11 }
+    12: { NONE4: [0, none, 1, [0, 0]], Addr: 12 }
+    13: { NONE5: [0, none, 1, [0, 0]], Addr: 13 }
+    14: { NONE6: [0, none, 1, [0, 0]], Addr: 14 }
+    15: { NONE7: [0, none, 1, [0, 0]], Addr: 0 }
+    6: { NONE8: [0, none, 1, [0, 0]], Addr: 6 }     
+    
   Aliases:
-  # Alias Name: [Service Name, Not Used, Opcode]
-    NONE: [NONE, 0, 0]
-    'plus': [ALU, 20, 9]
-    minus: [ALU, 20, 10]
-    times: [ALU, 20, 11]
-    over: [ALU, 20, 12]
-    lt: [ALU, 20, 13]
-    gt: [ALU, 20, 14]
-    eq: [ALU, 20, 15]
-    not: [ALU, 20, 21] # (! 1) :  0; (! 0) :  1; otherwise :  Error
-    ASSIGN: [LET, 1, 1]
-    UPDATE: [LET, 1, 3]
-    READ: [LET, 1, 2]
-    LIST: [LET, 1, 4]
-    HEAD: [LET, 1, 5]
-    TAIL: [LET, 1, 6]
-    LENGTH: [LET, 1, 7]
-    CONS: [LET, 1, 8]
-    APPEND: [LET, 1, 9]
-    LETTC: [LET, 1, 10]
-    APPLYTC: [APPLY, 19, 1]
-    RETURN: [IF, 23, 1]
-    IFTC: [IF, 23, 2]
-    RETURNTC: [IF, 23, 3]
-    BUFFER: [FIFO, 21, 1]
-    STREAM: [FIFO, 21, 2]
-    GET: [FIFO, 21, 3]
-    PEEK: [FIFO, 21, 4]
-    EOS: [FIFO, 21, 5]
-    FOPEN: [IO, 22, 1]
-    FCLOSE: [IO, 22, 2]
-    IOREAD: [IO, 22, 3]
-    IOWRITE: [IO, 22, 4]
-    DISPLAY: [IO, 22, 5]
+  # Alias Name: [Service Name, Service Id, Opcode]
+    NONE: [NONE, 0, 0, [0, 0]]
+    'plus': [ALU, 7, 9, [0, 1]]
+    minus: [ALU, 7, 10, [0, 1]]
+    times: [ALU, 7, 11, [0, 1]]
+    over: [ALU, 7, 12, [0, 18]]
+    lt: [ALU, 7, 13, [0, 1]]
+    gt: [ALU, 7, 14, [0, 1]]
+    eq: [ALU, 7, 15, [0, 1]]
+    not: [ALU, 7, 21, [0, 1]] # (! 1) :  0; (! 0) :  1; otherwise :  Error
+    RETURN: [IF, 4, 1, [0, 0]]    
+    RETURNTC: [IF, 4, 2, [0, 0]]
+    IFTC: [IF, 4, 3, [0, 0]]
+    FOPEN: [IO, 1, 1, [0, 0]]
+    FCLOSE: [IO, 1, 2, [0, 0]]
+    IOREAD: [IO, 1, 3, [0, 0]]
+    IOWRITE: [IO, 1, 4, [0, 0]]
+    DISPLAY: [IO, 1, 5, [0, 0]]
+    ASSIGN: [LET, 3, 1, [0, 0]]
+    UPDATE: [LET, 3, 3, [0, 0]]
+    READ: [LET, 3, 2, [0, 0]]
+    LIST: [LET, 3, 4, [0, 0]]
+    HEAD: [LET, 3, 5, [0, 0]]
+    TAIL: [LET, 3, 6, [0, 0]]
+    LENGTH: [LET, 3, 7, [0, 0]]
+    CONS: [LET, 3, 8, [0, 0]]
+    APPEND: [LET, 3, 9, [0, 0]]
+    LETTC: [LET, 3, 10, [0, 0]]
+    APPLYTC: [APPLY, 8, 1, [0, 0]]
   ALU_Names:
     '+': 'plus'
     '-': minus
