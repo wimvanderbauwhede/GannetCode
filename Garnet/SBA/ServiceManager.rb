@@ -821,7 +821,7 @@ end # of activate_subtask_helper
                     #iv
                     if @debug_all or @service==@debug_service
                     puts "#{@service} store_data() : stored payload #{data_packet_payload.inspect} at address #{data_address}" #skip
-                        puts "#{@service} store_data() STATUS: "
+                        puts "#{@service} store_data() address #{data_address} STATUS: "
                         puts getStatus(@symbol_table[data_address]) #C++ cout << (int)getStatus(symbol_table[data_address])<<"\n";
                     end
                     #ev
@@ -855,7 +855,11 @@ end # of activate_subtask_helper
                         end
                         #ev                                                
                     end
-
+                    #iv
+                    if @debug_all or @service==@debug_service
+                        puts "#{@service} store_data() done for #{data_address} of subtask #{subtask}" #sysc
+                    end
+                    #ev  
             end # not STS_deleted
                 #WV25112008: I think this is obsolete. The compiler rewrites CACHE calls as VAR calls
                 # But maybe it is still possible to call a VAR before it's there? I think not:
@@ -888,7 +892,8 @@ end # of activate_subtask_helper
                 #                else # DS_present; but it might be streaming data
                 #                    # if present and not streaming, ignore data
             end # if status !=1
-        end # of while
+                       
+        end # of while        
     end # of store_data
     # -----------------------------------------------------------------------------
     # Dispatch data packets in answer to a request packet
@@ -1270,16 +1275,15 @@ so we have:
             end # while def-subtask is not fully parsed
 
             # Now we can update the subtask status. You never know if all packets are already there!
-            if  @subtask_list.status(parent_subtask)==STS_new
+            if  @subtask_list.status(parent_subtask)==STS_new and @subtask_list.nargs_absent(parent_subtask)==0
  
                     # WV 15042009: in the SystemC model nargs_absent can be updated in store_data() leading to
                 # the subtask being pushed twice. So we use an internal counter instead of the subtask list field as condition
 #                if  @subtask_list.nargs_absent(parent_subtask)==0
-                if nargs_absent==0                    
+#                if nargs_absent==0                    
                     @subtask_list.status(parent_subtask,STS_pending)
                     @pending_subtasks_fifo.push(parent_subtask)
-                end
-
+#                end
             end
             #iv
             if @debug_all or @service==@debug_service

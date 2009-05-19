@@ -101,6 +101,8 @@ private:
 template <typename ADDR_T, typename DATA_T>
 void SC_store_data <ADDR_T, DATA_T> :: do_proc()
 {
+#include "../gensrc/ServiceManager/store_data.cc"
+/*
 #ifdef VERBOSE
 //if (debug_all or service==debug_service){
     cout << "" <<service<< " store_data()"<<endl;
@@ -189,6 +191,8 @@ void SC_store_data <ADDR_T, DATA_T> :: do_proc()
             }//if(subtask_list.status(subtask)!=STS_deleted)
         }//if(getStatus(symbol_table[data_address])!=DS_present)
     }//while(true)
+*/
+
 }// funct: SC_store_data :: do_proc()
 
 } //namespace: SC_SBA

@@ -1,7 +1,7 @@
         uint nargs=arg_addresses.size();
 #ifdef VERBOSE
         if (debug_all or service==debug_service){
-                
+                OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "" <<service<< ": clean_up " <<current_subtask<< ":  ADDRESSES: " <<nargs<< "" <<endl; 
         }
 #endif // VERBOSE
             for(uint iter_=0;iter_<=nargs-1 ;iter_++) {

@@ -165,17 +165,14 @@
 #endif // VERBOSE
             } 
 
-            if ( subtask_list.status(parent_subtask)==STS_new){
+            if ( subtask_list.status(parent_subtask)==STS_new and subtask_list.nargs_absent(parent_subtask)==0){
  
-                if (nargs_absent==0                    ){
                     subtask_list.status(parent_subtask,STS_pending);
                     pending_subtasks_fifo.push(parent_subtask);
-                }
-
             }
 #ifdef VERBOSE
             if (debug_all or service==debug_service){
-                
+                OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "" <<service<< " parse_subtask(" <<parent_subtask<< "): end parsing " <<parent_subtask<< "" <<endl; 
             }
 #endif // VERBOSE
         } // of while subtask fifo not empty

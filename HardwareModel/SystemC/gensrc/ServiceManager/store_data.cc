@@ -60,7 +60,7 @@
                     
 #ifdef VERBOSE
                     if (debug_all or service==debug_service){
-                        cout << "" <<service<< " store_data() STATUS: "<<endl;
+                        cout << "" <<service<< " store_data() address " <<data_address<< " STATUS: "<<endl;
                          cout << (int)getStatus(symbol_table[data_address])<<"\n";
                     }
 #endif // VERBOSE
@@ -94,8 +94,13 @@
                         }
 #endif // VERBOSE
                     }
-
+#ifdef VERBOSE
+                    if (debug_all or service==debug_service){
+                        OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "" <<service<< " store_data() done for " <<data_address<< " of subtask " <<subtask<< "" <<endl; 
+                    }
+#endif // VERBOSE
             } 
 
             } 
-        } // of while
+                       
+        } // of while        

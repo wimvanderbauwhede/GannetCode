@@ -31,14 +31,14 @@
             bool is_subtask_packet = (getPacket_type(getHeader(subtask_code_packet))==P_subtask);
             if (is_subtask_packet or code_status[code_address]&1==1){
 #ifdef VERBOSE
-                
+                OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "" <<service<< " store_subtask_code(): activate " <<code_address<< " now!" <<endl; 
 #endif // VERBOSE
                 code_status[code_address]=code_status[code_address]&2;
                 activate_subtask_helper(code_address,tservice_id,subtask_code_packet,is_subtask_packet);
             }
 #ifdef VERBOSE
             if (debug_all or service==debug_service){
-                
+                OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "" <<service<< " store_subtask_code(): stored " <<code_label<< " at " <<code_address<< "" <<endl; 
             }
 #endif // VERBOSE
         }

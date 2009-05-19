@@ -379,7 +379,7 @@ while (<CC>) {
 			}
 			print $line unless ( $H and $in_method );
 			next;
-        } elsif ( $marker eq 'sysc' ) { # this line has SystemC code
+        } elsif ( $marker eq 'sysc') { # this line has SystemC code
             if ( !$SYSC or $H or ( $skip == 1 ) or ( $skipv == 1 )) {
                 next;
             }
@@ -504,7 +504,7 @@ while (<CC>) {
 
  # -----------------------------------------------------------------------------
  # #sysc
- if ($line =~ /^(\s*).*?\#sysc/) {
+ if ($line =~ /^(\s*).*?\#sysc/ and $line!~/puts|print|cout/) {
     if ( $SYSC and $line =~ s/^(\s*).*?\#sysc/$1/ ) { # replace Ruby code by this systemc code
         print $line unless ( $skipv == 1 );
         next;

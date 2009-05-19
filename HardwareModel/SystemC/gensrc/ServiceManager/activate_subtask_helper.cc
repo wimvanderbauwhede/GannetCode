@@ -36,7 +36,7 @@
             code_status[task_address]=2;
         } else { 
 #ifdef VERBOSE
-            
+            OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "DEFER ACTIVATION " <<task_address<< ":" <<code_status[task_address]<< "" <<endl; 
 #endif // VERBOSE
             code_status[task_address]=1;
         }
