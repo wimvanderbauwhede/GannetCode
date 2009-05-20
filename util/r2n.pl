@@ -1,4 +1,9 @@
 #!/usr/bin/perl
+
+# *
+# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+# *  
+
 # $Id: r2n.pl 2547 2009-05-08 11:28:47Z socgroup $
 use warnings;
 use strict;

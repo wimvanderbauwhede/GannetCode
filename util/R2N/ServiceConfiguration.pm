@@ -1,4 +1,9 @@
 package R2N::ServiceConfiguration;
+
+# *
+# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+# *  
+
 # $Id: ServiceConfiguration.pm 2534 2009-04-23 11:21:04Z socgroup $
 use vars qw( $VERSION );
 $VERSION = "1.0.0";

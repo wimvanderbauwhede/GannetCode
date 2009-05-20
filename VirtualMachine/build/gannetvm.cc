@@ -1,10 +1,5 @@
-// Copyright Vladimir Prus 2002-2004.
-// Distributed under the Boost Software License, Version 1.0.
-// (See accompanying file LICENSE_1_0.txt
-// or copy at http://www.boost.org/LICENSE_1_0.txt)
-
 /*
- *  g++ -I/usr/include/boost/ -lboost_program_options  gannet.cc
+ *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
  */
 
 #ifdef TOP_CYCLES
@@ -35,13 +30,6 @@ namespace po = boost::program_options;
 using namespace std;
 using namespace SBA;
 
-//// A helper function to simplify the main part.
-//template<class T>
-//ostream& operator<<(ostream& os, const vector<T>& v)
-//{
-//    copy(v.begin(), v.end(), ostream_iterator<T>(cout, " "));
-//    return os;
-//}
 #ifdef WV_SYSTEMC
 int sc_main(int ac, char *av[]) {
 #else

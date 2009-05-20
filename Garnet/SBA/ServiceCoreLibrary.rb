@@ -1,50 +1,12 @@
 # ServiceCoreLibrary.rb
 #   
-# :title: Service-based SoC project - Service Core Library 
-#
-#    This version of Gannet is for compile-time decomposition and lexical scoping.
-#    It does not work with the "old" system any more!!
-#    This is the version to be ported to SystemC
-#    -"values" is deprecated, we pass on addresses!
-#    -The language services are minimal:
-#    LET x
-#    ASSIGN x
-#    LAMBDA 
-#    APPLY 
-#    IF x
-#    We'll keep BEGIN, though I see no use for it
-#    -List manipulation services need a total rework. Initially, we'll support
-#    LIST
-#    HEAD
-#    TAIL
-#    LENGTH
-#    CONCAT
-#    and maybe CONS
-#    
-#    -ALU services are as before: x
-#    +,-,*,/;<,==,>
-#    Guess we should add AND, OR, NOT
+# :title: Gannet Service-based SoC project - Service Core Library 
 #    
 #--
 #
-#/* ***** BEGIN LICENSE BLOCK *****
-# * Version: AFL 2.1
 # *
-# * The contents of this file are subject to the Academic Free License Version
-# * 2.1 (the "License"); you may not use this file except in compliance with
-# * the License. You may obtain a copy of the License at
-# * http://opensource.org/licenses/afl-2.1.php
-# *
-# * Software distributed under the License is distributed on an "AS IS" basis,
-# * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# * for the specific language governing rights and limitations under the
-# * License.
-# *
-# *  (c) 2004-2005 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 # *  
-# *
-# * ***** END LICENSE BLOCK ***** */
-#
 #
 #// $Id: ServiceCoreLibrary.rb 2532 2009-04-22 16:15:08Z socgroup $
 #++
