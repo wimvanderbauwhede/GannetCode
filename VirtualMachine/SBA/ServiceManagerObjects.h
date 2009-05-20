@@ -158,7 +158,7 @@ class RequestTable {
 	//------------------------------------------------------------------------------
     RequestTable () {
             for (unsigned int i=0;i<NREGS;i++) {
-                Word_List emptywl;
+                Requests emptywl;
                 requests_table.push(emptywl);
             }
         };
