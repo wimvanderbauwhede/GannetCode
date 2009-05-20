@@ -831,7 +831,8 @@ end # of activate_subtask_helper
                                 if @debug_all or @service==@debug_service
                                     puts "#{@service} store_data() SUBTASK: #{subtask}"
                                 end
-                #ev                                
+                #ev          
+                #sysc            subtask_list.lock();                      
                 if @subtask_list.status(subtask)!=STS_deleted
                     @subtask_list.decr_nargs_absent(subtask)
                     #iv
@@ -861,6 +862,7 @@ end # of activate_subtask_helper
                     end
                     #ev  
             end # not STS_deleted
+                #sysc            subtask_list.unlock();
                 #WV25112008: I think this is obsolete. The compiler rewrites CACHE calls as VAR calls
                 # But maybe it is still possible to call a VAR before it's there? I think not:
                 # (S0 (S1 (cache 'c1 (S2 ...)) (cache 'c2 (S3 ...)) (S4 c1) c2))
@@ -1275,16 +1277,25 @@ so we have:
             end # while def-subtask is not fully parsed
 
             # Now we can update the subtask status. You never know if all packets are already there!
+#sysc            subtask_list.lock();
             if  @subtask_list.status(parent_subtask)==STS_new and @subtask_list.nargs_absent(parent_subtask)==0
  
                     # WV 15042009: in the SystemC model nargs_absent can be updated in store_data() leading to
                 # the subtask being pushed twice. So we use an internal counter instead of the subtask list field as condition
+#WV20052009 The real issue is this: between parse_subtask() reading the status and setting it to STS_pending,
+# it is possible for store_data() to read the status and still find STS_new() and so proceed to push the subtask
+# In the other direction, beween the time store_data() reads the status and sets it to STS_pending, 
+# parse_subtask() can read it and find STS_new(). So we need a locking mechanism here. What we need is that 
+# between reading and writing, the process keeps the entry locked.   
+                
+                                                
 #                if  @subtask_list.nargs_absent(parent_subtask)==0
 #                if nargs_absent==0                    
                     @subtask_list.status(parent_subtask,STS_pending)
-                    @pending_subtasks_fifo.push(parent_subtask)
+                    @pending_subtasks_fifo.push(parent_subtask)                    
 #                end
             end
+#sysc               subtask_list.unlock();            
             #iv
             if @debug_all or @service==@debug_service
                 puts "#{@service} parse_subtask(#{parent_subtask}): end parsing #{parent_subtask}" #sysc

@@ -219,7 +219,8 @@ class port_SC_SubtaskList_if  :
     public sc_port<SC_SubtaskList_if>
 {
 public:
-
+    void                    lock() { (*this)->lock(); }
+    void                    unlock() { (*this)->unlock(); }
 
     void                    add                 (const Subtask subtask)                             { (*this)->add              (subtask); }
     void                    remove              (const Subtask subtask)                             { (*this)->remove           (subtask); }

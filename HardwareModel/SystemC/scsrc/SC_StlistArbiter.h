@@ -68,9 +68,27 @@ class SC_StlistArbiter_intchannel :
 public:
     // --------------------------- Ports ----------------------------------------------
     sc_port<sc_mutex_if>        p_mutex;    //!< port for shared mutex channel
+    sc_inout<bool>				keep_lock;
     sc_port<SC_SubtaskList_if > pwr_slave;  //!< for accessing subtask_list; propogated to the slave_port of parent Arbiter
 
     // --------------------------- Interface Methods Implemented (Mutexed) ------------
+    void lock() {
+    	if (!keep_lock.read()) {
+    		keep_lock.write(true);
+    		OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<name()<<":" << "Set KEEP_LOCK on status\n";
+    	} else {
+    		OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<name()<<":"  << "Failed to set KEEP_LOCK on status\n";
+    	}
+    }
+    void unlock() {
+    	if (keep_lock.read()) {
+    		keep_lock.write(false);
+    		OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<name()<<":"  << "Removed KEEP_LOCK on status\n";
+    	} else {
+    		OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<name()<<":"  << "Failed to remove KEEP_LOCK on status\n";
+    	}
+    }
+
     void                    add                 (const Subtask subtask)
     {
         p_mutex->lock();
@@ -104,13 +122,21 @@ public:
     {
         p_mutex->lock();
         Subtask_Status local = pwr_slave->status           (subtask);
-        p_mutex->unlock();
+        if (!keep_lock) {
+        	p_mutex->unlock();
+        } else {
+        	OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<name()<<":"  << "KEEPING status LOCKED after read\n";
+        }
         return(local);
     }
 
     void                    status              (const Subtask subtask, Subtask_Status status_)
     {
+    	if (!keep_lock) {
         p_mutex->lock();
+    	} else {
+    		OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<name()<<":"  << "status is LOCKED on write\n";
+    	}
         pwr_slave->status           (subtask, status_);
         p_mutex->unlock();
     }
@@ -421,6 +447,7 @@ public:
     SC_StlistArbiter_intchannel master2arb8;
 
     sc_mutex slave_mutex;   //!< To have MUTEX access to the slave port
+    sc_signal<bool> keep_lock;
 
     // overload sc_module.kind() to return a more appropriate class name
     virtual const char* kind() const
@@ -438,7 +465,8 @@ public:
         master2arb5("master2arb5"),
         master2arb6("master2arb6"),
         master2arb7("master2arb7"),
-        master2arb8("master2arb8")
+        master2arb8("master2arb8"),
+        keep_lock(false)
     {
         // Bindings
         // ========
@@ -476,6 +504,15 @@ public:
         master2arb7.p_mutex(slave_mutex);
         master2arb8.p_mutex(slave_mutex);
 
+        // Bind keep_lock ports of master2arb channels to the local keep_lock signal
+        master2arb1.keep_lock(keep_lock);
+        master2arb2.keep_lock(keep_lock);
+        master2arb3.keep_lock(keep_lock);
+        master2arb4.keep_lock(keep_lock);
+        master2arb5.keep_lock(keep_lock);
+        master2arb6.keep_lock(keep_lock);
+        master2arb7.keep_lock(keep_lock);
+        master2arb8.keep_lock(keep_lock);
         // debug message...
         const_debug_msg(name(),kind());
     }

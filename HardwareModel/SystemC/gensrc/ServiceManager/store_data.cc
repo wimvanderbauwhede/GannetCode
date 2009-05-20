@@ -71,6 +71,7 @@
                                     cout << "" <<service<< " store_data() SUBTASK: " <<subtask<< ""<<endl;
                                 }
 #endif // VERBOSE
+                            subtask_list.lock();                      
                 if (subtask_list.status(subtask)!=STS_deleted){
                     subtask_list.decr_nargs_absent(subtask);
 #ifdef VERBOSE
@@ -100,6 +101,7 @@
                     }
 #endif // VERBOSE
             } 
+                            subtask_list.unlock();
 
             } 
                        

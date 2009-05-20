@@ -80,6 +80,8 @@ public:
     // ---------------------------- METHODS ------------------------------------
     // The following SC_SubtaskList_if interface methods are implemented in this module and exported
     // They correspond to the access methods of the SBA::Subtask_List class.
+    void lock () {}
+    void unlock () {}
     void                    add                 (const Subtask subtask)                             {
     																									_STLIST_WRITE_DLY; // must at least reset status
     																									my_stlist.add              (subtask);

@@ -299,6 +299,8 @@ class SC_SubtaskList_if  :
 public:
 
 //    SubtaskMap subtasks_list;
+    virtual void                    lock                 ()=0;
+    virtual void                    unlock              ()=0;
 
     virtual void                    add                 (const Subtask subtask)=0;
     virtual void                    remove              (const Subtask subtask)=0;
