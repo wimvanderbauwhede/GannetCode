@@ -79,9 +79,9 @@ class SBA_Transceiver
     def run()
 #        puts "Running Transceiver at #{@service} @#{@address}"
         # - Check if there are new packets and receive them (i.e. put in RX FIFO)
-if OLDVM==0
+if VM==0
         receive_packets()
-end # OLDVM        
+end # VM        
         # If there are any packets in the TX FIFO, dispatch them
         transmit_packets()	
     end #  of run()
@@ -92,7 +92,7 @@ end # OLDVM
     # This is the main receiver module. 
     # It simply transfers all packets from the local node switch's tx_fifo
     # to the local rx_fifo
-if OLDVM==0
+if VM==0
     def receive_packets() 
     #system    
 #iv
@@ -107,7 +107,7 @@ if OLDVM==0
             @rx_fifo.push(tmp_packet);  
         end # while there are packets to be received.         
     end # of receive_packets
-end # OLDVM    
+end # VM    
     # -----------------------------------------------------------------------------
     
     def transmit_packets() 
@@ -134,9 +134,9 @@ end # OLDVM
 #C++                 cout << "" <<(int)getType(getHeader(packet))<< " " <<getReturn_as(getHeader(packet))<< " to " <<sba_system.service_by_address(dest)<< " (addr:" <<dest<< ")\n";
 
 #ev
-if OLDVM==0    
+if VM==0    
                 @sba_system.network.rx_fifo[@address].push(packet)
-else # OLDVM==1
+else # VM==1
                 if dest==@sba_system.gw_address # GW
                     @sba_system.gw_instance.transceiver.rx_fifo.push(packet)              
                 else 
@@ -147,7 +147,7 @@ else # OLDVM==1
                         @sba_system.bridge.transceiver.rx_fifo.push(packet)
                     end                    
                 end
-end # OLDVM                
+end # VM                
             end
         end
     end # of transmit_packets

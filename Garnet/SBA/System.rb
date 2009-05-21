@@ -205,11 +205,11 @@ end # DATA
     # ---------------------------------------------------------------------------
 #ifndef SYSC
     def run()
-if OLDVM==0
+if VM==0
         @network.run()
-else # OLDVM==1
+else # VM==1
         @bridge.run()
-end # OLDVM
+end # VM
         @gw_instance.run(self) #s/self//
 
         if (@gw_instance.finished==false) 
@@ -224,17 +224,17 @@ i=0 #skip
 #iv
 #                    puts "Running Tile #{i}: service id:#{service_instance.service}; address: #{service_instance.address}" 
 #ev                    
-if OLDVM==0
+if VM==0
                 if true and (service_instance.status or (@network.tx_fifo[service_instance.address].length>0))
 #                puts "STATUS #{service_instance.service} (#{service_instance.address}): #{service_instance.status or (@network.tx_fifo[service_instance.address].length>0)}"
                     service_instance.run(self) #s/self//	
                 end		
-else # OLDVM==1
+else # VM==1
                 if true and (service_instance.status or service_instance.transceiver.rx_fifo.status)
 #                puts "STATUS #{service_instance.service} (#{service_instance.address}): #{service_instance.status or (@network.tx_fifo[service_instance.address].length>0)}"
                     service_instance.run(self) #s/self//	
                 end	
-end # OLDVM                
+end # VM                
                 i=i+1 #skip
             end         
 #iv
@@ -249,11 +249,11 @@ end # OLDVM
 if USE_THREADS==1
 
     def run_th()
-if OLDVM==0
+if VM==0
         @network.run_th()
-else # OLDVM==1
+else # VM==1
         @bridge.run_th()
-end # OLDVM
+end # VM
         @gw_instance.run_th(self)  #s/self//
 
 #iv     		            
@@ -261,11 +261,11 @@ end # OLDVM
 #ev         
             for service_instance in @instances #C++ for (uint i=0;i<NSERVICES;i++) {          
 #C++                 Tile& service_instance=*instances[i];            
-if OLDVM==0
+if VM==0
                     service_instance.run_th(self) #s/self//	
-else # OLDVM==1
+else # VM==1
                     service_instance.run_th(self) #s/self//	
-end # OLDVM                
+end # VM                
             end         
 #iv
         print "\n";            

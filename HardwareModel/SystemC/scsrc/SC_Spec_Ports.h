@@ -8,7 +8,7 @@
 *-----------------|-----------------------------------------------------------------------------------------
 *  Created        | 21-Dec-2008. Livingston, Scotland
 *-----------------|-----------------------------------------------------------------------------------------
-*  Origial Author | Syed Waqar Nabi, System Level Integration Ltd.
+*  Original Author | Syed Waqar Nabi, System Level Integration Ltd.
 *                 |
 *-----------------|-----------------------------------------------------------------------------------------
 *  Description    | Specialized Port classes for use in the SystemC SBA model.
@@ -21,7 +21,11 @@
 *                 |
 *                 |
 ************************************************************************************************************
+
+  (c) 2008-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>, Syed Waqar Nabi
+
 */
+
 
 #ifndef SC_SPEC_PORTS_H_
 #define SC_SPEC_PORTS_H_

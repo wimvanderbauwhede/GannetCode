@@ -105,7 +105,7 @@ end
     # ==============================================================================
     def parse_task_description()
     #tile
-    #system
+#    #system
     #iv
 #        puts "Gateway: parse_task_description()"
 #        puts "status: #{@core_status}; io_mech: #{@sba_system.io_mech}"

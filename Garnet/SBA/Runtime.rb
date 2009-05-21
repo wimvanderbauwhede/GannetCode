@@ -101,6 +101,7 @@ if USE_THREADS==0
 else #  USE_THREADS==1
         @sba.run_th()
 end # USE_THREADS   
+        return @sba.results
 	end
 
 #H }; // Clas Runtime

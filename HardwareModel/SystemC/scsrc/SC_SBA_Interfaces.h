@@ -8,7 +8,7 @@
 *-----------------|-----------------------------------------------------------------------------------------
 *  Created        | December 2008. Livingston, Scotland
 *-----------------|-----------------------------------------------------------------------------------------
-*  Origial Author | Syed Waqar Nabi, System Level Integration Ltd.
+*  Original Author | Syed Waqar Nabi, System Level Integration Ltd.
 *                 |
 *-----------------|-----------------------------------------------------------------------------------------
 *  Description    | Interface declarations for the SBA
@@ -21,7 +21,11 @@
 *                 |
 *                 |
 ************************************************************************************************************
+
+  (c) 2008-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>, Syed Waqar Nabi
+
 */
+
 
 #ifndef SBA_INTERFACE_H
 #define SBA_INTERFACE_H

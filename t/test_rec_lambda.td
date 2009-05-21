@@ -5,5 +5,5 @@
 			'(return acc)
 			'(apply (read f_) (- n '1) (* acc n) f_)
 		)))
-	(apply (read 'fact) '5 '1 'fact)
+	'(apply (read 'fact) '5 '1 'fact)
 ) ; => 120

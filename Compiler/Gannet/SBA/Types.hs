@@ -241,7 +241,7 @@ showGS s =
             | kind s == K_D =":<"++(show (mode s))++":"++(show (reg s))++">"
             | otherwise = ""
     in
-        (showGSK (kind s)) ++ ":" ++ (showGDT (datatype s)) ++ ":" ++ (show (ext s)) ++":" ++ (show (quoted s)) ++ ":" ++ (show (task s)) ++ ":" ++ (show (subtask s)) ++ ":" ++ (show n) ++ ";C:" ++ (show (count s))  ++ ";L:" ++ (show (lambda s))++mode_reg 
+        (showGSK (kind s)) ++ ":" ++ (showGDT (datatype s)) ++ ":" ++ (show (ext s)) ++":" ++ (show (quoted s)) ++ ":" ++ (show (task s)) ++ ":" ++ (show (subtask s)) ++ ":" ++ (show n) ++ "\t\t\t\t\t\t\t\t;C:" ++ (show (count s))  ++ ";L:" ++ (show (lambda s))++mode_reg 
 
 
 instance Show GannetSymbol where show = showGS

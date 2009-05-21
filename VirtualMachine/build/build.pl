@@ -16,9 +16,9 @@ if ($os=~/Linux/) {
     }
     
 my %opts;
-getopts( 'hvNsVdbgcY:', \%opts );
+getopts( 'hvNsHdbgcY:', \%opts );
 
-if ( $opts{'h'} or not scalar %opts) {
+if ( $opts{'h'} ) {
 	die "
     Gannet build script for VirtualMachine GannetVM
     $0 [opts] 
@@ -26,8 +26,8 @@ if ( $opts{'h'} or not scalar %opts) {
     -v: verbose (for debugging)
     -N: Don't generate C++ sources from Ruby code
     -s: static allocation
-    -V: VM (default is HW)
-	-X: cross-compile for Linux on PPC
+    -H: model HW (default is VM)
+    -X: cross-compile for Linux on PPC
     -g: generate SystemConfiguration.h from YAML-file, don't build
     -b: build only, don't generate
     -c: clean
@@ -46,7 +46,7 @@ my $scons_nogen=$opts{'N'}?'nogen=1':'';
 my $scons_v=$verbose?'v=1':'';
 my $scons_d=$debug?'dbg=1':'';
 my $scons_dyn=$opts{'s'}?'':'dyn=1';
-my $scons_vm=$opts{'V'}?'vm=1':'';
+my $scons_vm=$opts{'H'}?'':'vm=1';
 my $scons_xc=$opts{'X'}?'xc=1':'';
 
 my $ymlfile = $opts{'Y'}||"$gannet_dir/SystemConfigurations/SBA.yml";

@@ -141,7 +141,8 @@ Bytecode Interface::read_bytecode(uint status){ //H
     def send(result,taskid) #t void (Word_List&;uint)
     #C++ System& sba_system=*((System*)sba_system_ptr);
         if @sba_system.io_mech==0 # socket IO                
-            fd=@iodescs[taskid] #t uint
+#            fd=@iodescs[taskid] #t uint
+#C++        gserver.sendResultToClient(result);            
         else # io_mech==1
    
 #ifdef TIMINGS
@@ -158,20 +159,24 @@ Bytecode Interface::read_bytecode(uint status){ //H
                         int_result=to_signed_int_list(result_payload) #t deque<Int>
                         first=true #t bool
                         for elt in int_result #t deque<Int>
-                            if (elt > -0x22FFFFFF and elt < 0xDD000000) or not first
-                            print elt ," " 
-                            first=false
+#                            if (elt > -0x22FFFFFF and elt < 0xDD000000) or not first
+                            if first
+                                print "0x#{sprintf('%x',elt)} "  #C++ cout << "0x" << hex << elt << " ";
+                                first=false
+                            else
+                                print elt, " " #C++ cout << dec << elt << " ";
                             end
                         end
                     else # FP==1
                         flt_result=to_float_list(result_payload) #t Double_List
                         first=true #t bool
-			                  for elt in flt_result #t Double_List
-                            #print elt ," " 
-                            if (elt > -0x22FFFFFF and elt < 0xDD000000) or not first
-                              print elt ," " 
-                              first=false
-			                      end
+			            for elt in flt_result #t Double_List
+                              if first
+                                  print "0x#{sprintf('%x',elt)} "  #C++ cout << "0x" << hex << elt << " ";
+                                  first=false
+                              else
+                                  print elt, " " #C++ cout << dec << elt << " ";
+                              end
                         end
                     end # FP
 #iv

@@ -5,7 +5,7 @@ use Getopt::Std;
 my $gannet_dir = $ENV{GANNET_DIR};
 
 my %opts;
-getopts( 'hY:', \%opts );
+getopts( 'hpso:vwVY:', \%opts );
 
 if ( $opts{'h'} or (not scalar %opts and not @ARGV)) {
 	die "
@@ -20,6 +20,14 @@ if ( $opts{'h'} or (not scalar %opts and not @ARGV)) {
 my $tdfile=shift @ARGV;
 my $verbose= $opts{'v'}?1:0;
 my $ymlfile = $opts{'Y'}||"$gannet_dir/SystemConfigurations/SBA.yml";
+my $flags='';
+$flags=$opts{'p'}?' -p':'';
+$flags.=$opts{'s'}?' -s':'';
+$flags.=$opts{'v'}?' -v':'';
+$flags.=$opts{'w'}?' -w':'';
+$flags.=$opts{'V'}?' -V':'';
+$flags.=$opts{'o'}?" -o $opts{'o'}":'';
+
 open(my $TD, '<', $tdfile);
 while (my $line=<$TD>) {
 	if ($line=~/^\s*\;\s*[Ss]ys(?:tem)*\s*[cC]onfig(?:uration)*\s*[\:\=\/]?\s*([\w\.]+)/) {
@@ -36,5 +44,5 @@ while (my $line=<$TD>) {
 }
 close $TD;
 
-system("gannetc -Y $ymlfile $tdfile");
+system("gannetc $flags -Y $ymlfile $tdfile");
 

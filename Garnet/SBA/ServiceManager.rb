@@ -1,28 +1,14 @@
 #
-# Service-based SoC project - Service Manager class
+# Gannet Service-based SoC project - Service Manager class
 #
 #
-#/* ***** BEGIN LICENSE BLOCK *****
-# * Version: AFL 2.1
-# *
-# * The contents of this file are subject to the Academic Free License Version
-# * 2.1 (the "License") you may not use this file except in compliance with
-# * the License. You may obtain a copy of the License at
-# * http://opensource.org/licenses/afl-2.1.php
-# *
-# * Software distributed under the License is distributed on an "AS IS" basis,
-# * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# * for the specific language governing rights and limitations under the
-# * License.
-# *
-# *  (c) 2004-2005 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *
-# *
-# * ***** END LICENSE BLOCK ***** */
+#
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+#
 #
 # ==============================================================================
 #
-#  Service-based SoC project - Service Manager class
+#  Gannet Service-based SoC project - Service Manager class
 #
 # ==============================================================================
 #
@@ -66,7 +52,7 @@ class SBA_ServiceManager
     attr_accessor :data_fifo,:subtask_fifo,:request_fifo, #t Packet_Fifo;Word_List;Packet_Fifo;
     :subtask_reference_fifo,:subtask_code_fifo,:tx_fifo, #t Packet_Fifo;Packet_Fifo;Packet_Fifo;
     :pending_subtasks_fifo, #t Subtasks;
-    :status, #t bool;
+    :status, #skip
     :subtask_list, #t Subtask_List;
     :results_store, #skip
     :symbol_table,:code_status, #t Symbol_Table;CodeStatus_Table;
@@ -101,15 +87,16 @@ class SBA_ServiceManager
     Word_List results_store;
     MemAddresses arg_addresses;
     Subtask current_subtask;
+    Service service_id;    
     Core_Status core_status;
-    uint opcode;
-    uint n_args;
     uint scid;
     Packet_Type core_return_type;
+    uint opcode;
+    uint n_args;
     bool ack_ok;
-    Service service_id;
 #endif
-
+   bool status;
+    
 RegisterEntry register_set[NREGS];
 //Requests request_table[NREGS]; 
 RequestTable request_table;
@@ -117,18 +104,14 @@ RequestTable request_table;
 ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddress& addr_)
 			: sba_system_ptr(sba_s_), sba_tile_ptr(sba_t_), service(s_), address(addr_),
 			debug_service(0), debug_all(true),
-#if MULTI_THREADED_CORE==0
-			current_subtask(0),
-			service_id(s_),
-#endif			
-			// # other states: ready|busy|done|managed
 #ifdef SBA_USE_ADDRESS_STACKS
 			subtasks_address_stack(SUBTASKS_OF),
 			data_address_stack(DATA_OF),
 #endif	
 #if MULTI_THREADED_CORE==0
-            core_status(CS_idle),core_return_type(P_data),
-            scid(0),
+            current_subtask(0), 
+            service_id(s_),
+            core_status(CS_idle),scid(0),core_return_type(P_data),            
 #endif			
             status(true)
              {
@@ -489,7 +472,7 @@ void demux(Packet packet) {
     # Helper for code activation
 # Helper for code activation
 def activate_subtask_helper(task_address,tservice_id,packet,is_subtask_packet) #t void (CodeAddress;Name_t;Word_List&;bool)
-    #tile
+#    #tile
     #iv
     if (@service!=tservice_id)
         puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> @service #{@service}"
@@ -557,7 +540,7 @@ end # of activate_subtask_helper
     
     
     def activate_subtask_helper_ORIG(task_address,tservice_id,packet) #t void (CodeAddress;Name_t;Word_List&)
-        #tile
+        
         #iv
         if (@service!=service_id)
             puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> @service #{@service}"
@@ -707,7 +690,7 @@ end # of activate_subtask_helper
         #C++      ticks t1=getticks();
         #endif
 
-        #tile
+#        #tile
         #iv
         if @debug_all or @service==@debug_service
             puts "#{@service} activate_subtask()"

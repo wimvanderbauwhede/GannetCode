@@ -30,11 +30,11 @@ class SBA_ServiceCore
 =begin #constructor
         ServiceCore(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_, ServiceAddress& addr_, uint tid_) :
             sba_system_ptr(sba_s_), 
-            	sba_tile_ptr(sba_t_), 
-            	service(s_), address(addr_),
-            	current_subtask(0),
-            	tid(tid_),
-            	core_status(CS_idle)
+            	sba_tile_ptr(sba_t_),             	           	           	
+            	core_status(CS_idle),
+                service(s_), address(addr_), 
+                current_subtask(0), 
+                tid(tid_)
 			{
 			/*
 			 unsigned int zero=0;

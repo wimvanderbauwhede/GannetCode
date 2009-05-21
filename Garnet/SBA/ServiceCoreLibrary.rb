@@ -1916,7 +1916,7 @@ recursive calls and multiple calls...
     def SBA_SCLib.ls_APPLY(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
             #core 
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word  
-        nargs=parent.n_args #t uint      
+#        nargs=parent.n_args #t uint      
     	service=getName(service_word) #t Name_t  
     	#C++ bool use_redir; bool use_unique;
         if service==SC_APPLY
@@ -1996,19 +1996,19 @@ recursive calls and multiple calls...
                             end
                             if getKind(itemw) == K_U
                             #iv
-                                print "ARG: ",itemw,"\n"
+                                puts "ARG: #{ppSymbol(itemw)}"
                             #ev
                                 lambda_function_args.push(itemw) #s/push/push_back/
                             elsif getKind(itemw)==K_R
                             #iv
-                                print "REF: ",itemw,"\n" 
+                                    puts "REF: #{ppSymbol(itemw)}" 
                             #ev
                                 ext=0
                                 # Here we can check
                                 if parent.lookup_table.count(itemw)==0
 
         #iv
-                                    puts "APPLY: activating code #{itemw} for #{parent.current_subtask}" 
+                                    puts "APPLY: activating code #{ppSymbol(itemw)} for #{parent.current_subtask}" 
         #ev                                
                                     parent.lookup_table.write(parent.current_subtask,itemw)
                                     parent.lookup_table.write(itemw,parent.current_subtask)
@@ -2036,7 +2036,7 @@ recursive calls and multiple calls...
 #iv                    
                 pp_data_kind=data_kind #C++ int pp_data_kind=(int)data_kind;
                 pp_data_status=data_status #C++ int pp_data_status=(int)data_status;
-                print  "APPLY CORE: #{parent.current_subtask}: CALLER ARG: (#{pp_data_kind}) #{lambda_label}=>#{lambda_def_address}=> <#{pp_data_status}>\n" 
+                print  "APPLY CORE: #{parent.current_subtask}: CALLER ARG: (#{pp_data_kind}) #{ppSymbol(lambda_label)}=>#{lambda_def_address}=> <#{pp_data_status}>\n" 
                 print  "APPLY CORE: #{parent.current_subtask}: CALLER VAL: ",ppPayload(sba_tile.data_store.mget(lambda_def_address)),"\n" 
 #ev                
                 # end of lambda definition handling    
@@ -2084,7 +2084,7 @@ recursive calls and multiple calls...
                 end
                 # Get the code corresponding to the reference
                 #iv
-                print "APPLY CORE: ","code for ",ref_symbol_word,"\n" 
+                puts "APPLY CORE: code for #{ppSymbol(ref_symbol_word)}" 
                 #ev
                 
                 lambda_function_definition_address=getCodeAddress(ref_symbol_word) #t CodeAddress
@@ -2128,7 +2128,7 @@ recursive calls and multiple calls...
                                     first=1 #t uint
 
                                     data_address=addresses[j+1] #t MemAddress
-                                    data_label=sba_tile.service_manager.symbol_table[data_address] #t Word
+#                                    data_label=sba_tile.service_manager.symbol_table[data_address] #t Word
                                     symbol_word_list=sba_tile.data_store.mget(data_address) #t Word_List                                    
                                     for val_word in symbol_word_list #t Word_List
 

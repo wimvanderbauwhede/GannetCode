@@ -167,7 +167,7 @@ class SBA_TaskDescription
 
     def byc2playload(length,fd) #t Word_List (Uint16;FILE*)
         payload=[] #t Word_List #s/=..//
-        for j in 0..length-1 #t uint
+        for j in 0..length-1 #t int
             plw=0 #t Word
             for plwb in 0..NBYTES-1 #t uint
                 byte=fd.shift #C++ Word byte=fgetc(fd);
