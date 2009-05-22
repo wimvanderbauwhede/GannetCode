@@ -486,9 +486,9 @@ def activate_subtask_helper(task_address,tservice_id,packet,is_subtask_packet) #
         puts "#{@service} SUBTASK STACK SIZE: #{@subtasks_address_stack.size}"
         #ev
         if @subtasks_address_stack.size==0
-            raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++  std::cerr << "SUBTASK STACK OVERFLOW\n"; exit(0);
+            raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++  std::cerr << service << " SUBTASK STACK ("<< SUBTASKS_SZ <<") OVERFLOW\n"; exit(0);
         end
-        subtask_address=@subtasks_address_stack.pop #t CodeAddress
+        subtask_address=@subtasks_address_stack.pop #t CodeAddress            
         puts "NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" if @v #skip
         puts "SUBTASK requested by \n#{ppPacket(packet)}" if @v #skip
     else # VM==0
@@ -1619,7 +1619,7 @@ end # VM
             if (sts==STS_processed or sts==STS_cleanup or sts==STS_inactive) # and mode!=M_stream # 3=Done/Processed; 4=CleanedUp; 5=Blocking
                 if sts==STS_processed or sts==STS_inactive
                     #iv                
-                                        puts "#{@service} CLEAN-UP: clean_up() #{@current_subtask}"
+                    puts "#{@service} CLEAN-UP: clean_up() #{@current_subtask}"
                     #ev                       
                     clean_up()
                     if sts==STS_processed
@@ -1633,10 +1633,14 @@ end # VM
                     puts "#{@service} CLEAN-UP: remove #{@current_subtask}"
 #ev                                 
                     @subtask_list.remove(@current_subtask) # this sets the status to STS_deleted
-                              
-                
+                end                                                      
+                    if sts==STS_processed or sts==STS_cleanup or sts==STS_inactive                                       
+                            #WV22052009 I think the subtask should not be cleared but we want to reuse it, so put it back on the stack!     
 if VM==1
                     # push the address back onto the subtask address stack:
+    #iv                
+                        puts "#{@service} CLEAN-UP: push #{@current_subtask} onto subtasks_address_stack"
+    #ev    
                     @subtasks_address_stack.push(@current_subtask)
 else # VM==0
                     # nothing happens as addressing is static
@@ -1650,7 +1654,7 @@ end # VM
                 @subtask_list.status(@current_subtask,STS_new)
             else
 #iv                
-                puts "#{@service} NO CLEAN-UP #{@current_subtask}"
+                puts "#{@service} CLEAN-UP: STS=#{sts}, NO CLEAN-UP for #{@current_subtask}"
 #                if (@subtask_list.status(@current_subtask)==STS_processed or @subtask_list.status(@current_subtask)==STS_cleanup) and mode==M_stream
 #                    puts "#{@service} status #{@current_subtask} = #{@subtask_list.status(@current_subtask)}"
 #                    puts "#{@service} CLEAN-UP #{@current_subtask} for BUF"
