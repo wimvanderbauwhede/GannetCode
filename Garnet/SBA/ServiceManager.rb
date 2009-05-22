@@ -343,7 +343,7 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
         # || (@tx_fifo.length>0) )
         #iv
         if @debug_all or @service==@debug_service
-        puts "ServiceManager #{@service_id} #{@status} = p:#{(@pending_subtasks_fifo.length>0)} || CS:#{(@core_status != CS_idle)} || f:#{((@data_fifo.length>0) || (@request_fifo.length>0) || (@subtask_reference_fifo.length>0))}" #skip
+        puts "ServiceManager #{@service_id} #{@status} = p:#{(@pending_subtasks_fifo.length>0)} || CS:#{(@core_status != CS_idle)} || f:#{((@data_fifo.length>0) || (@request_fifo.length>0) || (@subtask_reference_fifo.length>0))}" if @v #skip
         end
         #ev
         # || #{@tx_fifo.length>0}"
@@ -720,7 +720,7 @@ end # of activate_subtask_helper
             #iv
             puts ppSymbol(ref_label_symbol)
             #ev
-            puts "Service: #{@service} : REF_LABEL: #{ref_label_symbol}" #skip
+            puts "Service: #{@service} : REF_LABEL: #{ref_label_symbol}" if @v #skip
             code_address=getCodeAddress(ref_label_symbol) #t CodeAddress
             tservice_id=getName(ref_label_symbol) #t Name_t
             activate_subtask_helper(code_address,tservice_id,subtask_ref_packet,true)
@@ -806,7 +806,7 @@ end # of activate_subtask_helper
                     
                     #iv
                     if @debug_all or @service==@debug_service
-                    puts "#{@service} store_data() : stored payload #{data_packet_payload.inspect} at address #{data_address}" #skip
+                    puts "#{@service} store_data() : stored payload #{data_packet_payload.inspect} at address #{data_address}" if @v #skip
                         puts "#{@service} store_data() address #{data_address} STATUS: "
                         puts getStatus(@symbol_table[data_address]) #C++ cout << (int)getStatus(symbol_table[data_address])<<"\n";
                     end
@@ -997,10 +997,10 @@ so we have:
                     raise "#{getReturn_to(getHeader(request))}!=#{getName(packet_label)}" #skip
                 end
                 #C++ Word_List tdata;
-                puts "dispatch_data_packet(): data_address=#{data_address}" #skip
+                puts "dispatch_data_packet(): data_address=#{data_address}" if @v #skip
                 tdata=getField(@sba_tile.data_store.mget(data_address),offset,fsize)
                 payload_length=tdata.length
-                puts "dispatch_data_packet(): payload_length=#{payload_length}" #skip
+                puts "dispatch_data_packet(): payload_length=#{payload_length}" if @v #skip
                 packet_header=mkHeader(P_data,0,0,payload_length, getReturn_to(getHeader(request)), NA,0,packet_label)
                 packet_payload=tdata #t Word_List
                 packet=mkPacket(packet_header,packet_payload)
@@ -1401,7 +1401,7 @@ so we have:
         #tile
         #iv
         if @debug_all or @service==@debug_service
-            puts "#{@service} core_control(): core_status = #{@core_status}"
+            puts "#{@service} core_control(): core_status = #{@core_status}" if @v #skip
         end
         #ev
 #sysc while (true) {        
@@ -1500,7 +1500,7 @@ so we have:
             fsize=@subtask_list.fsize(@current_subtask) #t uint
             if mode==M_normal
                 results=@results_store #C++ Word_List results = (Word_List)results_store;
-                puts results.inspect #skip
+                puts results.inspect if @v #skip
                 packet_payload=getField(results,offset,fsize)
                 payload_length=packet_payload.length
             else

@@ -10,14 +10,14 @@ using namespace GannetSocket;
 int main(int argc, char *argv[])
 {
     string port;
-    
+
     if( argc == 1) {
 //        cout << "Usage: gserver SERVICE_PORT" << endl;
         port = "6969";
     }
-    else 
+    else
         port = argv[1];
-        
+
 #ifdef DUMP
     cout << "Server begin.....\n";
 #endif //DUMP
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 #ifdef DUMP
     cout << "Server end.....\n";
 #endif //DUMP
-   
+
     return 0;
 }
 

@@ -105,7 +105,7 @@ class SBA_TaskDescription
     	#iv
     	puts "NPackets: #{npackets}"
     	#ev
-    	puts tdc_wl.inspect #skip
+    	puts tdc_wl.inspect if @v #skip
         if npackets==0
             exit(0)
         end            
@@ -136,6 +136,8 @@ class SBA_TaskDescription
                       puts ppPacket(packet)
 #ev                      
             @Packets.push(packet) #s/push/push_back/
+            
+            @Packets.push(packet) 
         end # loop over all packets
     end
 

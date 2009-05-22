@@ -547,7 +547,7 @@ public:
 	void remove (const Subtask subtask) {
 
 #ifdef VERBOSE
-		cout <<"DELETING "<<subtask<<endl;
+//		cout <<"DELETING "<<subtask<<endl;
 #endif // VERBOSE
 //		subtasks_list.erase(subtask);
 		subtasks_list[subtask].status=STS_deleted;

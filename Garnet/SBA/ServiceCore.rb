@@ -123,7 +123,7 @@ if MULTI_THREADED_CORE==1
               @sba_tile.service_manager.status=true
             end
             
-            puts "ServiceCore: CORE STATUS : #{@sba_tile.service_manager.core_status[@tid]}=#{@core_status}" #skip
+            puts "ServiceCore: CORE STATUS : #{@sba_tile.service_manager.core_status[@tid]}=#{@core_status}" if @v #skip
             
         end                
 else # MULTI_THREADED_CORE==0            
@@ -170,7 +170,7 @@ else # MULTI_THREADED_CORE==0
               @sba_tile.service_manager.status=true
             end
             
-            puts "ServiceCore: CORE STATUS : #{@sba_tile.service_manager.core_status}=#{@core_status}" #skip
+            puts "ServiceCore: CORE STATUS : #{@sba_tile.service_manager.core_status}=#{@core_status}" if @v #skip
 #                #C++ cout << "CORE "<< service << " has returned \n";
 #                #C++ cout << sba_tile.service_manager.results_store[0] <<"\n";
 #                #C++ cout << sba_tile.service_manager.results_store[1] <<"\n";

@@ -129,7 +129,7 @@ end
 
                     task_description=SBA_TaskDescription.new(tdc,task_id)
                     task_description_packet_list=task_description.Packets #t Packet_List                
-                    puts task_description_packet_list.inspect #skip
+                    puts task_description_packet_list.inspect if @v #skip
 #                    puts "packet list created"
                     # allocate space for result
                     #C++ Word_List nullwl;

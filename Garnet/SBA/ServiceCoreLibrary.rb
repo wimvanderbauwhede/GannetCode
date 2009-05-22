@@ -107,7 +107,7 @@ else # VM==0
     code_address=(page << FS_CodePage)+address #t Word
 end # VM    
 #iv    
-    puts "Service(SCLib): #{service} | Page: #{page} | Address: #{address} => #{code_address}"
+    puts "Service: #{service} | Page: #{page} | Address: #{address} => #{code_address}"
 #ev    
 	return code_address
 end
@@ -581,7 +581,7 @@ end # FP
     if addresses.length==0 #skip
       exit(0) #skip
     end  #skip
-    puts addresses.inspect #skip
+#    puts addresses.inspect #skip
 	address=addresses[0] #t MemAddress
  	result=sba_tile.data_store.mget(address)[1] #t Word
  	if not result.is_a?(Integer) #skip
@@ -1539,7 +1539,7 @@ So what happens if it's a tail call?
                 if has_label==false
                     # Nothing stored under this address_label. That's as it should be
                     var_address=sba_tile.service_manager.data_address_stack.pop
-                    puts "ADDRESS FROM STACK: #{var_address}" #skip
+                    puts "ADDRESS FROM STACK: #{var_address}" if @v #skip
                     word=setSubtask(var_label,var_address) #t Word
                     word=setStatus(word,DS_present)
                     puts "ASSIGN: NAME: #{var_name}=>ADDRESS:#{var_address}" if @v #skip

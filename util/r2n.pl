@@ -888,8 +888,8 @@ while (<CC>) {
  #	}
  # -----------------------------------------------------------------------------
  # @
- #	$line=~s/\@/attr_/g;
-	$line =~ s/\@//g;
+
+	$line =~ s/\@(\w)/$1/g;
 	if ($SYSC) {
 		$line=~s/sba_tile\.//g;
 		$line=~s/gw_tile\.//g;
@@ -1214,7 +1214,7 @@ ENDLCC
 		$line =~ s/\s*$//;
 		$line =~ s/$/;\n/;
 		$line =~ s/;+$/;/;
-		$line =~ s/\@//g;
+		$line =~ s/\@(\w)/$1/g;
 		$line =~s/COMMA/,/g;
 		if ($line=~/#sysc/) {
 			$line=~s/\#sysc.*$//;

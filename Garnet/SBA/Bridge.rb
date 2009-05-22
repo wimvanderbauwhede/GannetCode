@@ -137,7 +137,7 @@ using namespace SBA;
             
 void Bridge::run() {
 #ifdef VERBOSE
-	cout << "Running Bridge\n";
+//	cout << "Running Bridge\n";
 #endif // VERBOSE	
         transceiver.run();
         bridge_core.run();

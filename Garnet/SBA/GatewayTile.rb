@@ -153,7 +153,7 @@ using namespace SBA;
             
 void GatewayTile::run() {
 #ifdef VERBOSE
-	cout << "Running Gatewaytile "<<GatewayTile::service<<"\n"; // ("<<GatewayTile::address<<")\n";
+//	cout << "Running Gatewaytile "<<GatewayTile::service<<"\n"; // ("<<GatewayTile::address<<")\n";
 #endif // VERBOSE	
         gateway.run();
         transceiver.run();
