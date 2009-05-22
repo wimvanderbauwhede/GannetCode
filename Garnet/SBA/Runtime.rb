@@ -98,6 +98,8 @@ if USE_THREADS==0
                 # break
             end            
         end
+        puts "Warning: GannetVM ran for #{ncycles} cycles without completion." #skiph
+        puts "         Try increasing the number of cycles on the command line." #skiph
 else #  USE_THREADS==1
         @sba.run_th()
 end # USE_THREADS   

@@ -47,38 +47,38 @@ end # MULTI_THREADED_CORE
 	end
 	
 	def run(sba_system)
-#		puts "ServiceTile #{@service} STATUS: #{(@transceiver.rx_fifo.length>0) or (@transceiver.rx_fifo.length>0) or @service_manager.status}"
-#		puts (@transceiver.rx_fifo.length>0),(@transceiver.tx_fifo.length>0) 
-#		if ((@transceiver.rx_fifo.length>0) or (@transceiver.rx_fifo.length>0) or (@service_manager.status==true))
-
-# THREADS: we need a blocking if @transceiver.rx_fifo.has_packets, then we set @status to true, then we go into a while loop, while (@status) do work 
-# the problem is that the ServiceCore can put packets in the ServiceManager tx_queue, but the status does not reflect this
-  if @transceiver.rx_fifo.has_packets()
-    @status=true
-    while (@status==true)
-#puts "TRX #{@service}: #{@transceiver.rx_fifo.packets.length}"
-		@service_manager.run()	
-#		end
+    #		puts "ServiceTile #{@service} STATUS: #{(@transceiver.rx_fifo.length>0) or (@transceiver.rx_fifo.length>0) or @service_manager.status}"
+    #		puts (@transceiver.rx_fifo.length>0),(@transceiver.tx_fifo.length>0) 
+    #		if ((@transceiver.rx_fifo.length>0) or (@transceiver.rx_fifo.length>0) or (@service_manager.status==true))
+    
+    # THREADS: we need a blocking if @transceiver.rx_fifo.has_packets, then we set @status to true, then we go into a while loop, while (@status) do work 
+    # the problem is that the ServiceCore can put packets in the ServiceManager tx_queue, but the status does not reflect this
+      if @transceiver.rx_fifo.has_packets()
+        @status=true
+        while (@status==true)
+    #puts "TRX #{@service}: #{@transceiver.rx_fifo.packets.length}"
+            @service_manager.run()	
+    #		end
 if MULTI_THREADED_CORE==1
-    for i in 0..NCORE_THREADS-1 #t uint		
-		  if (@service_manager.core_status[i]==CS_busy)
-            @service_core[i].run()
-		  end
-		end # loop over "threads"
+            for i in 0..NCORE_THREADS-1 #t uint		
+              if (@service_manager.core_status[i]==CS_busy)
+                @service_core[i].run()
+              end
+            end # loop over "threads"
 else # MULTI_THREADED_CORE==0
-		if (@service_manager.core_status==CS_busy)
-		@service_core.run()
-		end
+    		if (@service_manager.core_status==CS_busy)
+        		@service_core.run()
+    		end
 end # MULTI_THREADED_CORE 
-#		if (@transceiver.tx_fifo.length>0 or sba_system.network.tx_fifo[@address].length>0)
-		  @transceiver.run()
-#		end
-		@status = (true and (@service_manager.status or (@transceiver.tx_fifo.length>0) or (@transceiver.rx_fifo.length>0)))
-#		puts "ServiceTile #{@service} STATUS-AFTER: #{@service_manager.status} or #{@transceiver.tx_fifo.length>0} or #{@transceiver.rx_fifo.length>0}:#{@transceiver.rx_fifo.packets.length}"
-#		puts "ServiceTile #{@service} STATUS-AFTER: #{@status}"
+    #		if (@transceiver.tx_fifo.length>0 or sba_system.network.tx_fifo[@address].length>0)
+              @transceiver.run()
+    #		end
+            @status = (true and (@service_manager.status or (@transceiver.tx_fifo.length>0) or (@transceiver.rx_fifo.length>0)))
+    #		puts "ServiceTile #{@service} STATUS-AFTER: #{@service_manager.status} or #{@transceiver.tx_fifo.length>0} or #{@transceiver.rx_fifo.length>0}:#{@transceiver.rx_fifo.packets.length}"
+    #		puts "ServiceTile #{@service} STATUS-AFTER: #{@status}"
+        end
+      end
     end
-  end
-end
 
 if USE_THREADS==1	
     def run_th(sba_system)
@@ -223,30 +223,30 @@ class Tile : public Base::Tile {
 using namespace std;
 using namespace SBA;
 void Tile::run() {
-//#ifdef VERBOSE
-//	cout <<"Running tile "<<Tile::service << "("<<Tile::address<<")\n";
-//	cout <<Tile::service << " ("<<Tile::address<<")\n";
-//#endif // VERBOSE	
         System& sba_system=*((System*)sba_system_ptr);
-	    if ((transceiver.rx_fifo.length()>0) || (transceiver.rx_fifo.length()>0) || service_manager.status) {
-        service_manager.run();
-        }
+    if (transceiver.rx_fifo.length()>0) {
+//	    if ((transceiver.rx_fifo.length()>0) || service_manager.status) {        
+        status=true; 
+        while (status==true) {
+            service_manager.run();        
+    //}
 #if MULTI_THREADED_CORE==1
-		for (uint i = 0;i<NCORE_THREADS;i++) {		
-		  if (service_manager.core_status[i]==CS_busy) {
-            service_core[i]->run();
-		  }
-		} // loop over "threads"
+    		for (uint i = 0;i<NCORE_THREADS;i++) {		
+    		  if (service_manager.core_status[i]==CS_busy) {
+                service_core[i]->run();
+    		  }
+    		} // loop over "threads"
 #else // MULTI_THREADED_CORE==0
-        if (service_manager.core_status==CS_busy) {
-        service_core.run();
-        }
+            if (service_manager.core_status==CS_busy) {
+                service_core.run();
+            }
 #endif // MULTI_THREADED_CORE         
-
-        if (transceiver.tx_fifo.length()>0 || sba_system.network.tx_fifo[address].length()>0) {
-	    transceiver.run();
-	    }
-        status= true && (service_manager.status || (transceiver.tx_fifo.length()>0) || (transceiver.rx_fifo.length()>0));
+            //if (transceiver.tx_fifo.length()>0 || sba_system.network.tx_fifo[address].length()>0) {
+    	    transceiver.run();
+    	    //}
+            status= true && (service_manager.status || (transceiver.tx_fifo.length()>0) || (transceiver.rx_fifo.length()>0));
+        }
+    }
 } //  of run()
 
 #if USE_THREADS==1

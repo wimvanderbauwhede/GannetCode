@@ -465,8 +465,21 @@ while (<CC>) {
 
 # line-by-line skips
 	next if $line =~ /^.+\#skip\b/;
-	next if $line =~ /^.+\#skipcc\b/ and not $H;
-	next if $line =~ /^.+\#skiph\b/ and $H;
+#	next if $line =~ /^.+\#skipcc\b/ and not $H;
+    if ($line =~ /^.+\#skipcc\b/) {
+        if (not $H) {
+            next;
+        } else {
+            $line=~s/\#skipcc.*//;
+        }
+    }	
+	if ($line =~ /^.+\#skiph\b/) {
+		if ($H) {
+			next;
+		} else {
+			$line=~s/\#skiph.*//;
+		}
+	}
 	if ($line =~ /^.+\#skipsysc\b/){
 		if( $SYSC) {
 			next;
@@ -1203,7 +1216,6 @@ ENDLCC
 		$line =~ s/;+$/;/;
 		$line =~ s/\@//g;
 		$line =~s/COMMA/,/g;
-	
 		if ($line=~/#sysc/) {
 			$line=~s/\#sysc.*$//;
 			if ($SYSC) {

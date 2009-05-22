@@ -57,7 +57,7 @@ class SBA_ServiceManager
     :results_store, #skip
     :symbol_table,:code_status, #t Symbol_Table;CodeStatus_Table;
     :subtasks_address_stack, #t Stack<SUBTASKS_SZ>;
-    :data_address_stack, #t Stack<DATA_SZ>;
+    :data_address_stack, #t Stack<DATA_SZ-NREGS>;
     :current_subtask, #skip
     :arg_addresses, #skip
     :core_status, #skip
@@ -106,7 +106,7 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
 			debug_service(0), debug_all(true),
 #ifdef SBA_USE_ADDRESS_STACKS
 			subtasks_address_stack(SUBTASKS_OF),
-			data_address_stack(DATA_OF),
+			data_address_stack(DATA_OF+NREGS),
 #endif	
 #if MULTI_THREADED_CORE==0
             current_subtask(0), 
@@ -350,7 +350,7 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
 
         #	@status = (true && ((@sba_tile.transceiver.rx_fifo.length>0) || (@pending_subtasks_fifo.length>0) || (@subtask_fifo.length>0) or (@subtask_list.subtasks.length>0) or (@data_fifo.length>0) or (@request_fifo.length>0) || (@subtask_code_fifo.length>0) || (@subtask_reference_fifo.length>0) || (@tx_fifo.length>0) || (@core_status != CS_busy))) #skip
 
-        #C++ status=true;
+        #C++ //status=true;
         #ifdef CYCLES_DETAILED
         #C++      ticks t22=getticks();
         #endif
@@ -403,7 +403,10 @@ void demux(Packet packet) {
         #        case ptype
         packet_type=getType(getHeader(packet)) #t Packet_type_t
 #iv
-#C++    cout << "demux_packets_by_type(): Got packet of type "<<(int)packet_type<<"\n";              
+if @debug_all or @service==@debug_service
+    #C++    cout << service <<" demux_packets_by_type(): Got packet of type "<<(int)packet_type<<"\n";  
+        puts "#{@service} demux_packets_by_type(): Got packet of type #{packet_type}" #skip
+end           
 #ev        
         case packet_type
         when P_data
@@ -671,7 +674,7 @@ end # of activate_subtask_helper
             #iv
             if @debug_all or @service==@debug_service
                 puts "#{@service} store_subtask_code(): stored #{code_label} at #{code_address}" #sysc
-                puts ppPayload(@sba_tile.code_store.mget(code_address)) #skip
+                puts ppPayload(@sba_tile.code_store.mget(code_address)) if @v #skip
             end
             #ev
         end
@@ -983,8 +986,8 @@ so we have:
             end
             
             print  "PRESENT?",data_address,":",(has_label==1)," and ",(data_status==DS_present),"\n" if @v #skip
-            puts "dispatch_data_packet(): has_Label=#{has_label}"
-            puts "dispatch_data_packet(): data_status=#{data_status}" #C++ cout << "dispatch_data_packet(): data_status="<<(int)data_status<<"\n";
+#            puts "dispatch_data_packet(): has_Label=#{has_label}"
+#            puts "dispatch_data_packet(): data_status=#{data_status}" #C++ cout << "dispatch_data_packet(): data_status="<<(int)data_status<<"\n";
             if has_label==1 # and data_status==DS_present
                 # Data is present
                 #WV21042009: (r2526) removed all references to STRUCTURED_STORAGE                 
@@ -1055,7 +1058,7 @@ so we have:
             #ev
             # Note the .dup: without it, the .shift empties the code memory!
             subtask=@sba_tile.code_store.mget(code_address).dup #t Word_List
-            puts  "#{code_address}: #{subtask.inspect}" #skip
+            puts  "#{code_address}: #{subtask.inspect}" if @v #skip
             # remove first elt, i.e. the actual service
             service_symbol=subtask.shift #C++ Word service_symbol=subtask.front(); subtask.pop_front();
             if getExt(service_symbol)==1
@@ -1074,7 +1077,7 @@ so we have:
 
             #WV22062008 Logic for ACC & BUFFER
             mode=getMode(service_symbol) #t uint
-            puts "MODE: #{mode}" #skip
+            puts "MODE: #{mode}" if @v #skip
             #C++ uint reg_addr=0;
             if mode!=M_normal # ACC,BUFFER=1
                 reg_addr=getReg(service_symbol)

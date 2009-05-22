@@ -47,7 +47,7 @@ def build(classname,binname,sources):
     SYSC_FIXME=''
     # Compile for VM (otherwise compiles to model HW)
     VM='VM=0'
-    OLDVM='OLDVM=1'
+#    OLDVM='OLDVM=1'
     USE_THREADS='USE_THREADS=0'
     use_pthreads = False
     THREADED_CORE='' # 'THREADED_CORE=0'
@@ -190,7 +190,7 @@ def build(classname,binname,sources):
     FLAGS=''
     SWITCHES=''
     flags+=[WARN,DEBUG,OPT]
-    switches+=[SYSC,SC_IDP,SYSC_FIXME,V,VM,OLDVM,WORDSZ,CYCLES,TIMINGS,STATIC_ALLOC,USE_THREADS,THREADED_CORE]+MACROS
+    switches+=[SYSC,SC_IDP,SYSC_FIXME,V,VM,WORDSZ,CYCLES,TIMINGS,STATIC_ALLOC,USE_THREADS,THREADED_CORE]+MACROS
     for flag in flags:
         if flag !='':
             FLAGS+=flag+' '

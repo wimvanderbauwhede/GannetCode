@@ -171,7 +171,7 @@ end # DATA
                 if	(service_address < @gw_address and service_address != MAX_NSERVICES)
 		          @instances[service_address]=SBA_Tile.new(self,service_id,service_address)
                   puts "\nInstantiating service #{service_id} (#{service_address})"		
-                  puts @instances[service_address]      
+#                  puts @instances[service_address]      
                 end                       
             end
         end   
