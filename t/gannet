@@ -1,0 +1,20 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Getopt::Std;
+
+my %opts;
+getopts( 'hvNsHdbgcn:Y:', \%opts );
+
+my $tdfile =shift @ARGV;
+my $flags='';
+my $garnet=0;
+my $ncycles=$opts{'n'}||'';
+
+system("guillemot $flags $tdfile");
+if ($garnet) {
+    if ($ncycles) {$ncycles= '-n '.$ncycles; }
+system("garnet -V ${tdfile}c $ncycles");
+} else {
+system("gannetvm ${tdfile}c $ncycles");
+}
