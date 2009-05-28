@@ -1,0 +1,95 @@
+## Programming Gannet<a name="programming"></a>
+
+The key to understanding how Gannet programs are executed is this: a Gannet program is a tree of function calls and when executing a program, the Gannet machine evaluates all branches of the tree concurrently. As a result there is not particular evaluation order, i.e. you cannot assume that one argument of a function is evaluated before another. 
+
+This behaviour can be changed by quoting the arguments. However, all quoting does is defer the evaluation of the expression to the function body. It is then up to the service implementing the function body to evaluate the quoted expression.
+This is very similar to Scheme's `delay/force` mechanism, or to Perl's subrefs. 
+
+	; Scheme
+	(define a 10) 
+	(define eval-aplus2 (delay (+ a 2)))
+	(define a 20) (force eval-aplus2) => 22
+
+	# Perl
+	my $a=10;
+	my $eval_aplus2 = sub {$a+2};
+	$a=20;
+	$eval_aplus2->(); => 22
+
+A consequence of Gannet's eager evaluation mechanism is that any symbol that cannot be evaluated must be quoted. This includes numbers: from Gannet's perspective, unquoted numbers are symbols and it will try to evaluate them -- and fail. Hence, numbers should be quoted:
+
+	(* '6 '7)
+
+Another key difference between Gannet and other languages is that the Gannet services that provide the functionality are not themselves written in Gannet, as in general they will be hardware or software cores obtained from third parties. For details about creating your own services see [Creating Services](creating_services.html). 
+
+### Gannet Labels
+
+Every expression in a Gannet program can be labelled. A label is simply a named reference to an expression. Labels are a compile-time feature, they are completely static and immutable. The syntax for labels is very simple:
+
+	(label l42 (* '6 '7))
+
+Note that the labeling does not stop the expression from being evaluated. To defer evaluation, quote the expresssion:
+
+	'(label l42 (* '6 '7))
+
+This results in the label `l42` refering to the unquoted expression but the original expression will not be evaluated.	
+Note that currently, only unquoted expressions can be labelled, i,e. the following do _not_ work:
+
+	(label l42 '(* '6 '7)) ; => compiler error
+	(label l42 '42) 	   ; => compiler error
+
+It is valid to use labels recursively, i.e. 
+
+	(label infinity (+ '1 infinity))
+
+is valid and will recurse forever -- or at least until the stack overflows. We will see further on how to construct infinite loops that do result in stack overflow. 	
+
+### Control Services
+
+As most developers will want to concentrate on creating the computational services for their particular system, the Gannet distribution provides a number of control services which provide the familiar flow control constructs. The core set of control constructs is:
+
+#### The `if` and `return` constructs 
+
+Gannet's `if` returns the value of its second or third argument predicated on the value of the first argument:
+
+	(if (S_cond ... ) (S_t ...) (S_f ...))
+
+If none of arguments is quoted, both branches will be evaluated in parallel with the predicate expression. Although this is the fastest approach, it is generally not what you want (or at least what other languages do). To evalute the selected branch based on the value of the predicate, the branches must be quoted:	
+
+	(if (S_cond ... ) '(S_t ...) '(S_f ...))	
+
+A special construct often used in conjunction with `if` is `return`. This construct simply returns the value of its first argument. If the argument is quoted, the `return` body will take care of the evaluation. The reason for using return is that it can be used to quote a branch without quoting the actual expression in the branch:
+
+	(if (S_cond)
+	 	'(return (S_t ...))
+	 	'(return (S_f ...))
+	)
+
+This is particularly if for some reason the argument of `return` is itself quoted, as there is no other way in Gannet to "stack" quotes. Reasons for quoting the argument of `return` will be covered in [Advanced Topics](#advanced).	
+
+#### Grouping and lexically scoped variables: `begin`, `let`, `assign`, `read`
+	
+Gannet has two different grouping constructs, `begin` and `let`. The `begin` construct takes an arbitrary number of arguments and returns the value of the last argument. Quoting arguments of `begin` means that the expressions will simply not be evaluated. As a result, if the last argument is quoted, `begin` will return a reference to the quoted expression.
+(As the Gannet machines stores all references as 32-bit unsigned integers, the return value will be a large positive integer.) The `begin` construct does not give scope, nor does it bind variable. However, a common use is for grouping labelled expressions:
+
+	(begin
+	 	'(label e1 (* '5 '7))
+		'(label e2 (+ '3 '4))
+		(+ e1 e2)
+	)	
+
+The other grouping construct is `let`, which is similar to Scheme's `let` in that is provides the scope for binding lexical variables, but is unlike Scheme's `let` in that it is not syntactic sugar for `lambda`. The `let` construct has another main use: it can be used to sequence operations. Quoted expression inside a let will be evaluated in lexical order but after the unquoted ones (which are evaluated without order.
+
+#### Functions: `lambda` and `apply`
+
+#### Lists operations
+
+
+## Advanced Topics<a name="advanced"></a>
+
+### Result redirection
+
+### Tail recursion
+
+### Buffers and Pipelining
+

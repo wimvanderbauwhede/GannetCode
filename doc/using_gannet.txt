@@ -16,7 +16,20 @@ To do so, you write a task in the Gannet language, compile it and run it on the 
 
 4. Create your task description
 
-	In other words, write some Gannet code. For a comprehensive introduction, see [Programming Gannet](programming_gannet.txt)
+	In other words, write some Gannet code. For a comprehensive introduction, see [Programming Gannet](programming_gannet.txt). By convention, Gannet task description programs have the extension `.td`. For some examples see `examples` and the test directory `t`. 
+
+	The Gannet compiler `gannetc` compiles the code into Gannet bytecode (`.tdc`) or the target languages for the various backends. A handy wrapper around  `gannetc` is `guillemot`. This wrapper will scan the `.td` file for a comment line with the name of the SystemConfiguration YAML file to use, if none is found it defaults to the `SBA.yml` from the `SystemConfigurations` folder. It compiles the program to bytecode but can also output Gannet assembly language.
 
 
 5. Run your task
+
+	This is the easy bit. The `bin` directory contains executables for the VM (`gannetvm`), the hardware model (`gannetssoc`), the Ruby reference (`garnet`) and the various other backends. Assuming you want to run the program `fact.tdc` on the VM, it's simply
+
+	$ gannetvm fact.tdc
+
+	and similar for `gannetsoc`. For the VM, you can specify the number of "cycles" it should run before exiting as the 2nd argument. For the SystemC model you can provide the number of microseconds the simulation should run. 
+	The executable for the Ruby model, `garnet`, is a script, i.e. it is not compiled separately. As a result you must pass the path to the SystemConfiguration YAML file on the command line. Also, by default Garnet models the hardware. The hardware does not support all control features available with the VM. To run Garnet in VM mode, specify the `-V` flag:
+
+	$ garnet -Y ../SystemConfigurations/Control.SBA.yml -V fact.tdc
+
+	If the SystemConfiguration file is not specified, Garnet will use the default SBA.yml. 
