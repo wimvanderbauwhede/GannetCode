@@ -1,0 +1,70 @@
+p&P's Web Site System
+
+=== Overview ===
+3 levels:
+- components
+- subcomponents
+- elements
+
+* Components
+Components are the basic building blocks of the site: banner, top navigation, content, etc.
+
+At CSS level, components are implemented as divs.
+
+* Subcomponents
+Subcomponents are the logical building blocks which make up the components: site name, baseline, logo, etc.
+
+At CSS level, subcomponents are implemented as classes or ids.
+
+* Elements
+Elements are structural elements such as paragraphs, lists, etc. 
+
+Note: For float-based sites we need an extra level of float containers.
+
+
+=== Components and Subcomponents ===
+
+Banner
+	- site name
+	- baseline
+	- logo
+	- foreground/background image
+	
+Top navigation
+	- top navigation
+	- breadcrumbs (optional)
+	
+Sidepane
+	- top of sidepane
+	- side navigation
+	
+Content
+	- breadcrumbs (optional)
+	- page title = h1
+	- page body
+			- page summary
+			- in-page navigation
+			- page body text
+	- page footer
+	
+Bottom navigation
+
+Footer
+
+=== Structural Elements ===
+
+para
+img
+caption
+heading: h1, h2, h3
+list: bulleted; numbered
+list leadin
+list indent
+sublist
+character style: emphasis 1, 2, 3
+link
+table
+code
+quote
+see also link (img + link): 
+<a ><img><p>see also: xx</p></a>

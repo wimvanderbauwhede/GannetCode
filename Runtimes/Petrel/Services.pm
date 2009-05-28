@@ -17,4 +17,9 @@ sub s1 {
     }
     return $res;
 }
+
+sub ls_BEGIN {
+    return $_[-1];
+}
+
 1;

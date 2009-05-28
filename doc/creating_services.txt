@@ -1,0 +1,250 @@
+## Creating your own services<a name="services"></a>
+
+As an example of a simple service we will implement `begin`, which takes a variable number of arguments and returns the last argument. To understand the implementations below, it is sufficient to know the following aspects of the Gannet system and API:
+
+* A Gannet Word is a 32-bit unsigned integer.
+* Arguments are passed as a list of addresses; every service also takes a reference `sba_tile` to the `Tile`, i.e. the object that contains the Service Manager, the Service Core and various stores.  
+* The values are retrieved from the Data store using the Gannet API call `sba_tile.data_store.mget()` where they are stored as lists of Words.
+* The service must return a list of Words as result.
+
+### Garnet (Ruby)
+
+Garnet services are defined in `Garnet/SBA/ServiceCoreLibrary.rb`. Every service has the same signature:
+
+    def SBA_SCLib.s_BEGIN(sba_tile,parent,addresses) 
+
+For simple (i.e. most) services, `parent` is unused. The actual implementation is trivial:
+
+        address = addresses.pop
+        result=sba_tile.data_store.mget(address)
+        return result
+    end
+
+### GannetVM (C++)
+
+The C++ services in the Gannet distribution (`VirtualMachine/SBA/ServiceCoreLibrary.cc` and corresponding header) are generated from the Ruby definitions, but you can of course write them directly in C++ as well. In C++ there is more boilerplate:
+
+	Word_List SCLib::s_BEGIN(Base::ServiceCore* parent_ptr,
+									MemAddresses& addresses) {
+	    // Set up context
+		ServiceCore* servicecore_ptr=(ServiceCore*)parent_ptr;
+		System* sba_system_ptr=(System*)(servicecore_ptr->sba_system_ptr);
+		System& sba_system=*sba_system_ptr;
+		Tile& sba_tile=*(sba_system.instances[servicecore_ptr->address]);
+
+A straightforward implementation of `begin` in C++ would be:
+
+		Word_List result;
+    	MemAddresses::iterator iter_=addresses.end();
+		MemAddress address=*iter_;
+		result=sba_tile.data_store.mget(address);
+    	return result;
+	}
+
+### SystemC Hardware Model (C++)
+
+The SystemC version is identical to the C++ version as far as the implementation is concerned, but the boilerplate is slightly different:
+
+	Word_List SCLib::s_BEGIN(void* parent_ptr, MemAddresses& addresses)  {
+    	// Set up context
+		SC_ServiceCore* servicecore_ptr=(SC_ServiceCore*)parent_ptr;
+		SC_ServiceCore& parent=*servicecore_ptr;
+		SC_ServiceCore& sba_tile=parent;	
+
+Again, this can be generated from the Ruby source. SystemC services in the distribution are in `HardwareModel/SystemC/scsrc/SC_ServiceCoreLibrary.cc`.		
+
+### Scheme
+
+Creating a service in Scheme means creating a Service object. As Scheme does not have a native object system, we use a simple home-made protype-based object system. Some syntactic sugar has been added to make the code more readable, see the source  (in `Runtimes/Skua`) for details. The above example becomes:
+
+    (define (Block)
+      (let (
+            (self (Service))
+            )
+        (->! self 'store (new))
+        (->! self 'begin (lambda (args) (car (reverse  ((-> self 'ev) args)))))        
+        self
+        )
+    )
+
+
+### Perl 6 
+
+Creating a service in Perl 6 means adding a class in the module `Puffin/Services.pm`. The class inherits its evaluation method (`self.ev`) from the `Service` class:
+
+    class Block is Service {
+        has %.store;
+        
+        method begin {
+	    	my @args= self.ev(@_);
+	    	return @args[-1];
+        }
+    }
+
+### Perl 5
+
+Creating a service in Perl 5 means simply adding a subroutine in the module `Petrel/Services.pm`:
+	
+	sub s_BEGIN {
+		return $[-1]	
+	}
+
+If a service requires state, store the state in a a package global (`our`).
+
+## More advanced services: the Gannet API<a name="advanced"></a>
+
+Control services such as e.g. `apply`, `let` or even `if` require the service to interact with the Service Manager.
+For example, the Gannet quoting mechanism relies on the service to evaluate a quoted argument. Creating such a service requires a much deeper knowledge of the workings of the Gannet system. 
+
+### A simple `if` service
+
+Let's first consider a simple `if` service with unquoted arguments, i.e. no deferred evaluation. 
+
+	(if (S_cond ...) (S_t ...) (S_f ...))
+
+The service code is:
+
+    def SBA_SCLib.ls_IF(sba_tile,parent,addresses)
+        valaddress=0 
+		condaddr=addresses[0]
+		condval=sba_tile.data_store.mget(condaddr)[1]
+		if condval>0
+			condval=1
+		else
+			condval=0
+		end
+		if condval==1
+			valaddress=addresses[1]
+		elsif condval==0
+			valaddress=addresses[2]
+		end
+           
+        result_list=sba_tile.data_store.mget(valaddress)
+ 		return result_list
+	end
+
+### An `if` with deferred evaluation
+
+Let's now consider an `if` service that only handles the deferred evaluation. We assume for simplicity that both branches of the `if` are quoted and that they are not constants. 
+
+	(if (S_cond ...) '(S_t ...) '(S_f ...))
+
+The service code becomes:
+
+    def SBA_SCLib.ls_IF(sba_tile,parent,addresses)
+        valaddress=0 
+		condaddr=addresses[0]
+		condval=sba_tile.data_store.mget(condaddr)[1]
+		if condval>0
+			condval=1
+		else
+			condval=0
+		end
+		if condval==1
+			valaddress=addresses[1]
+		elsif condval==0
+			valaddress=addresses[2]
+		end
+           
+        result_list=sba_tile.data_store.mget(valaddress)
+
+        ref_symbol=result_list[0]
+        label=sba_tile.service_manager.symbol_table[valaddress]
+        sba_tile.service_manager.symbol_table[valaddress]=setStatus(label,DS_requested) 
+        sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
+        sba_tile.service_manager.subtask_list.incr_nargs_absent(parent.current_subtask)
+        parent.core_status=CS_managed
+        packet_type=P_reference
+        to=getName(ref_symbol)
+        return_to=sba_tile.service_manager.subtask_list.return_to(parent.current_subtask)
+        return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask)
+        ref_packet_header= mkHeader(packet_type,0,0,1,to,return_to,send_ack_to,return_as)
+        ref_packet=mkPacket(ref_packet_header,result_list)
+        sba_tile.transceiver.tx_fifo.push(ref_packet)
+
+		return result_list
+    end
+
+Before we can explain this code, it is necessary to explain more about the workings of Gannet and the Gannet API.
+
+### A detour into Gannet internals
+
+The Gannet Service Manager parses instructions, flat lists of Gannet Symbols. For example, the the root instruction of the following program
+
+    (if (< v '2)
+        '(/ (+ v '4) '2)
+        '(/ '4 v)
+    )
+
+is represented in Gannet assembly as 
+
+	S:4:0:0:1:3:if
+	R:0:0:0:1:19:alu
+	R:0:0:1:1:20:alu
+	R:0:0:1:1:21:alu
+
+#### Symbols
+
+Symbols are tuples `(Kind,DataType, Ext, Quoted, Task, Subtask, Name)` and in Gannet assembly the fields are separated with a colon. Internally, the Gannet machine represents a Symbol as one or more Words. The important Symbol kinds for our purpose are the Reference symbols (Kind='R'). The fourth field of the symbol (`Quoted`) indicates whether the symbols is quoted (1) or not (0). The sixth field (`Subtask`) encodes the address of the code references by the symbol, the seventh field (`Name`) encodes the service where the code is stored.
+The Gannet API call `mkSymbol()` can be used to create symbol Words. Every field in the tuple can be accessed using getter and setter functions, e.g.
+
+	kind = getKind(symbol)
+	updated_symbol =  setKind(symbol, kind)
+
+If a Reference symbol is _not_ quoted, the Service Manager will create a Reference _packet_ which contains the symbol as payload and send it to the corresponding service. 
+
+#### Packets
+
+Gannet packets have simple header which is a tuple 
+`(Packet_type,Prio,Redir,Length,To,Return_to,Ack_to,Return_as)`. Internally this is stored as a list of 3 Words.
+The Gannet API call `mkHeader()` can be used to create the header Word list. Every field in the tuple can be accessed using getter and setter functions, e.g. `getReturn_as(header)`.  
+
+The payload of a Gannet packet is a list of Words, its length must correspond to the Length field in the header. The final Gannet packet is also represented as a list of Words.
+The Gannet API call `mkPacket()` can be used to create Gannet packets. All getter and setter functions for the header have their equivalent taking a packet as argument, these have the suffix `_p` e.g. `getLength_p(packet)`.
+
+
+#### Service Manager Data Structures
+
+The two most important data structures in the Service Manager are the _Data store_ and the _Subtask list_. The Data store stores the data resulting from evaluating arguments. The Subtask list keeps track of all the information concerning a give Subtask, i.e. an activated instruction. The Data store has an associated data structure called _Symbol table_ which is used to manage the status of the data in the store. 
+
+The Data store API is very simple: 
+
+	word_list = sba_tile.data_store.mget(address)  
+	sba_tile.data_store.mget(address, word_list)  
+
+The Symbol table API is equally simple:
+
+	symbol = sba_tile.service_manager.symbol_table[valaddress]
+    sba_tile.service_manager.symbol_table[valaddress] = symbol
+ 
+The Service Manager stores every symbol of an instruction apart from the Service symbol. However, it overwrites some of the symbol's fields with status information, as its main function is to manage the Data store's status. The API for accessing the symbol's status is again through a getter and setter function:
+
+	status = getStatus(symbol)
+	updated_symbol = setStatus(symbol,status)
+
+#### Gannet Status Indicators
+
+An active subtask can be in a number of states:
+
+   STS_new: activated
+   STS_pending: being parsed or waiting for execution.
+   STS_processing: being executed
+   STS_processed: execution finished, reclaim all memory for arguments and subtask
+   STS_cleanup: reclaim subtask memory, not argument memory
+   STS_blocked: reset status to STS_new
+   STS_inactive: for recursion where we reclaim argument memory, not subtask memory
+   STS_deleted: purely for HW mem management: indicates that the subtask at a particular address is deleted
+
+The status of a subtask's arguments can be 
+	
+	DS_absent: no data present and not requested
+	DS_requested: no data present but requested, typically means a reference packet has been sent off but the result has not yet returned
+	DS_present: data present
+
+The handover of a subtask between the Service Manager and the Service Core is handled by a Finite State Machine will following states:
+
+    CS_idle: core is idle and no subtask is ready to be processed
+    CS_ready: core is available for processing and a subtask is ready to be processed
+    CS_busy: core is processing a subtask
+    CS_done: core has finished processing a subtask
+    CS_managed: to stop Service Manager from creating and sending a result packet

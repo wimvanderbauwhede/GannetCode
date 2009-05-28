@@ -268,7 +268,15 @@ end
         return pl
     end   
      
-
+    def SBA_SCLib.getValues(addresses,sba_tile) 
+        vl=[] 
+        for a in addresses
+            wl= sba_tile.data_store.mget(a)
+            vl.push(wl)            
+        end
+        return vl
+    end       
+    
     def to_signed_int(num)
         if num>2**63
             return num-2**64
@@ -492,7 +500,7 @@ end # WORDSZ
 # ============================== Actual Service Cores ==============================
 
     # this is a dummy to make sure the GATEWAY is registered
-    def SBA_SCLib.sba_GATEWAY(sba_system,sba_tile,parent,addresses) #t Result (na;na;Base::ServiceCore*;MemAddresses&)
+    def SBA_SCLib.sba_GATEWAY(sba_tile,parent,addresses) #t Result (na;Base::ServiceCore*;MemAddresses&)
         return 1 #C++ Result res; res.push_back((Word)1); return res;
     end
 
@@ -501,7 +509,7 @@ end # WORDSZ
 #ifndef NO_SERVICES    
     #---------------------------------------------------------------------------
     #skip
-    def SBA_SCLib.display(sba_system,sba_tile,parent,addresses)
+    def SBA_SCLib.display(sba_tile,parent,addresses)
         print "#{parent.service} CORE (#{parent.current_subtask}): \n"
         result=''
         for address in addresses
@@ -550,7 +558,7 @@ end # WORDSZ
     # To make the ALU type-aware (int or float), we need to get the types of the arguments.
     # So we need the labels of the arguments
     
-    def SBA_SCLib.ls_ALU(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_ALU(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
 
 #iv        
@@ -706,7 +714,7 @@ end # WORDSZ
     # With concurrent tasks this might behave weirdly...
     # 
     # This is a way to emulate concurrency: the core is called at every parse cycle and returns immediately, holding its status to CS_busy
-    def SBA_SCLib.ls_COUNTER(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_COUNTER(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
 #        service=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
@@ -731,7 +739,7 @@ end # WORDSZ
     # state register 0 containts the actual state: 0 before initialisation, 1 during countdown
     # state register 1 stores the actual counter when in state 0 and decrements it when in state 1
     # Although this looks like a persistent task, the task does not "spend time" like a thread would.   
-    def SBA_SCLib.ls_COUNTDOWN(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_COUNTDOWN(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
 #        service=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
@@ -759,7 +767,7 @@ end # WORDSZ
 
     #---------------------------------------------------------------------------
     # FIB is a helper to compute the Fibonacci series, similar to COUNTDOWN
-    def SBA_SCLib.ls_FIB(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_FIB(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         # The symbol for a 32-bit signed int is a constant
         res_symbol=3707764737  #C++ const Word res_symbol = 0xDD000001UL;        
@@ -795,7 +803,7 @@ end # WORDSZ
     # but this shows that a number of HW service cores could run in parallel. The VM Is effectively
     # polling the service cores on every iteration of the main loop
     # NOTE 10/01/2009: The C++ code doesn't work as the main program exits because the tread is detached
-    def SBA_SCLib.ls_THREAD(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_THREAD(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
         address=addresses[0] #t MemAddress
@@ -851,7 +859,7 @@ end # WORDSZ
     # This service returns its 2nd argument after a delay given by the first argument (in seconds)
     # (delay '5 '7) returns 7 after 5 seconds
     # It's a kind of "proof of concept" for exploring threads, and Ruby-only
-    def SBA_SCLib.ls_DELAY(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_DELAY(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
 #        puts "DELAY CORE #{parent.tid} called: #{parent.state_register[0]}"
         # The symbol for a 32-bit signed int is a constant
@@ -900,7 +908,7 @@ end # WORDSZ
     # As long as state_register[0]==1, the core is CS_busy
     # When state_register[0]==2, we read the content of state_register[1] 
     # and we set state_register[0]=0
-    def SBA_SCLib.ls_HWTHREAD(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_HWTHREAD(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
 #        sym_address=addresses[0] #t MemAddress
@@ -942,7 +950,7 @@ end # WORDSZ
     
     # The BEGIN core takes in all arguments, checks for Error and returns the last result or Error
     # WV:Do we need an Error Kind?
-    def SBA_SCLib.ls_BEGIN(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/ 
+    def SBA_SCLib.ls_BEGIN(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/ 
         #core
         result='Error' #C++ Word_List result;
         for address in addresses #t MemAddresses
@@ -966,7 +974,7 @@ end # WORDSZ
     # What we really should do is wait for the DATA packets to arrive and store them; if a (DATA ...) subtask would arrive before the packet is there, this subtask would have a 0 type ('empty') until the packet arrives. On the other hand, any DATA packet arriving at the gateway will automtically be sent to the DATA store. So do we really need (DATA ...)?
     # Well, maybe like this: the Originator of the task should not just send DATA. the DATA service will allocate space and request data packets for every subtask it receives. Unrequested data packets will be dropped. Security!!
     
-    def SBA_SCLib.ls_DATA(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_DATA(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
         #core
         status=1 #t Word # for OK
         #C++ Word_List status_list;
@@ -975,7 +983,7 @@ end # WORDSZ
      
     end # of DATA
     #---------------------------------------------------------------------------
-    def SBA_SCLib.ls_IF(sba_system,sba_tile,parent,addresses)#t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_IF(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
     parent.ack_ok=1
     if sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask)==1
@@ -1049,7 +1057,7 @@ end # WORDSZ
                         # If it's an expression => Error
                         raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
                     elsif getKind(result) == K_L or getKind(result) == K_D
-                        raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
+#                        raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
                         # If it's a variable or data => request & redirect result
                         # i.e. create a request packet
                         parent.core_return_type= P_request                               
@@ -1179,7 +1187,7 @@ As far as I can see, this IF does not need ACK as it delivers locally; anyway AC
 So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF ...))
 =end
 
-    def SBA_SCLib.ls_S_IF(sba_system,sba_tile,parent,addresses)#t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_S_IF(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
         operation=parent.opcode #t Word
         valaddress=0 #t MemAddress 
@@ -1214,7 +1222,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
     end # of ls_S_IF        
     #------------------------------------------------------------------------------    
 
-    def SBA_SCLib.ls_RAND(sba_system,sba_tile,parent,addresses)#t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_RAND(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
 #        operation=parent.opcode #t Word
 #C++    Word_List result_list;        
@@ -1239,7 +1247,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
 
     #------------------------------------------------------------------------------    
 
-    def SBA_SCLib.ls_RND_MATRIX(sba_system,sba_tile,parent,addresses)#t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_RND_MATRIX(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
 #        operation=parent.opcode #t Word
         result_list=[] #C++ Word_List result_list;        
@@ -1260,7 +1268,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
 
     #------------------------------------------------------------------------------    
 
-    def SBA_SCLib.ls_PROC_MATRIX(sba_system,sba_tile,parent,addresses)#t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_PROC_MATRIX(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
         result_list=[] #C++ Word_List result_list;
 #        operation=parent.opcode #t Uint
@@ -1284,7 +1292,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
     # for every service involved. But ASSIGN _knows_ those addresses!
     # 
  
-    def SBA_SCLib.ls_LET(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_LET(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
 #        raise "BROKEN! Adapt to multi-threaded core!"
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
@@ -1855,7 +1863,7 @@ I think we should read symbols from the LET code from the back until we reach th
     
     
     #------------------------------------------------------------------------------
-    def SBA_SCLib.ls_LAMBDA(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_LAMBDA(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
 #iv
         print "LAMBDA CORE (#{parent.current_subtask}): \n"
@@ -1913,7 +1921,7 @@ recursive calls and multiple calls...
 
 =end
 
-    def SBA_SCLib.ls_APPLY(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_APPLY(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
             #core 
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word  
 #        nargs=parent.n_args #t uint      
@@ -2266,35 +2274,58 @@ No, we must do it like in IF or LET
     # WV10062008: CALL is essential! It allows to store quoted refs.
     # BUT: could we not do this simply by using LABEL? i.e.
     # (LET (ASSIGN 'f '(LAMBDA 'x '(* '6 x))) (APPLY (CALL (READ 'f)) '7))
-    # (LET (LABEL 'f (LAMBDA 'x '(* '6 x))) (APPLY 'f '7))
+    # (LET (LABEL f (LAMBDA 'x '(* '6 x))) (APPLY f '7))
     # Maybe we need both, what's the use of the LAMBDA call outside APPLY?
     # More importanly, could I use a LABEL as an argument? 
-    def SBA_SCLib.ls_CALL(sba_system,sba_tile,parent,addresses)
-        print "#{parent.service} CORE: #{parent.current_subtask}: (CALL \n"
+    def SBA_SCLib.ls_CALL(sba_tile,parent,addresses)
+        print "#{parent.service} CORE: #{parent.current_subtask}: (CALL \n" if @v #skip
         argaddr=addresses[0]
-#        puts "ARG: #{arg}"
-        result_list=[] #t Wordi_List;
-        puts "ARG ADDR: #{argaddr}" #skip
+        result_list=[] #t Word_List; #s/=..//;       
         result_list=sba_tile.data_store.mget(argaddr)       
         result=result_list[0] #t Word
-	puts "ARG VAL: #{result}" #skip
         parent.core_return_type=P_reference
         sba_tile.service_manager.subtask_list.to(parent.current_subtask,getName(result))
         if getKind(result)!=K_R
-            raise "CALL only works on references!"
+            raise "CALL only works on references (#{getKind(result)})!"
         end
 #iv
-        puts "#{parent.service} CORE: #{result}"
-        puts "#{parent.service} CORE: )"
-        puts "#{parent.service} CORE: #{parent.core_return_type} TO: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)}"
+        puts "CALL CORE: #{result}"
+        puts "#{parent.service} CORE: )" if @v #skip
+        puts "#{parent.service} CORE: #{parent.core_return_type} TO: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)}" if @v #skip
 #ev
         return result_list
     end # of ls_CALL
     # ----------------------------------------------------------------------------
+    # UNQUOTE does just that: you pass it quoted symbol, it returns the unquoted symbol.
+    # I guess it only makes sense for non-extended symbols but maybe we should
+    # be forward-compatible :-)
+    # The main purpose is to have a way of passing variables without evaluating them
+    # (let 
+    #   (assign 'v (lambda 'n 'acc 'f '(if ... ... '(apply f ... ... 'f))
+    #   (apply v ... ... (unquote 'v))
+    # But in general, (S (unquote 'sym)) => S(sym) whereas (S sym) => S(val(sym))
+    # for completeness: (S 'sym) => S('sym)
+    def SBA_SCLib.ls_UNQUOTE(sba_tile,parent,addresses)
+        print "#{parent.service} CORE: #{parent.current_subtask}: (UNQUOTE \n" if @v # skip
+        argaddr=addresses[0] #t MemAddress
+        result_list=[] #C++ Word_List result_list;
+        result_list=sba_tile.data_store.mget(argaddr)       
+        symbol=result_list[0] #t Word
+        symbol=setQuoted(symbol,0)
+        result_list[0]=symbol
+#iv
+        puts "UNQUOTE CORE: #{symbol}"
+        puts "#{parent.service} CORE: )" if @v #skip
+        puts "#{parent.service} CORE: #{parent.core_return_type} TO: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)}" if @v #skip
+#ev
+        return result_list
+    end # of ls_UNQUOTE
+    # ----------------------------------------------------------------------------
+    
     # UNSYMBOL returns the Subtask field of unextended symbols or the extension words of extended symbols
     # I don't really like the name nor the idea that there is no Scheme equivalent, but it is an important service
     # Maybe RAW is a better name? or VAL? 
-    def SBA_SCLib.ls_UNSYMBOL(sba_system,sba_tile,parent,addresses)
+    def SBA_SCLib.ls_UNSYMBOL(sba_tile,parent,addresses)
         print "#{parent.service} CORE: #{parent.current_subtask}: (UNSYMBOL \n"
         argaddr=addresses[0]
         datasymbol_list=sba_tile.data_store.mget(argaddr) #t Word_List;
@@ -2324,7 +2355,7 @@ No, we must do it like in IF or LET
     # LOOP syntax: (loop 'task condition)
     # The task must be quoted as it's dispatched by the core
     # WV10062008: I don't think we need this, it can be done with LABEL
-    def SBA_SCLib.ls_LOOP(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    def SBA_SCLib.ls_LOOP(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
         subtask=parent.current_subtask #t uint
@@ -2429,7 +2460,7 @@ There is some overhead but typically the ACK will be sent while the core is work
  -allocates an address for the return value of the create task
 =end 
     ### MUST BE IMPLEMENTED AS ALIAS FOR ASSIGN!
-    def SBA_SCLib.ls_FIFO_NOGOOD(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_FIFO_NOGOOD(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
         #core
         result=[]
         print "#{parent.service} CORE: #{parent.current_subtask}: (FIFO \n"   	
@@ -2498,7 +2529,7 @@ There is some overhead but typically the ACK will be sent while the core is work
     
     WV10062008: In fact, I'll move the FIFO into the ServiceManager!! So no need for a service to provide it.
 =end    
-    def SBA_SCLib.ls_FIFO(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_FIFO(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
         #core
         result=[]
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
@@ -2548,7 +2579,7 @@ end # WORDSZ
 
 # ----------------------------------------------------------------------------------------------------------------------
 #     
-    def SBA_SCLib.ls_IO(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    def SBA_SCLib.ls_IO(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
         #core
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word        
         puts parent.current_subtask #skip
@@ -2691,7 +2722,7 @@ end # WORDSZ
     # ----------------------------------------------------------------------------------------------------------------------
     #     
 
-        def SBA_SCLib.cs_DCT(sba_system,sba_tile,parent,addresses) #t Word_List (na;na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+        def SBA_SCLib.cs_DCT(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
             #core
             
             #C++ Word_List result_list;
@@ -2720,7 +2751,7 @@ end # WORDSZ
 #---------------------------------------------------------------------------
 
 # this is a dummy for unused services
-def SBA_SCLib.none(sba_system,sba_tile,parent,addresses) #t Result (na;na;Base::ServiceCore*;MemAddresses&)
+def SBA_SCLib.none(sba_tile,parent,addresses) #t Result (na;Base::ServiceCore*;MemAddresses&)
     return 0 #C++ Result res; res.push_back((Word)0); return res;
 end        
         

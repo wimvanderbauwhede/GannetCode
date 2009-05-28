@@ -119,7 +119,7 @@ class SBA_TaskDescription
              length=(header_words[0] & F_Length) >> FS_Length #t uint   	
              header= header_words #C++ Header_t header(header_words);
             #iv
-            puts "Header:\n#{ppHeader(header)}"
+#            puts "Header:\n#{ppHeader(header)}"
             puts "Length: #{length}"
             #ev
     
@@ -136,8 +136,7 @@ class SBA_TaskDescription
                       puts ppPacket(packet)
 #ev                      
             @Packets.push(packet) #s/push/push_back/
-            
-            @Packets.push(packet) 
+                        
         end # loop over all packets
     end
 

@@ -19,6 +19,11 @@ require 'yaml'
 
 require "SBA/Packet.rb"
 require "SBA/ServiceCoreLibrary.rb"
+
+#custom_services=Dir.new("Services").entries
+#for custom_service in custom_services
+#    require "Services/"+custom_service
+#end    
 module SBA_SystemConfiguration
     #TODO: At the moment, service id numbering must be contiguous!
     # There's no reason to keep it like this -- in the long run :-)

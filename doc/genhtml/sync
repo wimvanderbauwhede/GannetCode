@@ -1,0 +1,1 @@
+rsync -uva ../html/ /Users/wim/Sites/gannetcode.org

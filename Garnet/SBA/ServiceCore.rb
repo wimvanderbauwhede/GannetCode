@@ -153,8 +153,10 @@ else # MULTI_THREADED_CORE==0
             @core_return_type=@sba_tile.service_manager.core_return_type
             @ack_ok=@sba_tile.service_manager.ack_ok         
             @opcode=@sba_tile.service_manager.opcode        
-            @sba_tile.service_manager.results_store=@sba_system.services[@service][@scid][0].call(@sba_system,@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
-#            @sba_tile.service_manager.results_store=@sba_system.services[@service][0].call(@sba_system,@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
+#            @sba_tile.service_manager.results_store=@sba_system.services[@service][@scid][0].call(@sba_system,@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
+            @sba_tile.service_manager.results_store=@sba_system.services[@service][@scid][0].call(@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
+
+            #            @sba_tile.service_manager.results_store=@sba_system.services[@service][0].call(@sba_system,@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
 
 #C++    		FuncPointer fp=sba_system.cfg.services[service].core;
 #C++        sba_tile.service_manager.results_store=(*fp)((Base::ServiceCore*)this,sba_tile.service_manager.arg_addresses);

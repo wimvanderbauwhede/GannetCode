@@ -1,0 +1,22 @@
+To use the Gannet framework, you first build your system as a set of Services. You can use all services in the Gannet ServiceCoreLibrary or create your own services. After you've built your custom Gannet system, you can use it to run tasks.
+To do so, you write a task in the Gannet language, compile it and run it on the Gannet machine, either the VM or the SystemC hardware model.
+
+1. Create your services
+
+	The easiest way to create a custom service is to copy the source code of one of the Services in the ServiceCoreLibrary and use that as a starting point. For more details, read [Creating Services](creating_services.html).
+
+2. Create your system configuration
+
+	The Gannet system configuration is a file in YAML format. There are several examples in the SystemConfigurations folder; if you want to know the details, read [The Gannet System Configuration](system_configuration.html)
+
+
+3. Build your system
+
+	To build the system, run the `build.pl` script with the appropriate SystemConfiguration file. The build scripts are in the `build` folder, run `./build.pl -h` to see the options. The build script will generate the C++ system configuration header file, optionally generate C++ sources from Ruby and build
+
+4. Create your task description
+
+	In other words, write some Gannet code. For a comprehensive introduction, see [Programming Gannet](programming_gannet.txt)
+
+
+5. Run your task

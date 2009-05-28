@@ -1,0 +1,75 @@
+## Installing and building Gannet<a name="install"></a>
+
+<!-- #include file="installing_and_building_gannet.html" -->
+
+## Using Gannet<a name="using"></a>
+
+<!-- #include file="using_gannet.html" -->
+
+<!--
+### Creating your own compiler backend<a name="backend"></a>
+
+[TBA] -->
+
+Gannet Publications<a name="pubs"></a>
+-------------------
+
+Here are some papers discussing various aspects of the Gannet system:
+
+<p><a name="Vanderbauwhede:2008:8944"></a>
+
+W.&nbsp;Vanderbauwhede, C.&nbsp;Thirunavukkarasu, P.&nbsp;Mckechnie.
+ "The Gannet Service Manager: a Distributed Dataflow Controller for
+  Heterogeneous Multi-core SoCs."
+ In <em>Third NASA/ESA Conference on Adaptive Hardware and Systems,
+  AHS 2008.</em>, pages 301-308. IEEE Computer Society, 2008.
+</p>
+
+<p><a name="Vanderbauwhede:2008:8945"></a>
+
+W.&nbsp;Vanderbauwhede.
+ "A Formal Semantics for Control and Data Flow in the Gannet
+  Service-based System-on-Chip Architecture."
+ In <em>The International Conference on Engineering of Reconfigurable
+  Systems and Algorithms, ERSA 2008</em>.  CSREA Press, 2008.
+</p>
+
+<p><a name="Vanderbauwhede:2007:8686"></a>
+
+W.&nbsp;Vanderbauwhede.
+ "Separation of Data Flow and Control Flow in Reconfigurable Multi-core
+  SoCs using the Gannet Service-based Architecture."
+ In <em>Adaptive Hardware and Systems, 2007. AHS 2007. Second
+  NASA/ESA Conference on</em>, pages 326-333. IEEE Computer Society, 2007.
+
+</p>
+
+<p><a name="Vanderbauwhede:2007:8687"></a>
+
+W.&nbsp;Vanderbauwhede.
+ "Gannet: a Scheme for Task-level Reconfiguration of Service-based
+  Systems-on-Chip."
+ In <em>Proc. 8th ACM Workshop on Scheme and Functional Programming</em>.
+   Universite Laval, CA, 2007.
+
+</p>
+
+<p><a name="Vanderbauwhede:2006:8333"></a>
+
+W. Vanderbauwhede.
+ "Gannet: a Functional Task Description Language for a Service-based
+  SoC Architecture."
+ In <em>Proc. 7th Symposium on Trends in Functional Programming
+  (TFP06)</em>, pages 366-377. Nottingham University, UK, 2006.
+
+</p>
+
+<p><a name="Vanderbauwhede:2006:8335"></a>
+
+W. Vanderbauwhede.
+ "The Gannet service-based SoC: A Service-level Reconfigurable
+  Architecture."
+ In <em>Proceedings of 1st NASA/ESA Conference on Adaptive Hardware
+  and Systems (AHS-2006)</em>, pages 255-261. IEEE Computer Society Press, 2006.
+
+</p>

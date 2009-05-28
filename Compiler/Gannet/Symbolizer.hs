@@ -209,13 +209,19 @@ and certainly no sugar. So I guess (label L_i (... L_i)) is best.
 So we must transform ["label", "L_i", ["S_j",...]] into
 ["S_j",...] and a Hash "L_i" => R_j 
 
+How to make it work on quoted expressions?
+(label L_i ' (S_j ...)) must be replaced by
+ ' (S_j ...) 
 -}
 parseLabel tct = 
     do
         return tct1
     where
         ((TokenList ltl),ctxt)=tct                
-        lbl:[tl]=ltl
+        lbl:[tl]=ltl 
+--        (lbl,tl) = case ltl of
+--        	plbl:[ptl] -> (plbl,ptl)
+--        	plbl:quote:[ptl] -> (plbl, TokenList ([quote]++[ptl])) --TokenList quoted_tl)
         Token glbl=lbl
         nctxt=ctxt{reflabel=glbl}
         tct1=(tl,nctxt)    

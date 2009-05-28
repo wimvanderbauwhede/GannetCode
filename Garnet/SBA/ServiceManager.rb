@@ -745,9 +745,10 @@ end # of activate_subtask_helper
             # this should also check the subtask list and update the packet status
             data_packet=@data_fifo.shift #t Packet_t
             #iv
-            if @debug_all or @service==@debug_service
                 puts ppPacket(data_packet) #C++ cout << ppPacket(data_packet) <<"\n";
-            end
+                if getPrio_p(data_packet)==1
+                   puts  "#{@service} store_data(): got ACK"
+                end
             #ev
 
             label= getReturn_as(getHeader(data_packet)) #t Word
@@ -1334,7 +1335,8 @@ so we have:
         return_as=@subtask_list.ack_to(@current_subtask) #t Word
         # Create the result packet
         payload_length=1 #t Length_t
-        prio=0 #t Prio_t
+        # Prio set to 1 to denote that this is an ACK, for debugging        
+        prio=1 #t Prio_t
         # We don't want to redir the ACK!
         redir=0 #t Redir_t
         ack_to=@subtask_list.ack_to(@current_subtask) #t Word
@@ -1355,7 +1357,7 @@ so we have:
         # anders # VM==0
         #                        @tx_fifo.push(packet)
         # einde # VM
-        puts ppPacket(packet)  if @v #skip
+        puts ppPacket(packet) if @v #skip 
         puts getSubtask(getReturn_as(getHeader(packet)))  if @v #skip
     end # of send_ack
 
@@ -1627,14 +1629,14 @@ end # VM
                         sts=STS_cleanup
                     end
                 end
-                if sts==STS_processed or sts==STS_cleanup
+                if sts==STS_cleanup # sts==STS_processed or 
                     # everything is de-allocated, now remove the subtask
 #iv                
                     puts "#{@service} CLEAN-UP: remove #{@current_subtask}"
 #ev                                 
                     @subtask_list.remove(@current_subtask) # this sets the status to STS_deleted
                 end                                                      
-                    if sts==STS_processed or sts==STS_cleanup or sts==STS_inactive                                       
+                if sts==STS_cleanup or sts==STS_inactive # sts==STS_processed or                                       
                             #WV22052009 I think the subtask should not be cleared but we want to reuse it, so put it back on the stack!     
 if VM==1
                     # push the address back onto the subtask address stack:
@@ -1660,6 +1662,7 @@ end # VM
 #                    puts "#{@service} CLEAN-UP #{@current_subtask} for BUF"
 #                    # We want the subtask entry to persist but the addresses for data should have been reclaimed.
                 if @core_status == CS_managed
+                    puts "#{@service} CLEAN-UP: STS=#{sts}, CS_managed: CLEAN-UP for #{@current_subtask}" if @v #skip
                     clean_up()
                 end
 #                    

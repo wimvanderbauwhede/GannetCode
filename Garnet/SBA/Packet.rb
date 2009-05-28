@@ -241,10 +241,12 @@ def setPacket_type(header,field) #t Header_t (Header_t;Packet_type_t)
 	modheader.push(header[2]) #s/push/push_back/
 	return modheader
 end
+
 def getPrio(header) #t Prio_t (Header_t&)
 	w1=header[0] #t Word
 	return (w1 & F_Prio) >> FS_Prio
 end
+
 def setPrio(header,field) #t Header_t (Header_t&;Prio_t)
 	modheader=[]  #t Header_t #s/=..//
 	w0=(header[0] & FN_Prio) + (field << FS_Prio) #t Word
@@ -312,6 +314,7 @@ end
     Word getReturn_as_p(const Packet_t& packet) ;
 	Return_to_t getReturn_to_p(const Packet_t& packet);    
     Redir_t getRedir_p(const Packet_t& packet) ;
+    Prio_t getPrio_p(const Packet_t& packet) ;
     Packet_type_t getPacket_type_p(const Packet_t& packet);
     Length_t getLength_p(const Packet_t& packet);
 =end #h
@@ -333,6 +336,11 @@ end
         Word w1=packet[0];
     	return (w1 & F_Redir) >> FS_Redir;
     }   
+    Prio_t SBA::getPrio_p(const Packet_t& packet) {
+        Word w1=packet[0];
+        return (w1 & F_Prio) >> FS_Prio;
+    }   
+    
     Packet_type_t SBA::getPacket_type_p(const Packet_t& packet) {
     	Word w1=packet[0];
 	    return (w1 & F_Packet_type) >> FS_Packet_type;
@@ -388,6 +396,10 @@ end
     	w1=packet[0] #t Word
 	   return (w1 & F_Redir) >> FS_Redir    
     end
+    def getPrio_p(packet)  
+        w1=packet[0] 
+        return (w1 & F_Prio) >> FS_Prio    
+    end    
     def getPacket_type_p(packet) 
     	w1=packet[0] #t Word
 	   return (w1 & F_Packet_type) >> FS_Packet_type    

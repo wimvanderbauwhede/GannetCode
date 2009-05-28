@@ -16,9 +16,9 @@ System:
     7: { ALU: [0, ls_ALU, 1, [0, 1]], Addr: 7 }   
     8: { APPLY: [0, ls_APPLY, 1, [0, 0]], Addr: 8 }     
     9: { LAMBDA: [0, ls_LAMBDA, 1, [0, 0]], Addr: 9 }    
-    10: { NONE2: [0, none, 1, [0, 0]], Addr: 10 }
-    11: { NONE3: [0, none, 1, [0, 0]], Addr: 11 }
-    12: { NONE4: [0, none, 1, [0, 0]], Addr: 12 }
+    10: { CALL: [0, ls_CALL, 1, [0, 0]], Addr: 10 }
+    11: { UNQUOTE: [0, ls_UNQUOTE, 1, [0, 0]], Addr: 11 }
+    12: { UNSYMBOL: [0, ls_UNSYMBOL, 1, [0, 0]], Addr: 12 }
     13: { NONE5: [0, none, 1, [0, 0]], Addr: 13 }
     14: { NONE6: [0, none, 1, [0, 0]], Addr: 14 }
     15: { NONE7: [0, none, 1, [0, 0]], Addr: 0 }

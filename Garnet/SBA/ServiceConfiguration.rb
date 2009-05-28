@@ -528,7 +528,8 @@ FB_Count=0
 # Return_to: idem
 # Word 1: 3|3|2 | 8 | 8 | 8
 F_Packet_type=0xe0_00_00_00
-F_Prio=0x1a_00_00_00
+# 1d = 1_1100; must be 111
+F_Prio=0x1d_00_00_00
 F_Redir=0x03_00_00_00
 F_Length=0x00_ff_00_00
 F_To=0x00_00_ff_00

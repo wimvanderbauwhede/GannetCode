@@ -1,0 +1,79 @@
+Download Gannet
+---------------
+
+The source code for Gannet will be made available here soon.
+
+### Requirements
+
+Gannet runs on POSIX (unix-like) platforms. It has been tested on Linux and Mac OS X. 
+
+#### Minimal System
+
+To play around with the Gannet system, you need a the very least the following:
+
+* Ruby (1.8 or higher)
+* Perl (5.8 or higher)
+
+This will allow you to write programs in Gannet Assembler, transform them into bytecode and run them on Garnet, the Ruby implementation of Gannet.
+
+#### Virtual Machine
+
+The actual GannetVM is automaticall translated into C++ from the Ruby code.
+To build it, you'll need: 
+
+* g++ (4.0 or higher)
+* Scons (0.96.1 or higher), and therefore
+* Python (2.3 or higher) 
+
+#### Compiler
+
+To fully enjoy Gannet, you'll want the Gannet compiler. It is written in Haskell, so you'll need:
+
+* ghc (6.8 or higher)
+* cabal 
+* haddock  
+
+#### Runtimes
+
+Apart from the bytecode for running on GannetVM and Garnet, the compiler can produce code in Scheme and Perl 6. For these runtimes you'll need:
+
+* gambit-c (4.2 or higher)
+* pugs (binary version for Linux (x86) and OS X (ppc) or source)
+
+### Installation
+
+Gannet is quite easy to install, provided you have all the required tools (see above). 
+
+* Simply unpack the archive and you can immediately play with Garnet and the Gannet Assembler. The `bin` directory contains the following:
+
+    - `garnet.rb`: the Garnet executable
+    - `gas.pl`: the Gannet Assembler
+    - `gdis.rb`: the Gannet Disassembler
+    
+* To build the GannetVM, go to GannetVM/src and run scons:
+
+        $ cd GannetVM/src
+        $ scons
+
+This will create the executable `gannet` in `bin`.
+
+* To build the compiler, go to Compiler/src and run the `build` script:
+
+        $ cd Compiler/src
+        $ ./build
+        
+This will create the compiler executable `guillemot` in `bin`. 
+It will also create the executable `petrel` for the Perl 5 backend, and `skua` (for Scheme) and `puffin` (for Perl 6) if you have Gambit-C and Pugs installed.
+
+### Using Gannet
+
+So, assuming you installed everything, what can you do with it?
+
+* You can write programs in the Gannet language and compile them into Gannet bytecode (`guillemot`), or into Perl 5 (`petrel`), Perl 6 (`puffin`) or Scheme (`skua`). 
+* Or you can write programs in the Gannet assembler and transform them into bytecode (`gas`).
+* You can disassemble bytecode into Gannet assembly language (`gdis`).
+* You can run the compiled code using Garnet (`garnet`) or GannetVM (`gannet`).
+
+
+
+        

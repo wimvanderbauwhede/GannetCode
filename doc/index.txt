@@ -1,0 +1,98 @@
+Gannet Language<a name="lang"></a>
+---------------
+The aim of the Gannet project is to make it easier to design reconfigurable Systems-on-Chip. By using the Gannet framework, a System-on-Chip becomes a distributed processor for the Gannet language. 
+The Gannet language (Gannet for short) is a functional language with features that enable full concurrency and the potential to separate control flow from data flow, as well as native support for pipelined streaming data processing, an essential feature for SoCs aimed at multimedia applications. Despite its readability and high-abstraction constructs, the language is an assembly-level language that can be readily mapped to the bytecode for the Gannet system.
+
+Gannet is similar to Scheme in terms of syntax and language constructs. In case you don't know Scheme: every expression is of the form `( operator list-of-operands )` where every operand can again be an expression. 
+The key difference is that in Gannet, by default all arguments of a function are evaluated _in parallel_. Consequently, all branches of the computational tree are traversed in parallel. For example, in
+
+    (* (+ '2 '3) (- '4 '5) (* '6 '7) )
+
+the three argument expressions will be computed in parallel. Consequently, on a multi-core system a Gannet program will run faster than a sequential program.
+
+As a second example consider a construct that require precedence, such as variable assignment:
+
+    (let
+        (assign 'v '6)
+        (* (read 'v) '7)
+    )    
+
+It is perfectly possible that the `read` call is evaluated before the `assign` call. Therefore a call will either have to wait (block) until all calls upon which it depends have returned, or the calls must be sequenced.
+
+Gannet has no "special forms" (keywords), a very interesting feature from the language designer's perspective: no expressions are special. Instead, all language features are implemented as "services", which can be thought of as object methods. This feature makes it very simple to add or remove language constructs.
+However, it means that in
+
+    (if (condition) (branch1) (branch2))
+    
+both branches will be evaluated, which is in general not desirable. Gannet has a mechanism to defer evaluation, indicated by _quoting_ the argument. Thus in
+
+    (if (condition) '(branch1) '(branch2))
+    
+only the branch corresponding to the return value of `(condition)` will be evaluated. 
+ 
+For more details on the Gannet syntax and language constructs, see [Programming Gannet](programming_gannet.txt).
+
+Compiler<a name="comp"></a>
+--------
+The Gannet compiler can compile the Gannet assembly-level code into bytecode to be run on the Gannet VM or hardware, or translate the Gannet code into code for a number of reference implementations.
+
+Garnet prototype<a name="proto"></a>
+----------------
+
+Garnet is a prototype for the complete Gannet system written in Ruby. It is a model for both  the actual hardware archticture and the Virtual Machine. Garnet is purely a tool to research trade-offs and design decisions in the system. 
+The source code is provided here for those who would like to study the Gannet architecture rather than the language.
+
+Gannet VM<a name="vm"></a>
+---------
+One branch of the Garnet prototype implements the Virtual Machine. However, a VM in Ruby is not of any practical use. The Gannet VM is a _C++ port_ of the Garnet VM branch, obtained by _automatic translation_ of the Ruby code. The resulting VM is small, reasonably fast and resource-efficient. It has been successfully tested on Linux on a PowerPC core embedded in a Virtex-II Pro FPGA. 
+The source code includes a user-space driver for a fifo-buffered PLB interface. Using this driver and the examples for services provided in the source code, it is easy to add a custom hardware service to the system. 
+
+SystemC hardware model<a name="sysc"></a>
+----------------------
+As Gannet is intended as a framework for SoC design, a hardware model is essential. Using the Ruby and C++ codebase, we have built a cycle-approximate system-level model for the Gannet framework in the industry-standard (IEEE 1666) SystemC system-level modelling language. SystemC is implemented as a C++ library and the Gannet toolchain allows Services written in C++ or "portable" Ruby to be run integrated in the SystemC framework. This approach greatly simpifies rapid prototyping of a Gannet SoC. 
+
+Reference implementations<a name="ref"></a>
+-------------------------
+To make it easier to design the Gannet language and to have an unambiguous specification of the semantics of the Gannet system, a number of reference implementations have been created. Every reference implementation consists of a runtime library. The Gannet code is translated into the native code for the runtime system. All reference implementations support the concurrent evaluation semantics that is Gannet's most remarkable feature.
+Although Gannet is a functional language, it is possible for services to maintain state. Therefore, the operators in the Gannet code are implemented conceptually as methods of Service objects. Furthermore, every method call evaluates in its own thread.
+
+### Scheme
+
+A very powerful reference implementation is written in [Gambit](http://gambit.iro.umontreal.ca/) Scheme. The Scheme code of the runtime library is less readable due to the use of `define-syntax` macros but the Gambit system allows to compile to C, making it the fastest reference implementation. 
+
+    (define (Cond)
+      (let (
+            (self (Service))
+            )
+        (->! self 'return (lambda (args)
+                            (let* ((evargs ((-> self 'ev) args))
+                                   (arg (car evargs))                                            
+                                   )                                                             
+                              ((-> self 'evl) ((-> self 'unq) arg))                              
+                              )))                                                                
+        self                                                                                     
+        )                                                                                        
+      ) 
+
+### Perl 6
+
+Arguably the most elegant reference implementation is written in Perl 6 and uses [Pugs](http://www.pugscode.org) as the interpreter. The Perl 6 syntax makes the runtime library very easy to understand. 
+
+    class Cond is Service {
+        method return {                                                                          
+            my @args= self.ev(@_);                                                               
+            my $a=@args[0];                                                                      
+            if ($a.WHAT() eq 'Block') {                                                  
+                my $r=$a();                                                                      
+                return &Service::ev_($r);                                                        
+            } else {                                                                             
+                $a;                                                                          
+            }                                                                                    
+        };                                                                                       
+    } # Cond
+    
+### Perl 5
+
+The Perl 5 version is aimed at those who would like to try out Gannet but don't like to install Pugs or Gambit Scheme. It does not use threads nor indeed Perl objects. The purpose of this reference implementation is to investigate how Gannet can be compiled into an imperative language (there is no runtime library in this case). 
+            
+

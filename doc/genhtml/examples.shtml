@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8">
+	<META name="keywords" content="">
+    <META name="description" content="">
+	<link rel="Stylesheet" href="stylesheet/site.css">
+		<link rel="Stylesheet" href="stylesheet/sidebar.css">
+	<title>GannetCode.org</title>
+</head>
+<body>
+<div id="floatcontainer1">
+<div id="banner">
+<img src="images/banner.png">
+<!--	<div id="sitetitle" class="sitetitlecl">Gannet</div>
+	<div id="baseline" class="baselinecl">smart systems on chip</div>
+	
+	<div id="skipnav" > <a href="#content" class="skipnavcl">skip to main content</a> </div>
+	-->
+</div>
+
+<div id="topnavigation" class="navcl">
+
+	<ul class="topnav">
+
+	<li class="topnav"><a href="index.html" class="topnav">Home</a></li>
+	<li class="topnav"><a href="about.html" class="topnav">About</a></li>
+		<li class="topnav">Examples</li>
+	<li class="topnav"><a href="docs.html" class="topnav">Documentation</a></li>
+	<li class="topnav"><a href="download.html" class="topnav">Download</a></li>
+
+	</ul>
+</div>
+<div id="floatcontainer2">
+<div id="sidepane">
+<ul class="sidenav">
+<li class="sidenav"><a name="fact">Factorial</a></li>
+<li class="sidenav"><a name="sine">Sine series</a></li>
+<li class="sidenav"><a name="lists">Lists</a> </li>
+<li class="sidenav"><a name="io">Simple IO</a></li>
+<li class="sidenav"><a name="fifo">Pipelining</a></li>
+
+</ul>
+</div>
+
+<div id="content" class="contentcl">
+	<a name="content"></a>
+<!-- #include virtual="examples.html" -->
+</div> <!-- content -->
+</div><!-- container2 -->
+<div id="bottomnavigation"></div>
+<div id="footer"></div>
+</div>
+</body>
+</html>

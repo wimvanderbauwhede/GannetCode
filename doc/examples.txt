@@ -1,0 +1,171 @@
+Gannet Examples
+---------------
+
+Here are a number of examples of Gannet code, to illustrate the syntax. All examples can be run using the Scheme-based and Perl-based reference implementations.
+
+### Factorial<a name="fact"></a>
+
+Although Gannet is a very simple language, there are several ways to compute the factorial. The first approach uses lambda functions:
+
+    (let
+	    (assign 'f (lambda 'n 'acc 'f_ '(if (< n '2) 
+						    '(return acc)
+						    '(apply (read f_) (- n '1) (* acc n) f_)
+					    )
+			    )
+	    )
+	    (apply (read 'f) '15 '1 'f)
+    )
+    
+Lambda functions are very inefficient in Gannet because of the overhead involved in every service call. To allow more efficient looping, Gannet has a syntactic construct called `label`. This is essentially a functional `goto` (similar to `gosub` in BASIC). Unsurprisingly, this type of loop requires variable update (like `set!` in Scheme).
+
+    (let
+	    (assign 'a '1)
+	    (assign 'n '1)
+	    '(label L 
+		    (if
+			    (> a '14)
+			    '(return n )
+			    '(return 'L (update 'a (+ a '1)) (update 'n (* n a)))
+		    )
+	    )
+    )
+    
+### Sine series<a name="sine"></a>
+
+This series decomposition of the sine function again uses lambda. Note the explicit passing of the function variables.
+    (let
+        (assign 'xx '2)
+        (assign 'nn '10)
+
+        (assign 'fact (lambda 'n 'acc 'fact_
+         '(if (< n '2)
+             '(return acc)
+             '(apply (read fact_) (- n '1) (* acc n) fact_ )
+             )
+         ))
+
+        (assign 'pow (lambda 'x 'y 'acc 'pow_
+          '(if (< y '2)
+            '(if (< y '1) 
+                '(return '1)
+          	    '(return acc)
+            )
+          	'(apply (read pow_) x (- y '1) (* acc x) pow_ )
+          	)
+        ))
+
+         (assign 'sinterm (lambda 'x 'n 'pow_ 'fact_
+        '(let
+             '(assign 'sign (apply (read pow_) '-1 (- n '1) '-1 pow_ ))
+             '(assign 'denom (apply (read pow_) x (- (* '2 n) '1) x pow_ ))
+             '(assign 'numer (apply (read fact_) (- (* '2 n) '1) '1 fact_ ))
+             '(* (read 'sign) (/ (read 'denom) (read 'numer)))
+         )
+        )) 
+         
+        (assign 'sine (lambda 'x 'n 'acc 'sine_ 'sinterm_ 'p 'f
+         '(if (< n '1)
+            '(return acc)
+            '(apply (read sine_) x (- n '1) 
+                (+ acc (apply (read sinterm_) x n p f ))
+                sine_ sinterm_ p f )
+            )
+         ))
+
+        (apply (read 'sine) 
+            (read 'xx) (read 'nn) '0 'sine 'sinterm 'pow 'fact )
+    )
+    ; => 0.909297426825641    
+
+### Lists operation<a name="lists"></a> 
+
+Gannet has a full set of list operations, names are borrowed from Scheme and Haskell. A trivial example:
+
+    (length 
+        (append 
+            (list 
+                    (+ (head (list (* '2 '11) (+ '3 '8) '33)) 
+                        (length (list '44 '55 '66 '77)))
+                    (+ 
+                        (head (list '11 '22 '33)) 
+                        (length (list (* (length 
+                            (list '1 '2 '3)) '44) '55 '66 '77)))
+            )
+            (list 12 13 14)
+        )
+    )
+    
+An example with nested lists:
+
+    (let
+    (assign 'img
+        (list
+                    (list '139 '144 '149 '153 '155 '155 '155 '155)
+                    (list '144 '151 '153 '156 '159 '156 '156 '156)
+                    (list '150 '155 '160 '163 '158 '156 '156 '156)
+                    (list '159 '161 '162 '160 '160 '159 '159 '159)
+                    (list '159 '160 '161 '162 '162 '155 '155 '155)
+                    (list '161 '161 '161 '161 '160 '157 '157 '157)
+                    (list '162 '162 '161 '163 '162 '157 '157 '157)
+                    (list '162 '162 '161 '161 '163 '158 '158 '158)
+                    )
+			     )
+			     
+    (assign 'nrows (length (read 'img)) )
+    (assign 'show (lambda 'ws '(display ws)))
+
+    (let
+        (assign 'runs '0)
+
+            (assign 'elt  (head (head (read 'img))))
+            (apply (read 'show) (read 'elt))
+
+    (label R (if (< (read 'runs) (- (read 'nrows) '1))
+        '(let
+         (update 'runs (+ '1 (read 'runs))) 
+         (let
+            (assign 'elt  (head (head (tail (read 'img)))))
+            (apply (read 'show) (read 'elt))
+            '(update 'img (tail (read 'img))) 
+         )
+         '(return 'R)
+         )
+        '(return '1)
+    ))
+    )
+    )    
+
+### Simple IO<a name="io"></a>
+
+Gannet uses a simple ports-based IO mechanism. The following example reads lines from a file an writes them to a new file.
+
+    (let
+	    '(fopen '1 "SBA.yml" "r")
+	    '(fopen '2 "tmpp" "w")
+    '(label L
+        (if
+	     (== '1 (iowrite '2 (ioread '1)))
+        '(return 'L)
+        '(return '1)
+    )
+    )
+    '(fclose '1)
+    '(fclose '2)
+    ) 
+        
+### Pipelining<a name="fifo"></a>
+
+Gannet provides services to stream data through a pipeline. This is again for reasons of effiency: pure functional recursion would result in a high latency.
+The pipeline is filled by buffering the result of the computation using `buffer`. The `stream` call gets data from the buffer and at the same time requests a new computation. The `iter` service calls its argument a specified number of times. 
+
+    (let
+         (buffer 1 '(rnd ))
+        '(buffer 2 '(* 10 (stream 1)))
+        '(buffer 3 '(+ 1000 (stream 2)))
+        '(iter 10
+            '(stream 3)
+         )
+    )    
+   
+   

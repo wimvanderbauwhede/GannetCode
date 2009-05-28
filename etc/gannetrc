@@ -15,7 +15,7 @@ fi
 # Only required to deploy the VM on a Virtex FPGA
 if [ $OS == 'Linux' ]; then
     GANNET_XC_PATH="$HOME/opt/crosstool/gcc-3.4.4-glibc-2.3.3/powerpc-405-linux-gnu/bin"
-else
+#else
 #    echo "Sorry, cross-compilation for PPC is not supported on $OS."
 fi        
 # LLVM (Linux)

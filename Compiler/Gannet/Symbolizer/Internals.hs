@@ -72,15 +72,15 @@ createSymCtxt x tl ctxt =
                 xsym = Symbol xgsym
                 -- LABEL handling
                 -- the first K_S after the label triggers insertion of the label in the reflabelt: label => xgsym{kind=K_R}
-                -- 
-                nreflabelt 
-                    | (skind==K_S) && (reflabel ctxt /= emptyGT) = Hash.insert (reflabel ctxt) xgsym{kind=K_R} (reflabelt ctxt)
-                    | otherwise = reflabelt ctxt
+                -- to handle quoted refs
+                (nreflabelt,nreflabel) 
+                    | (skind==K_S) && (reflabel ctxt /= emptyGT) = (Hash.insert (reflabel ctxt) xgsym{kind=K_R} (reflabelt ctxt),emptyGT)
+                    | otherwise = (reflabelt ctxt, reflabel ctxt)
                 nctxt=ctxt2{    current=currentservice,
                             callerstack=callerservices,
                             currentlambda=ncurrentlambda,
                             lambdastack=nlambdastack,
-                            reflabel=emptyGT, -- not sure about this
+                            reflabel=nreflabel, -- not sure about this
                             reflabelt=nreflabelt,    
                             prevsym=emptyGS
                             }

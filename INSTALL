@@ -1,79 +1,86 @@
-Gannet installation and build instructions
+### PREREQUISITES:
 
-PREREQUISITES:
-
-Essential:
+#### Essential:
 
 Compilers
-g++ >= 4.0
-ghc >= 6.10.3 (www.haskell.org)
+
+- [g++ >= 4.0](http://gcc.gnu.org)
+- [ghc >= 6.10.3](http://www.haskell.org)
 
 Dynamic languages
-perl >= 5.8
-ruby >= 1.8.6 (www.ruby-lang.org)
-python >= 2.5.1
 
-Build tools (www.scons.org)
-scons >= 1.2.0
+- [perl >= 5.8](http://www.perl.org) 
+- [ruby >= 1.8.6](http://www.ruby-lang.org)
+- [python >= 2.5.1](http://www.python.org)
 
-Libraries 
-SystemC (www.systemc.org)
-systemc >= 2.2
-systemc-tlm >= 2.0
+Build tools
 
-Haskell Platform (hackage.haskell.org/platform/)
+- [scons >= 1.2.0](http://www.scons.org)
 
-Optional:
+[SystemC Libraries](http://www.systemc.org)
+
+- systemc >= 2.2
+- systemc-tlm >= 2.0
+
+[Haskell Platform](http://hackage.haskell.org/platform/)
+
+#### Optional:
 
 For the Scheme back-end Skua:
-Gambit-C Scheme >= 4.4 (gambit.iro.umontreal.ca/)
+
+- [Gambit-C Scheme >= 4.4](http://gambit.iro.umontreal.ca/)
 
 For the Perl6 back-end Puffin:
-Pugs >= 6.2.13.14 (from Hackage or svn.pugscode.org)
+
+- Pugs >= 6.2.13.14 (from [Hackage](http://hackage.haskell.org/) or [SVN](http://svn.pugscode.org) )
 
 For cross-compilation to linux-ppc:
-Crosstool with /gcc-3.4.4-glibc-2.3.3/powerpc-405-linux-gnu/bin 
 
-INSTALLATION:
+- Crosstool with /gcc-3.4.4-glibc-2.3.3/powerpc-405-linux-gnu/bin 
 
-# get the archive (GannetCode-0.1.tgz)
- wget www.gannetcode.org/downloads/GannetCode-0.1.tgz	
-# create a directory Gannet:
- mkdir Gannet
-# go there
- cd Gannet
-# unpack the archive 
- tar -zxvf ../GannetCode-0.1.tgz
+### INSTALLATION:
+
+    # get the archive (GannetCode-0.1.tgz)
+     wget www.gannetcode.org/downloads/GannetCode-0.1.tgz	
+    # create a directory Gannet:
+     mkdir Gannet
+    # go there
+     cd Gannet
+    # unpack the archive 
+     tar -zxvf ../GannetCode-0.1.tgz
 
 The file etc/gannetrc contains the environment settings for Gannet.
 Edit this file for your system; 
-$ vim etc/gannetrc
+
+    $ vim etc/gannetrc
+
 then source it:
-$ . etc/gannetrc
+
+    $ . etc/gannetrc
 
 That's it, you can start using Gannet -- although you'll most likely want to build
 the compiler, Virtual Machine and/or SystemC hardware model. But without building
 anything, you can write Gannet assembly, generate bytecode with the Gannet Assembler
 and run it on Garnet, the Ruby version of the Gannet machine.
 
-BUILDING:
+### BUILDING:
 
-Compiler:
+#### Compiler:
 
 Unless you're happy writing Gannet assembly, you'll need to build the Gannet compiler:
 
-$ cd Compiler
-$ ./build.pl
+    $ cd Compiler
+    $ ./build.pl
 
-Virtual Machine:
+#### Virtual Machine:
 
-$ cd VirtualMachine/build
-$ ./build.pl 
+    $ cd VirtualMachine/build
+    $ ./build.pl 
 
-SystemC Hardware Model:
+#### SystemC Hardware Model:
 
-$ cd HardwareModels/SystemC/build
-$ ./build.pl
+    $ cd HardwareModels/SystemC/build
+    $ ./build.pl
 
 
 
