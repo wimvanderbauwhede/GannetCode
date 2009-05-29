@@ -3,7 +3,7 @@
 The key to understanding how Gannet programs are executed is this: a Gannet program is a tree of function calls and when executing a program, the Gannet machine evaluates all branches of the tree concurrently. As a result there is not particular evaluation order, i.e. you cannot assume that one argument of a function is evaluated before another. 
 
 This behaviour can be changed by quoting the arguments. However, all quoting does is defer the evaluation of the expression to the function body. It is then up to the service implementing the function body to evaluate the quoted expression.
-This is very similar to Scheme's `delay/force` mechanism, or to Perl's subrefs. 
+This is very similar to Scheme's `delay/force` mechanism, or to Perl's `eval`. 
 
 	; Scheme
 	(define a 10) 
@@ -12,9 +12,9 @@ This is very similar to Scheme's `delay/force` mechanism, or to Perl's subrefs.
 
 	# Perl
 	my $a=10;
-	my $eval_aplus2 = sub {$a+2};
+	my $aplus2 = '$a+2';
 	$a=20;
-	$eval_aplus2->(); => 22
+	eval($aplus2); => 22
 
 A consequence of Gannet's eager evaluation mechanism is that any symbol that cannot be evaluated must be quoted. This includes numbers: from Gannet's perspective, unquoted numbers are symbols and it will try to evaluate them -- and fail. Hence, numbers should be quoted:
 
@@ -42,7 +42,7 @@ It is valid to use labels recursively, i.e.
 
 	(label infinity (+ '1 infinity))
 
-is valid and will recurse forever -- or at least until the stack overflows. We will see further on how to construct infinite loops that do result in stack overflow. 	
+is valid and will recurse forever -- or at least until the stack overflows. We will see further on how to construct infinite loops that do not result in stack overflow. 	
 
 ### Control Services
 
@@ -65,7 +65,7 @@ A special construct often used in conjunction with `if` is `return`. This constr
 	 	'(return (S_f ...))
 	)
 
-This is particularly if for some reason the argument of `return` is itself quoted, as there is no other way in Gannet to "stack" quotes. Reasons for quoting the argument of `return` will be covered in [Advanced Topics](#advanced).	
+This is particularly useful if for some reason the argument of `return` is itself quoted, as there is no other way in Gannet to "stack" quotes. Reasons for quoting the argument of `return` will be covered in [Advanced Topics](#advanced).	
 
 #### Grouping and lexically scoped variables: `begin`, `let`, `assign`, `read`
 	
@@ -78,9 +78,46 @@ Gannet has two different grouping constructs, `begin` and `let`. The `begin` con
 		(+ e1 e2)
 	)	
 
-The other grouping construct is `let`, which is similar to Scheme's `let` in that is provides the scope for binding lexical variables, but is unlike Scheme's `let` in that it is not syntactic sugar for `lambda`. The `let` construct has another main use: it can be used to sequence operations. Quoted expression inside a let will be evaluated in lexical order but after the unquoted ones (which are evaluated without order.
+The other grouping construct is `let`, which is similar to Scheme's `let` in that is provides the scope for binding lexical variables, but is unlike Scheme's `let` in that it is not syntactic sugar for `lambda`. The `let` construct has another main use: it can be used to sequence operations. Quoted expression inside a let will be evaluated in lexical order but after the unquoted ones (which are evaluated without order. 
+Variables are assigned using `assign` and accessed using `read` or simply by evaluation:
+
+	(let
+	 	(assign 'x '6)
+		(assign 'y '7)
+		(* x y)
+	)
+
+The difference between using `(read 'x)` and `x` is that the read call will simply fail if the variable had not been assigned while the evaluation will block until the variable has been assigned. In other words, `read` only works if we can sequence the assignments first:	
+
+	(let
+	 	(assign 'x '6)
+		'(assign 'y (+ (read 'x) '1)
+		'(* (read 'x) (read 'y))
+	)
+
+Although the use of mutable variables is generally not a good idea in a functional language, especially with concurrent evaluation, variables can be reassigned using `update`. 
+
+	(let
+	 	'(assign 'a '1)
+		'(update 'a (+ (read 'a) '1)
+		'(* (read 'a) '2)
+	)
 
 #### Functions: `lambda` and `apply`
+
+Functions in Gannet are defined using `lambda` and applied using `apply`. The `lambda` construct returns an unnamed function which can be bound to a label or variable:
+
+	(let
+ 		'(label mult (lambda 'x 'y '(* x y)))
+		'(apply mult '6 '7) ; => 42
+	)
+	
+	(let
+ 		'(assign 'mult (lambda 'x 'y '(* x y)))
+		'(apply (read 'mult) '6 '7) ; => 42
+	)
+
+A very important limitation of the `apply` construct is that it only accepts quoted expressions as arguments. The reason for this is that `apply` constructs the actual expression by substituting the lambda-variables by the argument symbols which represent the quoted expressions (rather than by binding the lambda variables to the evaluated expressions).
 
 #### Lists operations
 
@@ -89,7 +126,25 @@ The other grouping construct is `let`, which is similar to Scheme's `let` in tha
 
 ### Result redirection
 
-### Tail recursion
+
+
+### Loops and Tail recursion
+
+The main reason for allowing variable updates is to construct finite loops using `label`. For example, a factorial can be implemented as:
+
+	(let
+ 		'(assign 'n '10)
+		'(assign 'acc '1)
+		'(label loop (if (< n '1)
+					'(return acc)
+					'(let  
+					 	'(update 'n (- (read 'n) '1)) 
+						'(update 'acc (* (read 'acc) (read 'n)))
+						'(return 'loop)
+					)
+				))
+	 )
+
 
 ### Buffers and Pipelining
 

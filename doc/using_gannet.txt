@@ -16,7 +16,7 @@ To do so, you write a task in the Gannet language, compile it and run it on the 
 
 4. Create your task description
 
-	In other words, write some Gannet code. For a comprehensive introduction, see [Programming Gannet](programming_gannet.txt). By convention, Gannet task description programs have the extension `.td`. For some examples see `examples` and the test directory `t`. 
+	In other words, write some Gannet code. For a comprehensive introduction, see [Programming Gannet](programming_gannet.html). By convention, Gannet task description programs have the extension `.td`. For some examples see `examples` and the test directory `t`. 
 
 	The Gannet compiler `gannetc` compiles the code into Gannet bytecode (`.tdc`) or the target languages for the various backends. A handy wrapper around  `gannetc` is `guillemot`. This wrapper will scan the `.td` file for a comment line with the name of the SystemConfiguration YAML file to use, if none is found it defaults to the `SBA.yml` from the `SystemConfigurations` folder. It compiles the program to bytecode but can also output Gannet assembly language.
 
