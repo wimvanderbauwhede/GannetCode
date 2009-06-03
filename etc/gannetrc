@@ -1,4 +1,4 @@
-GANNET_DIR=`pwd`
+#GANNET_DIR=`pwd`
 OS=`uname -s`
 # SystemC paths, required for the hardware model
 SYSTEMC="/opt/systemc-2.2"

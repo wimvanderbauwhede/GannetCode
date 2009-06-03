@@ -1,79 +1,58 @@
 Download Gannet
 ---------------
 
-The source code for Gannet will be made available here soon.
+The current status of Gannet is pre-alpha. See the [Roadmap](#roadmap) for schedule and features of planned releases. 
 
 ### Requirements
 
 Gannet runs on POSIX (unix-like) platforms. It has been tested on Linux and Mac OS X. 
 
-#### Minimal System
+For prerequisites and installation instructions, see [Installing and building Gannet](docs.html) or INSTALL.
 
-To play around with the Gannet system, you need a the very least the following:
+### Distributions
 
-* Ruby (1.8 or higher)
-* Perl (5.8 or higher)
+#### Gannet Live Distro as VirtualBox HardDisk 
 
-This will allow you to write programs in Gannet Assembler, transform them into bytecode and run them on Garnet, the Ruby implementation of Gannet.
+This is a complete Linux distro (Mandriva One) with all tools required for Gannet pre-installed. Simply get [VirtualBox](http://www.virtualbox.org) and run the Gannet Live Distro in a Linux VM.
 
-#### Virtual Machine
+[GannetLive-pre-alpha.tbz2](downloads/GannetLive.tbz2) 
+	
+(unpack with `tar -jxvf GannetLive.tbz2`)
 
-The actual GannetVM is automaticall translated into C++ from the Ruby code.
-To build it, you'll need: 
+#### Full Gannet Distribution
 
-* g++ (4.0 or higher)
-* Scons (0.96.1 or higher), and therefore
-* Python (2.3 or higher) 
+Contains the compiler, assembler, disassembler, runtime libraries, Ruby reference model, C++ virtual machine and SystemC model as well as documentation and examples.
 
-#### Compiler
+[Gannet-pre-alpha.tgz](downloads/Gannet-pre-alpha.tgz)
 
-To fully enjoy Gannet, you'll want the Gannet compiler. It is written in Haskell, so you'll need:
+#### Virtual Machine Distribution
 
-* ghc (6.8 or higher)
-* cabal 
-* haddock  
+For those who want to develop, port or simply try out the VM without writing and compiling Gannet code. Contains the C++ virtual machine and its Ruby reference model as well as documentation and precompiled examples.
 
-#### Runtimes
+[GannetVM-pre-alpha.tgz](downloads/GannetVM-pre-alpha.tgz)
 
-Apart from the bytecode for running on GannetVM and Garnet, the compiler can produce code in Scheme and Perl 6. For these runtimes you'll need:
+#### SystemC Hardware Model Distribution
 
-* gambit-c (4.2 or higher)
-* pugs (binary version for Linux (x86) and OS X (ppc) or source)
+For those who want to develop, port or simply try out the Gannet SystemC hardware model without writing and compiling Gannet code. Contains the SystemC model and its Ruby reference model as well as documentation and precompiled examples.
 
-### Installation
+[GannetSoC-pre-alpha.tgz](downloads/GannetSoC-pre-alpha.tgz)
 
-Gannet is quite easy to install, provided you have all the required tools (see above). 
+#### Compiler Distribution
 
-* Simply unpack the archive and you can immediately play with Garnet and the Gannet Assembler. The `bin` directory contains the following:
+For those interested in the Gannet language and the compiler, but not in the VM or the hardware model. Contains the compiler and runtime libraries.
 
-    - `garnet.rb`: the Garnet executable
-    - `gas.pl`: the Gannet Assembler
-    - `gdis.rb`: the Gannet Disassembler
-    
-* To build the GannetVM, go to GannetVM/src and run scons:
+[GannetCompiler-pre-alpha.tgz](downloads/GannetCompiler-pre-alpha.tgz)
 
-        $ cd GannetVM/src
-        $ scons
+### Roadmap<a name="roadmap"></a>
 
-This will create the executable `gannet` in `bin`.
+The plan is to release a new version every 6 months, with minor version releases for critical bug fixes every 3 months.
 
-* To build the compiler, go to Compiler/src and run the `build` script:
+* The _pre-alpha_ release is the first "official" Gannet release. At this stage Gannet is usable for playing around with, development and testing.
 
-        $ cd Compiler/src
-        $ ./build
-        
-This will create the compiler executable `guillemot` in `bin`. 
-It will also create the executable `petrel` for the Perl 5 backend, and `skua` (for Scheme) and `puffin` (for Perl 6) if you have Gambit-C and Pugs installed.
+* The _alpha_ release will be mainly a bug fix release, with few additional features (the most notable feature is the planned inclusion of a SystemC model for the Quarc Network-on-Chip).
 
-### Using Gannet
+* The _beta_ release will feature a Virtual Machine able to run on an embedded processor without intermediate operating system.
 
-So, assuming you installed everything, what can you do with it?
+* The _1.0_ release's key feature will be _Gannet-C_, a high-level language for programming Gannet
 
-* You can write programs in the Gannet language and compile them into Gannet bytecode (`guillemot`), or into Perl 5 (`petrel`), Perl 6 (`puffin`) or Scheme (`skua`). 
-* Or you can write programs in the Gannet assembler and transform them into bytecode (`gas`).
-* You can disassemble bytecode into Gannet assembly language (`gdis`).
-* You can run the compiled code using Garnet (`garnet`) or GannetVM (`gannet`).
-
-
-
-        
+* The _2.0_ release will feature _HDL code_ for the Gannet SoC

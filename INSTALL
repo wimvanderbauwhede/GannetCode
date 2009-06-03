@@ -4,20 +4,20 @@
 
 Compilers
 
-- [g++ >= 4.0](http://gcc.gnu.org)
-- [ghc >= 6.10.3](http://www.haskell.org)
+- [g++ >= 4.0](http://gcc.gnu.org) for compiling the Virtual Machine and the SystemC model
+- [ghc >= 6.10.3](http://www.haskell.org) to compile the Gannet compiler
 
 Dynamic languages
 
-- [perl >= 5.8](http://www.perl.org) 
-- [ruby >= 1.8.6](http://www.ruby-lang.org)
-- [python >= 2.5.1](http://www.python.org)
+- [perl >= 5.8](http://www.perl.org) for various toolchains scripts
+- [ruby >= 1.8.6](http://www.ruby-lang.org) for Garnet, the Gannet reference model 
+- [python >= 2.5.1](http://www.python.org) for SCons
 
 Build tools
 
-- [scons >= 1.2.0](http://www.scons.org)
+- [scons >= 1.2.0](http://www.scons.org) for building the Virtual Machine and the SystemC model
 
-[SystemC Libraries](http://www.systemc.org)
+[SystemC Libraries](http://www.systemc.org) 
 
 - systemc >= 2.2
 - systemc-tlm >= 2.0
