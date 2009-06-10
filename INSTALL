@@ -26,6 +26,10 @@ Build tools
 
 #### Optional:
 
+For the Gannet assembler:
+
+- YAML::Syck from [CPAN](http://search.cpan.org/dist/YAML-Syck/)
+
 For the Scheme back-end Skua:
 
 - [Gambit-C Scheme >= 4.4](http://gambit.iro.umontreal.ca/)
@@ -65,9 +69,29 @@ and run it on Garnet, the Ruby version of the Gannet machine.
 
 ### BUILDING:
 
+#### Assembler:
+
+The Gannet assembler is written in Perl but you need to install YAML::Syck from CPAN:
+
+    $ cpan install YAML::Syck
+
 #### Compiler:
 
-Unless you're happy writing Gannet assembly, you'll need to build the Gannet compiler:
+Unless you're happy writing Gannet assembly, you'll need to build the Gannet compiler. 
+First you need to build the HsSyck dependency (currently the compiler needs an older version of HsSyck, the Cabal version will not work).
+
+    $ cd third-party/HsSyck
+    $ cabal configure
+    $ cabal build
+    $ cabal install
+
+(Or if you don't have the `cabal` command:
+
+    $ run-haskell Setup.hs configure --user
+    $ run-haskell Setup.hs build
+    $ run-haskell Setup.hs install
+
+Then build the compiler:
 
     $ cd Compiler
     $ ./build.pl

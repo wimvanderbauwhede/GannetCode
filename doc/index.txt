@@ -30,7 +30,7 @@ both branches will be evaluated, which is in general not desirable. Gannet has a
     
 only the branch corresponding to the return value of `(condition)` will be evaluated. 
  
-For more details on the Gannet syntax and language constructs, see [Programming Gannet](programming_gannet.txt).
+For more details on the Gannet syntax and language constructs, see [Programming Gannet](programming_gannet.html).
 
 Compiler<a name="comp"></a>
 --------
@@ -58,41 +58,42 @@ Although Gannet is a functional language, it is possible for services to maintai
 
 ### Scheme
 
-A very powerful reference implementation is written in [Gambit](http://gambit.iro.umontreal.ca/) Scheme. The Scheme code of the runtime library is less readable due to the use of `define-syntax` macros but the Gambit system allows to compile to C, making it the fastest reference implementation. 
+A very powerful reference implementation is written in [Gambit](http://gambit.iro.umontreal.ca/) Scheme. The Scheme code of the runtime library is less readable due to the use of `define-syntax` macros but the Gambit system allows compilation into C, making it the fastest reference implementation. 
+As an example, consider the multiplication operation of a simple ALU service. This multiplication returns the product of its arguments: 
 
-    (define (Cond)
+    (define (ALU)
       (let (
             (self (Service))
             )
-        (->! self 'return (lambda (args)
-                            (let* ((evargs ((-> self 'ev) args))
-                                   (arg (car evargs))                                            
-                                   )                                                             
-                              ((-> self 'evl) ((-> self 'unq) arg))                              
-                              )))                                                                
+		(service-method self 'times args
+                       (fold * ((-> self 'ev) args) ))
         self                                                                                     
         )                                                                                        
       ) 
 
 ### Perl 6
 
-Arguably the most elegant reference implementation is written in Perl 6 and uses [Pugs](http://www.pugscode.org) as the interpreter. The Perl 6 syntax makes the runtime library very easy to understand. 
+Arguably the most elegant reference implementation is written in Perl 6 and uses [Pugs](http://www.pugscode.org) as the interpreter. The Perl 6 syntax makes the runtime library very easy to understand: 
 
-    class Cond is Service {
-        method return {                                                                          
+    class ALU is Service {
+        method mult {                                                                          
             my @args= self.ev(@_);                                                               
-            my $a=@args[0];                                                                      
-            if ($a.WHAT() eq 'Block') {                                                  
-                my $r=$a();                                                                      
-                return &Service::ev_($r);                                                        
-            } else {                                                                             
-                $a;                                                                          
-            }                                                                                    
-        };                                                                                       
-    } # Cond
+            return [*] @args;
+        }                                                                                       
+    } # ALU
     
 ### Perl 5
 
-The Perl 5 version is aimed at those who would like to try out Gannet but don't like to install Pugs or Gambit Scheme. It does not use threads nor indeed Perl objects. The purpose of this reference implementation is to investigate how Gannet can be compiled into an imperative language (there is no runtime library in this case). 
+The Perl 5 version is aimed at those who would like to try out Gannet but don't like to install Pugs or Gambit Scheme. It does not use threads nor indeed Perl objects. The purpose of this reference implementation is to investigate how Gannet can be compiled into an imperative language. There is no runtime library for ALU operations or control constructs, but adding a service is straightforward: 
+
+	sub mult {
+    	my $res=1;
+    	for my $v ( @_) {
+        	$res*=$v;
+    	}
+    	return $res;
+	}
+
+
             
 

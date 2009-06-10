@@ -725,12 +725,13 @@ if TO_YAML==1
     service_configuration['Data_Status']=datastatus()
     service_configuration['Code_Status']=codestatus()
     if ENV.has_key?('GANNET_DIR')
-        scfile="#{ENV['GANNET_DIR']}/Garnet-HW/ServiceConfiguration.yml"
+        scfile="#{ENV['GANNET_DIR']}/Garnet/ServiceConfiguration.yml"
     else
         scfile="ServiceConfiguration.yml"
     end
     File.open( scfile, 'w' ) do |out|
         YAML.dump(service_configuration, out )
     end
+    exit
 end # TO_YAML
 #endskip

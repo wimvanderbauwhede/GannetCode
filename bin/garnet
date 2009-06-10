@@ -38,7 +38,7 @@ help= <<EOH
     -t, --threads: use Ruby threads
     -V, --vm: emulate Virtual Machine (default is to emulate HW)
     -R, --run-only: Run bytecompiled task description (default)
-    -Y, --yaml: 
+    -Y, --yaml: YAML configuration file
 EOH
 
 
