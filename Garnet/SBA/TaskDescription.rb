@@ -90,7 +90,7 @@ class SBA_TaskDescription
 #iv
                       puts "========"
                       puts ppPacket(packet)
-                      puts packet.inspect #skip
+                      puts "-- #{packet.inspect}" #skip
 #ev                      
              @Packets.push(packet) #s/push/push_back/
         end # loop over all packets

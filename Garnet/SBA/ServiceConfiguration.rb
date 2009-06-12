@@ -615,7 +615,7 @@ F_DataAddress=0x03_ff # 10 bits
 #FW_Reg_C= 7
 
 # For multi-threaded cores, we need F_SCId and F_Opcode
-
+# We use the upper 3 bits of the Name byte for the SCId, the lower 5 for the Opcode
 F_SCId = 0xe0
 FS_SCId=5
 FB_SCId=3
@@ -714,6 +714,7 @@ end # WORDSZ
         
 # end
 
+# This YAML output is currently only used by the Gannet assembler    
 if TO_YAML==1
     require 'yaml'
     service_configuration={}
@@ -724,8 +725,9 @@ if TO_YAML==1
     service_configuration['Subtask_Status']=subtaskstatus()
     service_configuration['Data_Status']=datastatus()
     service_configuration['Code_Status']=codestatus()
+    service_configuration['FS_SCId']=FS_SCId
     if ENV.has_key?('GANNET_DIR')
-        scfile="#{ENV['GANNET_DIR']}/Garnet/ServiceConfiguration.yml"
+        scfile="#{ENV['GANNET_DIR']}/Assembler/ServiceConfiguration.yml"
     else
         scfile="ServiceConfiguration.yml"
     end

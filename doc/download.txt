@@ -39,7 +39,8 @@ For those who want to develop, port or simply try out the Gannet SystemC hardwar
 
 #### Compiler Distribution
 
-For those interested in the Gannet language and the compiler, but not in the VM or the hardware model. Contains the compiler and runtime libraries.
+For those interested in the Gannet language and the compiler, but not in the VM or the hardware model. Contains the compiler and runtime libraries, the
+assembler and disassembler.
 
 [GannetCompiler-pre-alpha.tgz](downloads/GannetCompiler-pre-alpha.tgz)
 

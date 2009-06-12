@@ -1,4 +1,4 @@
-#
+#!/usr/bin/ruby
 # :title: Garnet Service-based SoC project - Gannet disassembler
 ##
 #
@@ -26,15 +26,16 @@ WORDSZ=32
 NUM=1
 TO_YAML=0
 VERBOSE=1
+USE_THREADS=0
 
 if ENV.has_key?('GANNET_DIR')
     $LOAD_PATH.push("#{ENV['GANNET_DIR']}/Garnet/")
 else    
-    $LOAD_PATH.push("#{ENV['HOME']}/SoC_Research/Code/Gannet/Garnet/")
+    raise "Please set the GANNET_DIR environment variable: declare -x GANNET_DIR=your_gannet_dir"
 end
 
 help= <<EOH
-    Usage: gdis [-h] .tdc file 
+    Usage: gdis [-h] [-Y YAML-config-file] .tdc file 
 EOH
 
 require 'optparse'
@@ -43,6 +44,9 @@ opts=OptionParser.new
 opts.on("-v","--verbose") {}
 FP=0
 opts.on("-f","--float-only") {FP=1}
+SBA_YML='SBA.yml'
+opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| SBA_YML=yml_file }
+
 opts.on("-h","--help") {
 puts help
 exit
@@ -51,8 +55,8 @@ exit
 tdc_file=opts.parse(ARGV).join('')
 
 if tdc_file != 'NONE'
-    require 'SBA/SystemConfiguration.rb'
     require 'SBA/ServiceConfiguration.rb'
+    require 'SBA/SystemConfiguration.rb'
     require 'SBA/TaskDescription.rb'
     td=SBA_TaskDescription.new(tdc_file,0)
 end
