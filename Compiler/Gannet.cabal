@@ -3,7 +3,7 @@ Version: 0.0.1
 Cabal-Version: >= 1.2
 Build-Type: Simple
 License: GPL
-License-file: ../../gpl-2.txt
+License-file: ../LICENSE
 Author: WV
 Synopsis: Gannet bytecode compiler
 Build-Depends: mtl, base, containers, parsec, pugs-HsSyck == 0.2

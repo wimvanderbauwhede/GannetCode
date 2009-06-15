@@ -2268,7 +2268,7 @@ No, we must do it like in IF or LET
 
 
 
-#skip
+# kip
 
     # ----------------------------------------------------------------------------
     # WV10062008: CALL is essential! It allows to store quoted refs.
@@ -2277,10 +2277,12 @@ No, we must do it like in IF or LET
     # (LET (LABEL f (LAMBDA 'x '(* '6 x))) (APPLY f '7))
     # Maybe we need both, what's the use of the LAMBDA call outside APPLY?
     # More importanly, could I use a LABEL as an argument? 
-    def SBA_SCLib.ls_CALL(sba_tile,parent,addresses)
+
+    def SBA_SCLib.ls_CALL(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+	#core
         print "#{parent.service} CORE: #{parent.current_subtask}: (CALL \n" if @v #skip
-        argaddr=addresses[0]
-        result_list=[] #t Word_List; #s/=..//;       
+        argaddr=addresses[0] #t MemAddress
+        result_list=[] #C++ Word_List result_list; 
         result_list=sba_tile.data_store.mget(argaddr)       
         result=result_list[0] #t Word
         parent.core_return_type=P_reference
@@ -2305,8 +2307,9 @@ No, we must do it like in IF or LET
     #   (apply v ... ... (unquote 'v))
     # But in general, (S (unquote 'sym)) => S(sym) whereas (S sym) => S(val(sym))
     # for completeness: (S 'sym) => S('sym)
-    def SBA_SCLib.ls_UNQUOTE(sba_tile,parent,addresses)
-        print "#{parent.service} CORE: #{parent.current_subtask}: (UNQUOTE \n" if @v # skip
+    def SBA_SCLib.ls_UNQUOTE(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+	#core
+        print "#{parent.service} CORE: #{parent.current_subtask}: (UNQUOTE \n" if @v #skip
         argaddr=addresses[0] #t MemAddress
         result_list=[] #C++ Word_List result_list;
         result_list=sba_tile.data_store.mget(argaddr)       
@@ -2325,19 +2328,24 @@ No, we must do it like in IF or LET
     # UNSYMBOL returns the Subtask field of unextended symbols or the extension words of extended symbols
     # I don't really like the name nor the idea that there is no Scheme equivalent, but it is an important service
     # Maybe RAW is a better name? or VAL? 
-    def SBA_SCLib.ls_UNSYMBOL(sba_tile,parent,addresses)
+    def SBA_SCLib.ls_UNSYMBOL(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+	#core
         print "#{parent.service} CORE: #{parent.current_subtask}: (UNSYMBOL \n"
-        argaddr=addresses[0]
-        datasymbol_list=sba_tile.data_store.mget(argaddr) #t Word_List;
+        argaddr=addresses[0] #t MemAddress
+        datasymbol_list=sba_tile.data_store.mget(argaddr) #t Word_List
 	result_list=[] #t Word_List
-	for datasymbol in datasymbol_list
+	for datasymbol in datasymbol_list #t Word_List
 		if getExt(datasymbol)==0
-		puts "Not EXT"
+#iv
+		puts "Not EXT" 
+#ev
 			datavalue=getSubtask(datasymbol) #t Word 
 			result_list.push(datavalue)
 		else
+#iv
 		puts "EXT: #{getSubtask(datasymbol)}"
-			for i in 1..getSubtask(datasymbol)
+#ev
+			for i in 1..getSubtask(datasymbol) #t int
 				extsymbol=datasymbol_list[i] #t Word
 				result_list.push(extsymbol)
 			end
@@ -2351,6 +2359,7 @@ No, we must do it like in IF or LET
         return result_list
     end # of ls_UNSYMBOL
     # ----------------------------------------------------------------------------
+#skip
     
     # LOOP syntax: (loop 'task condition)
     # The task must be quoted as it's dispatched by the core

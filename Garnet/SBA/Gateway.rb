@@ -140,7 +140,7 @@ end
                        # puts task_description_packet_list 
                         exit(1)                
                     end # QUIT              
-                    puts   task_description_packet_list.inspect
+                    puts   task_description_packet_list.inspect #skip
                     for task_description_packet in task_description_packet_list #t Packet_List
                         #iv
                         puts "GATEWAY SENDS PACKET:"

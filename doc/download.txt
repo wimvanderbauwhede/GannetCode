@@ -1,7 +1,7 @@
 Download Gannet
 ---------------
 
-The current status of Gannet is pre-alpha. See the [Roadmap](#roadmap) for schedule and features of planned releases. 
+The current status of Gannet is _alpha_. See the [Roadmap](#roadmap) for schedule and features of planned releases. 
 
 ### Requirements
 
@@ -15,7 +15,7 @@ For prerequisites and installation instructions, see [Installing and building Ga
 
 This is a complete Linux distro (Mandriva One) with all tools required for Gannet pre-installed. Simply get [VirtualBox](http://www.virtualbox.org) and run the Gannet Live Distro in a Linux VM.
 
-[GannetLive-pre-alpha.tbz2](downloads/GannetLive.tbz2) 
+[GannetLive-alpha.tbz2](downloads/GannetLive.tbz2) 
 	
 (unpack with `tar -jxvf GannetLive.tbz2`)
 
@@ -48,12 +48,13 @@ assembler and disassembler.
 
 The plan is to release a new version every 6 months, with minor version releases for critical bug fixes every 3 months.
 
-* The _pre-alpha_ release is the first "official" Gannet release. At this stage Gannet is usable for playing around with, development and testing.
+* The _alpha_ release is the first "official" Gannet release. At this stage Gannet is usable for playing around with, development and testing.
 
-* The _alpha_ release will be mainly a bug fix release, with few additional features (the most notable feature is the planned inclusion of a SystemC model for the Quarc Network-on-Chip).
+* The _beta_ release will be mainly a bug fix release, with few additional features (the most notable feature is the planned inclusion of a SystemC model for the Quarc Network-on-Chip).
 
-* The _beta_ release will feature a Virtual Machine able to run on an embedded processor without intermediate operating system.
+* The _1.0_ release will feature a Virtual Machine able to run on an embedded processor without intermediate operating system.
 
-* The _1.0_ release's key feature will be _Gannet-C_, a high-level language for programming Gannet
+* The _2.0_ release's key feature will be _Gannet-C_, a high-level language for programming Gannet
 
-* The _2.0_ release will feature _HDL code_ for the Gannet SoC
+* The _3.0_ release will feature _HDL code_ for the Gannet SoC
+
