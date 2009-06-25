@@ -58,10 +58,10 @@ for optkey,optval in ARGLIST:
     if optkey == 'dbg' and optval == '1':        
         DEBUG='-g'                
 
+OSX=0
 if commands.getoutput("uname") == "Darwin":
     OSX=1
     switches+=['DARWIN']
-
 
 FLAGS=''
 SWITCHES=''

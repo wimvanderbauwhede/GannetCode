@@ -13,36 +13,36 @@ For prerequisites and installation instructions, see [Installing and building Ga
 
 #### Gannet Live Distro as VirtualBox HardDisk 
 
-This is a complete Linux distro (Mandriva One) with all tools required for Gannet pre-installed. Simply get [VirtualBox](http://www.virtualbox.org) and run the Gannet Live Distro in a Linux VM. 
+If you have bandwidth and disk space to spare, this is the easiest way to get started with Gannet: a complete Linux distro (Mandriva One) with the Gannet platform and all prerequisites pre-installed. Simply get [VirtualBox](http://www.virtualbox.org) and run the Gannet Live Distro in a Linux VM. 
 
-[GannetLive-alpha.tbz2 ()](downloads/GannetLive-alpha.tbz2) 
+[GannetLive-alpha.tbz2 (1.7G)](downloads/GannetLive-alpha.tbz2) 
 	
-(unpack with `tar -jxvf GannetLive-alpha.tbz2`)
+The user name and password are both 'gannet'.
 
 #### Full Gannet Distribution
 
 Contains the compiler, assembler, disassembler, runtime libraries, Ruby reference model, C++ virtual machine and SystemC model as well as documentation and examples. Unless you have very limited bandwith and disk space (building everything takes about 50M), this is the distro you want.
 
-[Gannet-alpha.tgz (582K)](downloads/Gannet-alpha.tgz)
+[Gannet-alpha.tgz (715K)](downloads/Gannet-alpha.tgz)
 
 #### Virtual Machine Distribution
 
 For those who only want to develop, port or simply try out the VM without writing and compiling Gannet code. Contains the C++ virtual machine and its Ruby reference model as well as documentation and precompiled examples.
 
-[GannetVM-alpha.tgz (214K)](downloads/GannetVM-alpha.tgz)
+[GannetVM-alpha.tgz (268K)](downloads/GannetVM-alpha.tgz)
 
 #### SystemC Hardware Model Distribution
 
 For those who only want to develop, port or simply try out the Gannet SystemC hardware model without writing and compiling Gannet code. Contains the SystemC model and its Ruby reference model as well as documentation and precompiled examples.
 
-[GannetSoC-alpha.tgz (434K)](downloads/GannetSoC-alpha.tgz)
+[GannetSoC-alpha.tgz (554K)](downloads/GannetSoC-alpha.tgz)
 
 #### Compiler Distribution
 
 For those interested in the Gannet language and the compiler, but not in the VM or the hardware model. Contains the compiler and runtime libraries, the
 assembler and disassembler.
 
-[GannetCompiler-alpha.tgz (256K)](downloads/GannetCompiler-alpha.tgz)
+[GannetCompiler-alpha.tgz (326K)](downloads/GannetCompiler-alpha.tgz)
 
 ### Roadmap<a name="roadmap"></a>
 

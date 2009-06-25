@@ -42,7 +42,7 @@ For cross-compilation to linux-ppc:
 
 - Crosstool with /gcc-3.4.4-glibc-2.3.3/powerpc-405-linux-gnu/bin 
 
-### INSTALLATION:
+### INSTALLATION:<a name="setup"></a>
 
     # get the archive (GannetCode-0.1.tgz)
      wget www.gannetcode.org/downloads/GannetCode-0.1.tgz	
@@ -53,6 +53,7 @@ For cross-compilation to linux-ppc:
     # unpack the archive 
      tar -zxvf ../GannetCode-0.1.tgz
 
+The environment variable `GANNET_DIR` must be set to the above directory.
 The file etc/gannetrc contains the environment settings for Gannet.
 Edit this file for your system; 
 
