@@ -26,7 +26,7 @@
 
 	<li class="topnav">Home</li>
 	<li class="topnav"><a href="about.html" class="topnav">About</a></li>
-		<li class="topnav"><a href="examples.html" class="topnav">Examples</a></li>
+		<li class="topnav"><a href="contribute.html" class="topnav">Contribute</a></li>
 	<li class="topnav"><a href="docs.html" class="topnav">Documentation</a></li>
 	<li class="topnav"><a href="download.html" class="topnav">Download</a></li>
 
@@ -50,7 +50,7 @@
  <span class="tr"></span><!--top_right-->
     <!--this would be the content-->
     <p class="sidebarcontent"><span class="sidebartitle">Welcome to GannetCode.org</span><br>
-The Gannet framework aims to make it easier to design complex reconfigurable Systems-on-Chip. On this site you'll find the source code and documentation for the Gannet compiler, the SystemC hardware model and the Virtual Machine.</p>
+The Gannet platform aims to make it easier to design complex reconfigurable Systems-on-Chip by providing a novel high-level programmable infrastructure. On this site you'll find the source code and documentation for the Gannet compiler, the SystemC hardware model and the Virtual Machine.</p>
  <span class="bl"></span><!--bottom_left-->
  <span class="br"></span><!--bottom_right-->
 </div><!--sidebar-->

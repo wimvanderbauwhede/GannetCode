@@ -1,6 +1,6 @@
 ### About Gannet
 
-Gannet is the Advanced Research Fellowship project of [Wim Vanderbauwhede](http://www.dcs.gla.ac.uk/~wim/). It is funded by the UK Engineering and Physical Sciences Research Council ([EPSRC](http://www.epsrc.ac.uk)).
+Gannet is the research project of [Wim Vanderbauwhede](http://www.dcs.gla.ac.uk/~wim/). It is funded by the UK Engineering and Physical Sciences Research Council ([EPSRC](http://www.epsrc.ac.uk)) as an Advanced Research Fellowship.
 
 The name Gannet does not stands for anything in particular, but it does refer to the elegant [seabird](http://www.rspb.org.uk/wildlife/birdguide/name/g/gannet/) that can be seen off the coast of Scotland. 
 

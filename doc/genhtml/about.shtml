@@ -25,7 +25,7 @@
 
 	<li class="topnav"><a href="index.html" class="topnav">Home</a></li>
 	<li class="topnav">About</li>
-		<li class="topnav"><a href="examples.html" class="topnav">Examples</a></li>
+		<li class="topnav"><a href="contribute.html" class="topnav">Contribute</a></li>
 	<li class="topnav"><a href="docs.html" class="topnav">Documentation</a></li>
 	<li class="topnav"><a href="download.html" class="topnav">Download</a></li>
 

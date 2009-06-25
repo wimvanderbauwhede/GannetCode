@@ -35,11 +35,11 @@
 <div id="floatcontainer2">
 <div id="sidepane">
 <ul class="sidenav">
-<li class="sidenav"><a name="fact">Factorial</a></li>
-<li class="sidenav"><a name="sine">Sine series</a></li>
-<li class="sidenav"><a name="lists">Lists</a> </li>
-<li class="sidenav"><a name="io">Simple IO</a></li>
-<li class="sidenav"><a name="fifo">Pipelining</a></li>
+<li class="sidenav"><a class="sidenav"  href="#fact">Factorial</a></li>
+<li class="sidenav"><a class="sidenav"  href="#sine">Sine series</a></li>
+<li class="sidenav"><a class="sidenav"  href="#lists">Lists</a> </li>
+<li class="sidenav"><a class="sidenav"  href="#io">Simple IO</a></li>
+<li class="sidenav"><a class="sidenav"  href="#fifo">Pipelining</a></li>
 
 </ul>
 </div>

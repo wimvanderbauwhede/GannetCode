@@ -26,7 +26,7 @@
 
 	<li class="topnav"><a href="index.html" class="topnav">Home</a></li>
 	<li class="topnav"><a href="about.html" class="topnav">About</a></li>
-		<li class="topnav"><a href="examples.html" class="topnav">Examples</a></li>
+		<li class="topnav"><a href="contribute.html" class="topnav">Contribute</a></li>
 	<li class="topnav">Documentation</li>
 	<li class="topnav"><a href="download.html" class="topnav">Download</a></li>
 
@@ -37,8 +37,9 @@
 <ul class="sidenav">
 <li class="sidenav"><a class="sidenav" href="#docs">Documentation</a>
 <ul>
-<li><a href="#install">Installation</a></li>
-<li><a href="#using">Using Gannet</a></li>
+<li><a class="sidenav"  href="#install">Installation</a></li>
+<li><a class="sidenav"  href="#using">Using Gannet</a></li>
+<li><a class="sidenav"  href="examples.html">Examples</a></li>
 <!--
 <li><a href="#backend">Compiler backends</a></li>
 -->

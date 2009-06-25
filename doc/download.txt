@@ -5,44 +5,44 @@ The current status of Gannet is _alpha_. See the [Roadmap](#roadmap) for schedul
 
 ### Requirements
 
-Gannet runs on POSIX (unix-like) platforms. It has been tested on Linux and Mac OS X. 
+Gannet runs on POSIX (unix-like) platforms. It has been tested on Linux and Mac OS X 10.5. 
 
-For prerequisites and installation instructions, see [Installing and building Gannet](docs.html) or INSTALL.
+For prerequisites and installation instructions, see [Installing and building Gannet](docs.html) or the INSTALL file in the distro.
 
 ### Distributions
 
 #### Gannet Live Distro as VirtualBox HardDisk 
 
-This is a complete Linux distro (Mandriva One) with all tools required for Gannet pre-installed. Simply get [VirtualBox](http://www.virtualbox.org) and run the Gannet Live Distro in a Linux VM.
+This is a complete Linux distro (Mandriva One) with all tools required for Gannet pre-installed. Simply get [VirtualBox](http://www.virtualbox.org) and run the Gannet Live Distro in a Linux VM. 
 
-[GannetLive-alpha.tbz2](downloads/GannetLive.tbz2) 
+[GannetLive-alpha.tbz2 ()](downloads/GannetLive-alpha.tbz2) 
 	
-(unpack with `tar -jxvf GannetLive.tbz2`)
+(unpack with `tar -jxvf GannetLive-alpha.tbz2`)
 
 #### Full Gannet Distribution
 
-Contains the compiler, assembler, disassembler, runtime libraries, Ruby reference model, C++ virtual machine and SystemC model as well as documentation and examples.
+Contains the compiler, assembler, disassembler, runtime libraries, Ruby reference model, C++ virtual machine and SystemC model as well as documentation and examples. Unless you have very limited bandwith and disk space (building everything takes about 50M), this is the distro you want.
 
-[Gannet-pre-alpha.tgz](downloads/Gannet-pre-alpha.tgz)
+[Gannet-alpha.tgz (582K)](downloads/Gannet-alpha.tgz)
 
 #### Virtual Machine Distribution
 
-For those who want to develop, port or simply try out the VM without writing and compiling Gannet code. Contains the C++ virtual machine and its Ruby reference model as well as documentation and precompiled examples.
+For those who only want to develop, port or simply try out the VM without writing and compiling Gannet code. Contains the C++ virtual machine and its Ruby reference model as well as documentation and precompiled examples.
 
-[GannetVM-pre-alpha.tgz](downloads/GannetVM-pre-alpha.tgz)
+[GannetVM-alpha.tgz (214K)](downloads/GannetVM-alpha.tgz)
 
 #### SystemC Hardware Model Distribution
 
-For those who want to develop, port or simply try out the Gannet SystemC hardware model without writing and compiling Gannet code. Contains the SystemC model and its Ruby reference model as well as documentation and precompiled examples.
+For those who only want to develop, port or simply try out the Gannet SystemC hardware model without writing and compiling Gannet code. Contains the SystemC model and its Ruby reference model as well as documentation and precompiled examples.
 
-[GannetSoC-pre-alpha.tgz](downloads/GannetSoC-pre-alpha.tgz)
+[GannetSoC-alpha.tgz (434K)](downloads/GannetSoC-alpha.tgz)
 
 #### Compiler Distribution
 
 For those interested in the Gannet language and the compiler, but not in the VM or the hardware model. Contains the compiler and runtime libraries, the
 assembler and disassembler.
 
-[GannetCompiler-pre-alpha.tgz](downloads/GannetCompiler-pre-alpha.tgz)
+[GannetCompiler-alpha.tgz (256K)](downloads/GannetCompiler-alpha.tgz)
 
 ### Roadmap<a name="roadmap"></a>
 
