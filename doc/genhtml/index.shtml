@@ -35,6 +35,7 @@
 <div id="floatcontainer2">
 <div id="sidepane">
 <ul class="sidenav">
+<li class="sidenav"><a class="sidenav" href="#overview">Overview</a></li>
 <li class="sidenav"><a class="sidenav" href="#lang">Language</a></li>
 <li class="sidenav"><a class="sidenav" href="#comp">Compiler</a></li>
 <li class="sidenav"><a class="sidenav" href="#proto">Prototype</a></li>

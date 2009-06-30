@@ -1,6 +1,8 @@
+<!-- #include file="gannet_overview.html" -->
+
 Gannet Language<a name="lang"></a>
 ---------------
-The aim of the Gannet project is to make it easier to design reconfigurable Systems-on-Chip. By using the Gannet framework, a System-on-Chip becomes a distributed processor for the Gannet language. 
+The aim of the Gannet project is to make it easier to design reconfigurable Systems-on-Chip. By using the Gannet platform, a System-on-Chip becomes a distributed processor for the Gannet language. 
 The Gannet language (Gannet for short) is a functional language with features that enable full concurrency and the potential to separate control flow from data flow, as well as native support for pipelined streaming data processing, an essential feature for SoCs aimed at multimedia applications. Despite its readability and high-abstraction constructs, the language is an assembly-level language that can be readily mapped to the bytecode for the Gannet system.
 
 Gannet is similar to Scheme in terms of syntax and language constructs. In case you don't know Scheme: every expression is of the form `( operator list-of-operands )` where every operand can again be an expression. 
@@ -49,7 +51,7 @@ The source code includes a user-space driver for a fifo-buffered PLB interface. 
 
 SystemC hardware model<a name="sysc"></a>
 ----------------------
-As Gannet is intended as a framework for SoC design, a hardware model is essential. Using the Ruby and C++ codebase, we have built a cycle-approximate system-level model for the Gannet framework in the industry-standard (IEEE 1666) SystemC system-level modelling language. SystemC is implemented as a C++ library and the Gannet toolchain allows Services written in C++ or "portable" Ruby to be run integrated in the SystemC framework. This approach greatly simpifies rapid prototyping of a Gannet SoC. 
+As Gannet is intended as a platform for SoC design, a hardware model is essential. Using the Ruby and C++ codebase, we have built a cycle-approximate system-level model for the Gannet platform in the industry-standard (IEEE 1666) SystemC system-level modelling language. SystemC is implemented as a C++ library and the Gannet toolchain allows Services written in C++ or "portable" Ruby to be run integrated in the SystemC framework. This approach greatly simpifies rapid prototyping of a Gannet SoC. 
 
 Reference implementations<a name="ref"></a>
 -------------------------

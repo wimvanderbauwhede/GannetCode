@@ -1,0 +1,22 @@
+Overview<a name="overview"></a>
+--------
+
+A System-on-Chip is the integration of  a number of building blocks -- which until recently had to be implemented as separate chips -- onto a single chip. Such building blocks are called "cores" and a system with a large number of non-identical cores is a _Heterogeneous Multicore System-on-Chip_.
+
+![Heterogeneous Multicore System-on-Chip](images/heterogeneous_multicore_soc.png)
+
+The Gannet project aims to make it easier to design such Systems-on-Chip by providing a _platform_.
+
+![Gannet platform overview](images/gannet_overview.png)
+
+The Gannet platform connects a set of cores over a _network_ (called a "Network-on-Chip" (_NoC_) as the complete system is a single chip). The interface between the NoC and the core is a special circuit called the _service manager_. The service manager runs programs (written in the [Gannet language](#lang)) and these programs determine the way in which the cores work together to perform a task.
+
+![Gannet service manager](images/gannet_service_manager.png)
+
+Below is an example of a Gannet platform SoC that captures video and transmits it over a network interface.
+
+![Gannet SoC for video capture](images/gannet_example_video_capture.png)
+
+Depending on the available bandwidth, the raw video frames will be scaled down and MPEG compressed or encoded using a lossless codec. The system can also encrypt the video stream if required.
+
+For more detailed background information, have a look at the [Publications](docs.html#pubs)
