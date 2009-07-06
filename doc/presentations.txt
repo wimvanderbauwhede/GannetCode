@@ -1,0 +1,17 @@
+The following presentations give an overview of the Gannet project and its evolution.
+
+### Conference talks
+
+* [Programming the Interface between Communication and Computation](presentations/pres_MulticoreWS_Birmingham_02072009.pdf):  talk given at the "Programming Challenge of Heterogeneous Architectures" Bridging the Gap workshop, Birmingham University, 02/07/2009
+* [The Gannet Service Manager: a Distributed Dataflow Controller for Heterogeneous Multi-core SoCs](presentations/pres_AHS2008_WV.pdf): presented at the 3rd NASA/ESA Conference on Adaptive Hardware and Systems, Noordwijk, NL, 22/06/2008.
+* [Separation of Data flow and Control flow in Reconfigurable Multi-core SoCs using the Gannet Service-based Architecture](presentations/pres_AHS2007_WV.pdf): presented at the 2nd Conference on Adaptive Hardware and Systems, Edinburgh, UK, 08/08/2007.
+* [The Gannet Service-based SoC: A Service-level Reconfigurable Architecture](presentations/pres_AHS2006_WV.pdf): presented at the 1st Conference on Adaptive Hardware and Systems, Istanbul, Turkey, 19/06/2006.
+* [Gannet: a functional task description language for a service-based SoC architecture](presentations/pres_TFP2006_WV.pdf): presented at the Symposium on Trends in Functional Programming, Univ. of Nottingham, 18/04/2006.
+
+### Seminar talks
+
+* [Streaming Semantics for the Gannet Heterogeneous Multicore System-on-Chip]((presentations/pres_BirminghamTheorySeminar21112008.pdf): talk given at the University of Birmingham Theory Division Seminar, 21/11/2008 					
+* [Gannet: a Service-based Architecture for Reconfigurable SoCs](presentations/): talk given at the University of Essex, 21/11/2007 and the University of Massachusetts (Lowell, USA), 27/02/2008
+* [Operational Semantics for the Gannet Machine Language](presentations/): talk given at the Scottish Programming Languages Seminar, ICMS, Edinburgh, 01/06/2006.
+* [Gannet: a service-based SoC architecture and task description language](presentations/): talk given at the Scottish Programming Languages Seminar, Univ. of Strathclyde, 25/10/2005.
+* [Service-Based Architecture anf Functional Programming](presentations/): This was the first talk on Gannet, given internally in the Department on 22/06/2005

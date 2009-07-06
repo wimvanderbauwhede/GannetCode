@@ -11,6 +11,11 @@
 
 [TBA] -->
 
+Gannet Presentations<a name="talks"></a>
+-------------------
+
+<!-- #include file="presentations.html" -->
+
 Gannet Publications<a name="pubs"></a>
 -------------------
 
