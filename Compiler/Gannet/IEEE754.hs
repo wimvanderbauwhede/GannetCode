@@ -1,7 +1,8 @@
 -- | Encoding 64-bit IEEE floating-point numbers to 64-bit unsigned integer
 module Gannet.IEEE754(
 	encodeIEEE754,
-	encodeIEEE754_32
+	encodeIEEE754_32,
+	encodeIEEE754_64
 ) where
 
 import Data.Bits
@@ -10,15 +11,18 @@ import Data.Word
 
 {-
 This is a Double-to-bytes conversion
--assume x is Double, i.e. 64-bit IEEE 754
+- assume x is Double, i.e. 64-bit IEEE 754
 - Forget NaN, infinity and -0
 - Haskell's decodeFloat x returns (m,n) where x = m*2**n
 - For denormalized doubles, we shift to the right; the exp is zero
-- We create an integer representation and use int_to_bytes on it
 - Unfortunately Haskell's shiftL works only on 32-bit Int's
 -}
 encodeIEEE754 :: Double -> Integer -- [Word8]		
-encodeIEEE754 x
+encodeIEEE754 = encodeIEEE754_64
+
+
+encodeIEEE754_64 :: Double -> Integer -- [Word8]		
+encodeIEEE754_64 x
 	| x == 0.0 = 0
 	| otherwise =
 		let
@@ -38,7 +42,6 @@ encodeIEEE754 x
 			e1 = 1075 + n -- 1023 + 52; 1023=2**(11-1)-1 : exp is biased 
 			fltw
 				| isDenormalized x =	 (shiftR m (1-e1)) + signbit
-	--			| otherwise =  (toInteger (shiftL e1 52)) + signbit -- m1 +
 				| otherwise =  m1 + (toInteger e1)*pow2(52) + signbit -- m1 +			
 		in
 			fltw	
