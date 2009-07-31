@@ -1,3 +1,9 @@
+{- | The SystemConfiguration is the description of all the Services in the Gannet
+System-on-Chip. Every service core can provide multiple services, these are accessed
+via the Aliases.
+The SystemConfiguration YAML file contains the names and the numerical identifiers for all services.  
+-}
+
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
 module Gannet.SBA.SystemConfiguration (
@@ -24,8 +30,10 @@ import {-# SOURCE #-} Main ( ymlFileName )
 
 type Services = Hash.Map String (Integer,Integer)
 type Aliases = Hash.Map String (String,Integer,Integer)
+-- | ALUNames is a map of arithmetic operators to full names, e.g. '+' => 'ADD'
 type ALUNames = Hash.Map String String
 
+-- | 
 lookupServiceName :: GannetToken -> GannetToken 
 lookupServiceName opname@(GannetTokenS gl) =
     let

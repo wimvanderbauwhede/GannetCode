@@ -1,6 +1,9 @@
-{-
+{- |
 This is module provides functions to read in the SBA.yml configuration file
-and convert to the format used by SBA/ServiceConfiguration.hs
+and convert its content to the format used by SBA/ServiceConfiguration.hs
+-}
+
+{-
     0: { GATEWAY: [0, sba_GATEWAY, 1,[1,1]], Addr: 12 }
 Services
     Int: { String: [Int, String, Int], "Addr": Int }

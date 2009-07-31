@@ -1,3 +1,4 @@
+-- | Common functions used by the emitters for back-ends like Puffin and Skua, which are based on classes representing the Gannet services  
 module Gannet.Emitters.Common (
 emitRuntimeCode,
 CodeStrings(..),
@@ -25,10 +26,13 @@ translation_table_list=[
 ]
 type CodeTable = Hash.Map String ([String] -> String)
 code_table= Hash.fromList translation_table_list
-and we define 
+
+and we define
+ 
 join sep ls = foldl1 (\x y->x++sep+y) ls
 
 then we define emit: (well, actually we define how emit changes)
+
 emitC :: SymbolTree -> CodeTable -> String
 emitC (Symbol s) ct = (show (unaliasService (name s)))
 emitC (SymbolList (contents,slh)) ct =
@@ -54,7 +58,7 @@ Now we need to keep track of labels, so we need the state monad as previously
 -}
 
 {-
-This is the common emitter code for Puffin (P6) and Petrel (P5).
+This is the common emitter code for Puffin (P6) and Skua (Scheme)
 It should work for similar languages as well.
 -}
 
@@ -68,6 +72,7 @@ So what we need as a 'labeled' bit in the SLH
 If true, the current sub is labeled with a variable created from the name and the sub
 label_varname=(show (name (label slh))) ++ "_" ++ (show (subtask (label slh)))
 -}
+
 {-
 What we really need to do is create custom emitters per service.
 We create a list of those and convert it to a map, and then look up
@@ -76,11 +81,9 @@ the emitter based on the name of the service
 emitLambdaCode					
 -}
 
--- The reference implementation does not follow exactly the same structure as the Gannet ServiceCoreLibrary:
+-- | The implementation of the various back-ends does not follow exactly the same structure as the Gannet ServiceCoreLibrary:
 -- e.g. lambda and apply are provided by the Function object, but in the VM they are separate services
--- What we list here is the actual service name (no aliases), and the class that provides it.
--- TODO: List services should not be in Block but on their own. So somehow the lists below must get precedence over aliases etc
--- TODO: use YAML!
+-- RuntimeConfig.yml contains a table of the actual service names and aliases, and the class that provides it.
 (runtime_obj_list, runtime_alias_list)=readRuntimeConfig "RuntimeConfig.yml"
 {-
 runtime_obj_list = [ ("lambda","Function")
@@ -157,12 +160,14 @@ closeLambdaBodyExpr::String,
 comma::String
 }
 
+-- | emitRuntimeCode walks the symbol tree and emits code using CodeStrings
 emitRuntimeCode :: SymbolTree -> CodeStrings -> String
 emitRuntimeCode st cs = str
 	where
 		(fstr,sht) = (unwrapSH (emitPCM (quoteSymbolTree st emptyST) startST cs) emptySH)
 		istr = serviceInstCode sht cs
 		str=(header cs) ++  istr ++ (openGW cs) ++ fstr ++ (closeGW cs)		
+
 -- ----------------------------------------------------------------------------
 serviceInstCode :: ServiceTable -> CodeStrings -> String
 serviceInstCode sht cs = " " ++ (unwords ( map (\str->(buildServiceInstCode str cs)) (Hash.keys sht))) ++ "\n"

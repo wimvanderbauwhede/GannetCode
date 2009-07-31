@@ -21,11 +21,13 @@ import qualified Data.Map as Hash
 -- |ScopeTable keeps a list of all vars in a scope
 type ScopeTable = Hash.Map Integer ScopeRecord
 
-{- | ScopeRecord stores 
-    * the enclosing scope
-    * a flag indicating the LET is in a LAMBDA
-    * the kind of symbol         
-    * a map from the symbol's name to the actual symbol and the corresponding number 
+{- | ScopeRecord stores
+ 
+>    * the enclosing scope
+>    * a flag indicating the LET is in a LAMBDA
+>    * the kind of symbol         
+>    * a map from the symbol's name to the actual symbol and the corresponding number
+ 
 -}    
 data ScopeRecord = MkScopeRecord {     
                     enclosing :: Integer, -- ^ Points to the enclosing block

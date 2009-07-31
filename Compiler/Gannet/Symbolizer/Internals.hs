@@ -1,18 +1,21 @@
-{- 
+{- |
 Internals should contain only functions that will not have to be modified
 when adding new features to the compiler.
+That is the case for: 
 
-That is only the case for 
-remapSubtask
-getAssignVarStack
-symKindDet
-symDatatype
-symExt
+> remapSubtask
+> getAssignVarStack
+> symKindDet
+> symDatatype
+> symExt
+> symCount
 
-symCount contains a reference to "data", it is unlikely that I will re-introduce the DATA service or even the DATA construct
+Following functions are likely to change to accommodate Registers: 
 
-createSymCtxt might need modification to support Registers
-compileSym, symKindEtc are likely to change to accommodate Registers
+> createSymCtxt 
+> compileSym
+> symKindEtc
+
 -}
 
 module Gannet.Symbolizer.Internals (
@@ -232,6 +235,7 @@ symExt gt = case gt of
     (GannetTokenL d) ->  0
     (GannetTokenS s) ->  0        
     
+-- symCount contains a reference to "data", it is unlikely that I will re-introduce the DATA service or even the DATA construct    
 symCount :: [TokenTree] -> GSymbolKind -> Integer
 {-                                              
 symCount tl@(t:_) kind 
@@ -241,15 +245,17 @@ symCount tl@(t:_) kind
     | otherwise = 1
 -}         
 symCount [] kind = 0         
-symCount tl@([t]) kind 
-    | (kind==K_S) && ((stringInToken t)/="data") = toInteger (length tl)
-    | (kind==K_S) && ((stringInToken t)=="data") = toInteger  ((length tl) - 1) -- because we skip the value
+symCount tl@([t]) kind
+    | (kind==K_S) = toInteger (length tl) 
+--    | (kind==K_S) && ((stringInToken t)/="data") = toInteger (length tl)
+--    | (kind==K_S) && ((stringInToken t)=="data") = toInteger  ((length tl) - 1) -- because we skip the value
     | kind==K_B = toInteger (length tl) -- rather 'ad hoc' but should do the job
     | otherwise = 1              
     where
 		t=head tl                    
 symCount tl@(t:_) kind 
-    | (kind==K_S) && ((stringInToken t)/="data") = toInteger (length tl)
-    | (kind==K_S) && ((stringInToken t)=="data") = toInteger  ((length tl) - 1) -- because we skip the value
+    | (kind==K_S) = toInteger (length tl)
+--    | (kind==K_S) && ((stringInToken t)/="data") = toInteger (length tl)
+--    | (kind==K_S) && ((stringInToken t)=="data") = toInteger  ((length tl) - 1) -- because we skip the value
     | kind==K_B = toInteger (length tl) -- rather 'ad hoc' but should do the job
     | otherwise = 1

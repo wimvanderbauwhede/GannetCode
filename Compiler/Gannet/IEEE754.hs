@@ -1,4 +1,4 @@
--- | Encoding 64-bit IEEE floating-point numbers to 64-bit unsigned integer
+-- | Encoding a 32-bit or 64-bit IEEE floating-point numbers to a 32-bit or 64-bit unsigned integer and
 module Gannet.IEEE754(
 	encodeIEEE754,
 	encodeIEEE754_32,

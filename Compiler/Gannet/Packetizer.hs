@@ -236,6 +236,7 @@ what we need to do is
 -combine into string
 -}
 -- | Either turn the contents of the DataStore into a pretty-print string or into a string for writing to a .data file.
+-- This functionality is deprecated.
 writeData :: Context -> String
 writeData ctxt = 
     let

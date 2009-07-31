@@ -1,7 +1,7 @@
+-- | Emitter for Cormorant, the C back-end. Work in progress, requires "Gannet.Symbolizer.InferTypes" to be completed.
+-- Likely to be postponed until the Gannet-C front-end is ready. 
 module Gannet.Emitters.Cormorant (
-emitCCode,
-emitRuntimeCode,
-
+emitCCode
 ) where
 import Gannet.SBA.Types
 import Gannet.SBA.SystemConfiguration    
@@ -14,9 +14,9 @@ import Data.Char (toUpper)
 translation_table_list :: [(String,(String->[String]->String))]
 translation_table_list=[
     ("let",\op args -> "do {\n " ++ (join ";\n " args) ++ "}\n"),
-    ("assign",\op args -> assignstr args), --  "my " ++ (args !! 0) ++ " = " ++ (args !! 1)),
-    ("read",\op args -> readstr args), -- (args !! 0)),
-    ("update",\op args ->  updatestr args), -- (args !! 0) ++  " = " ++ (args !! 1) ),
+    ("assign",\op args -> assignstr args),
+    ("read",\op args -> readstr args),
+    ("update",\op args ->  updatestr args),
     ("if",\op args -> "do {"++op++"( " ++ (head args) ++ "){\n" ++ (args !! 1) ++ "\n} else {\n" ++ (args !! 2) ++ "\n}}"),
     ("return",\op args -> returnstr args),
     ("lambda",\op args -> lambdastr args),
@@ -59,7 +59,7 @@ WV: we could incorporate these in the table
 -}    
 returnstr args 
     | length args > 1 = "do {" ++ (join ";\n" (tail args)) ++ ";\n" ++ (head args) ++ "}"
-    | otherwise = (head args) -- "do {" ++ (head args) ++ "}"
+    | otherwise = (head args)
 lambdastr args = 
     let 
         body:rlargs=reverse args
@@ -84,8 +84,7 @@ code_table= Hash.fromList translation_table_list
 
 ---------------------------------------------------------------------------------------------------
 
-headerStr = "use strict; no strict 'vars';\n" ++
-            "use warnings;\n\n"
+headerStr = ""
 
 emitCCode :: PacketList  ->  String
 emitCCode pl  = emitRuntimeCode pl code_table

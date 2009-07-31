@@ -1,3 +1,29 @@
+{-| Gannet main:
+
+>    - read .td file (the program to be compiled)
+>    - read .yml file (the configuration of the target system)
+>    - tokenize    
+>    - symbolize
+>    - packetize
+>    - numerify   
+>    - bytecodize
+>    - write .tdc file
+
+Command-line arguments:
+
+>     -h,-? : this message"
+>     -p : pretty-print the compiled task and exit"
+>     -s : show the compiled task and exit (like -p but numeric)"     
+>     -o outfile : optional output file (.tdc)"
+>     -Y ymlfile : optional YAML input file (.yml)"
+>     -5 : emit Perl5 code for Petrel"
+>     -6 : emit Perl6 code for Puffin"
+>     -S : emit Scheme code for Skua"
+>     -C : emit C code"    
+
+-}
+
+
 module Main (
 	ymlFileName
 ) where 
@@ -18,28 +44,6 @@ import System.Console.GetOpt
 import Data.Maybe ( fromMaybe )
 import System.IO.Unsafe
 
-{-
-Gannet main:
-    -read td file
-    -tokenize
-    -symbolize
-    -packetize
-    -numerify    
-    -bytecodize
-    -write tdc file
-
-Command-line arguments:
-    -h: help
-    -S: show the compiled code
-    -v: be verbose
-    -V: version
-    -w: warnings
-    -P5: Perl5
-    -P6: Perl6
-    -S: Scheme
-    -H: Haskell
-There might be others later, e.g. for "virtual" services        
--}
 
 {-
 To get at ymlfile I should do the command line parsing separately and return

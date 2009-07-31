@@ -11,15 +11,8 @@ import Gannet.Symbolizer.InferTypes
 
 import Control.Monad.State 
 import qualified Data.Map as Hash
---import Data.Bits
 
-{-
-So the clue is:
-NOT so much the actual Monad, but
-the wrapping/unwrapping functions that go with it!
-After creating my own TState Monad, I now see I can just use the ordinary State Monad
--}
-
+-- | unwrap the SymbolTree, i.e. get it out of the State monad
 unwrapST :: State SymbolTree (TokenTree,Context) -> SymbolTree -> (SymbolTree,Context)
 unwrapST lst st0 =
     let
@@ -31,8 +24,9 @@ unwrapST lst st0 =
 {-
 I'd like to modify the SLH here: 
 If ms is a symbol, do this; if it's a symbollist, do that
-
 -}
+
+-- | Update the SymbolList header
 updateSLH :: SymbolTree -> SymbolTree -> Context -> (SymbolTree,Context) -- looks like we could use a monad here
 updateSLH st ms ctxt =
     let
@@ -297,11 +291,9 @@ It's just a convenient way of passing the TokenTree around in the monad.
 
 -}
 
-        
+-- | Append a Symbol or SymbolList to the SymbolTree        
 appendST :: SymbolTree -> (TokenTree,Context) -> State SymbolTree (TokenTree,Context)
 --appendST st2 (tt,ctxt) = State (\st->((tt,ctxt{reflabel=emptyGT}),(updateSLH st st2 ctxt)))
-
-
 appendST st2 (tt,ctxt) = State (\st ->
         let
             (st3,ctxt2)=updateSLH st st2 ctxt
@@ -336,9 +328,14 @@ aliasedTo gls =
 
    
 {-
--- What totally baffled me is that the state MUST be the first argument
--- I guess the "TState st" below is partial application, whereas I thougt it refered to the lambda
--- I tried to remove the "tt" from this, but then I get a "kind error".
+Below is an attempt to create my own monad.
+After creating my own TState Monad, I saw I could just use the ordinary State Monad
+So the key is NOT so much the actual Monad, but the wrapping/unwrapping functions that go with it!
+
+What totally baffled me is that the state MUST be the first argument
+I guess the "TState st" below is partial application, whereas I thought it refered to the lambda
+I tried to remove the "tt" from this, but then I get a "kind error".
+
 newtype TState st tt = TState (st -> (tt,st))
                         
 instance Monad (TState st) where

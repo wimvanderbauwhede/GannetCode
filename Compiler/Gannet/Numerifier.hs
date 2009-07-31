@@ -78,6 +78,7 @@ testGTR gl@(GannetTokenL sname) = GannetTokenL (numServiceR sname True)
 
 -- | Helper for numerification of Services	
 -- Returns the service id if no aliases, the opcode otherwise.
+
 {- This is the numerifier for K_S symbols
    So this one needs to be modified for Service Core ID and Opcode
    Basically:
@@ -109,7 +110,7 @@ numAlias sname snum =
         Nothing -> error $ "numAlias: No parent service " ++ (show sname) ++ " for alias "++ (show snum) ++ "\n"
 
 -- | Helper for numerification of Services, for K_R  
--- Returns the Service ID. The difference with numService is that the we don't test against GATEWAY 
+-- Returns the Service ID. The difference with numService is that it does not test against GATEWAY 
 numServiceR :: GannetLabel -> Bool -> GannetLabel
 numServiceR gl@(GannetLabelI _) _ = gl
 numServiceR gl num
@@ -136,6 +137,7 @@ numServiceR gl num
 	
 -- | Helper for numerification of Services	
 -- Returns the Service ID; returns "0" for the GATEWAY whatever the actuall ID
+
 -- FIXME: returns the opcode for ALU symbols but the service for non-ALU aliases!?! 
 -- It doesn't seem to matter as we use numServiceS for the opcode
 numService :: GannetLabel -> Bool -> GannetLabel

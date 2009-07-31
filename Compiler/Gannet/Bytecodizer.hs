@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
 
 -- |Turn Gannet Symbols and Packet headers into bytecode.
+
 -- TODO: Going from Integer to Word8 and then back to Int or Integer for chr is inefficient. 
 -- Work with Integer or Int all the way.
 module Gannet.Bytecodizer(
@@ -213,19 +214,14 @@ int_to_bytes n
 --  a conditional there as well.
 #if WORDSZ==64
 flt_to_bytes :: Double -> [Word8]		
+#elif WORDSZ==32
+flt_to_bytes :: Float -> [Word8]
+#endif		
 flt_to_bytes x = 
 	let
 		fltw = encodeIEEE754 x
 	in
 		reverse (int_to_bytes fltw)
-#elif WORDSZ==32
-flt_to_bytes :: Float -> [Word8]		
-flt_to_bytes x = 
-	let
-		fltw = encodeIEEE754_32 x     
-	in
-		reverse (int_to_bytes fltw)
-#endif
 
 str_to_bytes :: [Char] -> [Word8]
 str_to_bytes str = 
@@ -243,7 +239,7 @@ lo w16 = fromIntegral $ mod w16 256
 hi :: Integer -> Word8 -> Word8			
 hi w16 lo= fromIntegral $ div (w16 - fromIntegral lo) 256
 
--- | We assume that the Integer is actually Word16.
+-- We assume that the Integer is actually Word16.
 -- This is only used for the number of packets in a .tdc
 -- just map (chr . fromIntegral) (int_to_bytes i) would do fine I think.
 intToBytes :: Integer -> [Char]

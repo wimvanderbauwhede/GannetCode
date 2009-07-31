@@ -1,8 +1,7 @@
+-- | Emitter for Petrel, the Perl 5 backend. This is not a threaded OO back-end but a direct translation of the Gannet AST into Perl.
+-- This is possible because Perl has @do { ... }@ and @sub { ... }@. The resulting code is of course purely sequential.
 module Gannet.Emitters.Petrel (
-emitPetrelCode,
-emitRuntimeCode,
-CodeStrings(..),
-emptyStr
+emitPetrelCode
 ) where
 import Gannet.SBA.Types
 import Gannet.SBA.SystemConfiguration    
@@ -317,7 +316,7 @@ openLambdaBodyExpr::String,
 closeLambdaBodyExpr::String,
 comma::String
 }
-
+-- TODO: merge this back into Emitters.Common
 emitRuntimeCode :: SymbolTree -> CodeStrings -> CodeTable -> String
 emitRuntimeCode st cs ct = str
 	where
@@ -441,7 +440,7 @@ emitRuntimeSymbolQM s (mqo,mqc) cs
 	| (kind s)==K_R = do return $ (tagVarInst cs) (show (aluName (name s)) ++ "_" ++ (show (subtask s))) -- temporary REF detection
 	| otherwise = do return $ mqo ++ show (name s) ++ mqc
 
--- custom emitter for K_S symbols	
+-- | Custom emitter for K_S symbols	
 emitRuntimeSSymbolQM :: GannetSymbol -> CodeStrings -> State ServiceTable String
 emitRuntimeSSymbolQM s cs = do
 	let sname=(show (unaliasService (name s))) 
@@ -488,7 +487,7 @@ updateSH st k =
 
 ------------------------------------------------------------------------------
 
--- remove Quote symbols
+-- | remove Quote symbols
 noQuotes :: [SymbolTree] -> [SymbolTree]
 noQuotes stl = 
 	filter isNotQuote stl
@@ -512,7 +511,7 @@ maybeNL s
 	| otherwise = emptyStr
 
 -- ----------------------------------------------------------------------------
--- This function sets the Quoted field of a symbol or symbollist that was preceded by a Quote Symbol
+-- | This function sets the Quoted field of a symbol or symbollist that was preceded by a Quote Symbol
 -- We filter the Quote symbols out in the next step (emitPCM) with noQuotes
 quoteSymbolTree	:: SymbolTree -> SymbolTree -> SymbolTree
 quoteSymbolTree (Symbol s) mqs =

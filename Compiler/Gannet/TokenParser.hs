@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
 -- | TokenParser exports parseGToken, which parses a token 
--- into a Label, Quote or Built-in
--- the Built-in is either Integer, Double or String
+-- into a Label, Quote or Built-in.
+-- The Built-in is either Integer, Double or String
 module Gannet.TokenParser (
 parseGToken
 ) where

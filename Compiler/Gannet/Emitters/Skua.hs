@@ -1,3 +1,4 @@
+-- | Emitter for Skua, the Gambit Scheme back-end
 module Gannet.Emitters.Skua (
 emitSkuaCode
 ) where
@@ -9,8 +10,8 @@ import Data.Char (toUpper)
 --import qualified Data.Map as Hash 
 
 {-
-emitSkuaCode emits Perl 5 code for Skua, a reference implementation of Gannet
-in Perl 5
+emitSkuaCode emits Scheme code for Skua, a reference implementation of Gannet
+in Gambit Scheme
 -}
 
 headerStr = ";Skua\n\n" 

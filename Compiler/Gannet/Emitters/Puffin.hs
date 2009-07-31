@@ -1,3 +1,4 @@
+-- Emitter for Puffin, the Perl 6 back-end (works with Pugs, not with Rakudo)
 module Gannet.Emitters.Puffin (
 emitPuffinCode
 ) where

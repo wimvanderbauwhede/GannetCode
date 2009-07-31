@@ -6,9 +6,9 @@ module Gannet.Tokenizer (
 import Gannet.SBA.Types
 import Gannet.TokenParser
 import Text.ParserCombinators.Parsec
-{- |
+{- 
 TODO: Here in the Tokenizer we should do the syntax checks, 
-so we can be sure that the tree is sound
+to make sure that the tree is sound.
 -}
 tokenize :: String -> TokenTree
 tokenize input = tl2tt tl emptyTL []

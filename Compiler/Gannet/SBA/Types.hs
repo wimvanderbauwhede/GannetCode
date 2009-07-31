@@ -87,7 +87,7 @@ stringInToken :: TokenTree -> String
 stringInToken (Token t) = show t
 stringInToken (TokenList t) = ""
 
--- |Currently used in TokenTree but also for the name field in GannetSymbol
+-- | Used in TokenTree and for the name field in GannetSymbol
 data GannetToken = GannetTokenB GannetBuiltin | GannetTokenQ String | GannetTokenL GannetLabel | GannetTokenS GannetLabel 
     deriving (Ord,Eq)
 showGT :: GannetToken -> String
@@ -134,7 +134,7 @@ instance Show GannetLabel where show = showGL
 emptyTL :: TokenTree
 emptyTL = (TokenList [])
 -------------------------------------------------------------------------------
--- The actual Gannet Symbol Tree
+-- | The actual Gannet Symbol Tree
 -------------------------------------------------------------------------------
 data SymbolTree = Symbol GannetSymbol | SymbolList ([SymbolTree],SymbolListHeader)
 showST :: SymbolTree -> String
@@ -208,7 +208,7 @@ emptySLH :: SymbolListHeader
 emptySLH     = (MkSymbolListHeader (GannetLabelS "_") (GannetLabelS "_") emptyGS 0 False False (GSV (K_Unknown,T_x)) )
 
 --------------------------------------------------------------------------------
--- Gannet Symbol 
+-- | Gannet Symbol 
 --------------------------------------------------------------------------------
 data GannetSymbol = MkGannetSymbol 
                     {
@@ -269,16 +269,18 @@ showGSK k
         where 
             _:_:k'= show k   
 
-{-
-i: Integer
-f: Float
-s: String
-b: Bool (unused. use T_i)
-d: Data
-q: Quote
-l: List
-L: Lambda
-x: Any
+{- | Gannet DataTypes
+
+> i: Integer
+> f: Float
+> s: String
+> b: Bool (unused. use T_i)
+> d: Data
+> q: Quote
+> l: List
+> L: Lambda
+> x: Any
+
 -}
 --                0     1     2     3     4     5     6     7     8
 data GDataType =  T_i | T_f | T_s | T_b | T_d | T_l | T_L | T_q | T_x | T_Error 
@@ -309,6 +311,7 @@ isGannetBuiltin gt =
         otherwise -> False
     
 -- | Turn a Built-in into an Extended symbol.
+
 -- WV11032008: we'll use the Subtask field to hold the number of words
 extendGS :: GannetSymbol -> [GannetSymbol]
 extendGS gs 

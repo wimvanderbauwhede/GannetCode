@@ -11,6 +11,7 @@ import Gannet.SBA.Types
 import Gannet.SBA.SystemConfiguration -- for constants
 
 import qualified Data.Map as Hash
+
 {-
 We need a lambdastack because we need the subtask of the lambda as 
 the count of any L inside that lambda. 
@@ -70,7 +71,7 @@ data Context = MkContext {
 						assignvarstacks::AssignStack,
 						taskc::Int, -- ^ Task count. Is constant for the compilation
 						subtaskc::Integer, -- ^ Running subtask count. This should be split per service 
-						varc::Integer, -- ^ Running variable (D,L,A) count WV03122008: not for D
+						varc::Integer, -- ^ Running variable (D,L,A) count
 						scopetype::Int, -- ^ let=0,lambda=1
 						scope::ScopeTable, -- ^ See "Gannet.State.Scope"
 						datastore::DataStore, -- ^ See "Gannet.State.Scope"
@@ -81,11 +82,12 @@ data Context = MkContext {
 						addrcounters::AddrCounters,
                         registers::Registers,
                         regvartable::RegVarTable,
-                        varbindings::VarBindings, -- for type inference
-                        prevsym::GannetSymbol -- added to deal with BUF, VAR etc
+                        varbindings::VarBindings, -- ^ For type inference
+                        prevsym::GannetSymbol -- ^ To deal with BUF, VAR etc
 						}						
 
--- | Initial values for Context. NOTE that @varc=1024@, totally 'ad hoc'
+-- | Initial values for Context 
+-- NOTE that @varc=1024@, totally 'ad hoc'
 emptyC :: Context
 emptyC = (MkContext 1 [0] "_" ["GATEWAY"] 0 [] emptyGT [] Hash.empty 1 1 1024 0 emptyScope emptyDataStore emptyGT emptyLT False [] emptyAddrCounters emptyRegisters emptyRVT emptyVarBindings emptyGS) -- subtaskc was 0
 
@@ -111,7 +113,9 @@ emptyAddrCounters = initAddrCounters Hash.empty serviceids
 -- This lookup table should be populated with #registers for every service 
 -- we have servicetoken => (nregs,var_reg_table)
 -- where var_reg_table is a Hash from GannetToken to Integer
-type Registers  = Hash.Map Integer Integer -- remaining number of regs
+
+-- | Number of unused registers per service
+type Registers  = Hash.Map Integer Integer 
 
 initRegisters :: Registers -> [Integer] -> Registers
 initRegisters registers service_ids 
@@ -158,7 +162,7 @@ type  RefLabelTable = Hash.Map GannetToken GannetSymbol
 emptyLT :: RefLabelTable
 emptyLT = Hash.empty
 
--- | Why is this here? TODO: Find a better place
+-- Why is this here? TODO: Find a better place
 inLambda :: Context -> Integer
 inLambda ctxt = currentlambda ctxt
 

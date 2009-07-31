@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
 -- | Infer the type of the return value of a service
--- To avoid circularity, I'd better copy this into Types.hs
+-- Unused at the moment, work in progress.
 module Gannet.Symbolizer.InferTypes (
     inferTypes,
     inferTypeBySymbol,
