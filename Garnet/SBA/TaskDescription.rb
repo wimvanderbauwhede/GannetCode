@@ -1,13 +1,7 @@
 #
 # :title: Garnet Service-based SoC project - SBA TaskDescription class
 #
-#    This version of Gannet is for implementation in HW
-#    This is the version to be ported to SystemC
-#
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
 # $Id: TaskDescription.rb 2155 2009-01-28 11:39:41Z socgroup $
 

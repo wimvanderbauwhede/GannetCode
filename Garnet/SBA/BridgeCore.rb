@@ -1,19 +1,9 @@
 #
 # Service-based SoC project - NoC Bridge Core class
 #
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
-
-#
-#//==============================================================================
-#//
-#// Gannet Service-based SoC project - NoC Bridge Core class 
-#//
-#//==============================================================================
-#
-#// $Id: BridgeCore.rb 2155 2009-01-28 11:39:41Z socgroup $
+# $Id: BridgeCore.rb 2155 2009-01-28 11:39:41Z socgroup $
 
 =begin #inc
 #include "Base/System.h" //skipcc
@@ -23,8 +13,7 @@
 #include "Bridge.h" //skiph
 =end #inc
 
-# NoC Bridge is a very simple module that acts as a bridge between the VM NoC with the HW noC
-# 
+# BridgeCore is the equivalent of ServiceCore in Tile. It contains the actual HW interface
 class SBA_BridgeCore  
     include SBA
 

@@ -1,17 +1,12 @@
-#/** SBA_Debug
+# Debug.rb
 #   
 # :title: Garnet Service-based SoC project - SBA Debug Support
 #
-#*/
+# (c) 2004-2005 Wim Vanderbauwhede <wimdcs.gla.ac.uk>
 #
-# *
-# *  (c) 2004-2005 Wim Vanderbauwhede <wimdcs.gla.ac.uk>
-# *  
-#
-#
-#// $Id: Debug.rb 2155 2009-01-28 11:39:41Z socgroup $ 
+# $Id: Debug.rb 2155 2009-01-28 11:39:41Z socgroup $ 
 
-
+# debug support (unused)
 module SBA_Debug
 
     def SBA_Debug.pp(try_array)

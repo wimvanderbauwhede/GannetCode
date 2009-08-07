@@ -2,10 +2,7 @@
 # 
 # :title: Gannet Service-based SoC project - Gateway class
 #
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+#  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
 # $Id: Gateway.rb 2557 2009-05-13 13:05:38Z socgroup $
 
@@ -25,7 +22,6 @@
 #include "Interface.h"
 =end #inc
 
-# require "SBA/Packet.rb"
 require "SBA/TaskDescription.rb"
 require "SBA/Interface.rb"
 class SBA_Gateway 
@@ -264,9 +260,8 @@ end
         
     end # of transmit_packets
     
-    # I can't make up my mind whether the data_packet_store belongs to the gateway or not.
-    # At the moment I think not
-if DATA==1    
+if DATA==1
+    # most likely obsolete    
     def allocate_data_packet_store(data,value) #C++ void Gateway::allocate_data_packet_store(uint data,Word value) {
         #C++ System& sba_system=*((System*)sba_system_ptr);
         @sba_system.data_packet_store[data]=value	

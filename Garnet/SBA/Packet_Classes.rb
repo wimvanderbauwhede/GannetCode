@@ -1,4 +1,4 @@
-
+# OBSOLETE
 class SBA_Symbol
     include SBA_Bytecode #skip
     def initialize(kind_or_num,*more_args) 
@@ -28,7 +28,7 @@ class SBA_Symbol
     
     def to_fields #t Word_List
         bw=byteword(@num) #t Word_List
-        raise "IS THIS EVEr USED?"
+        raise "IS THIS EVER USED?"
         puts "NUM: #{@num} BW: #{bw}" 
         if WORDSZ==64
             kte=bw[0] #t uint64
@@ -145,7 +145,8 @@ class SBA_Symbol
     alias to_word to_num
     
 end # of SBA_Symbol
-# -----------------------------------------------------------------------------    
+# -----------------------------------------------------------------------------
+# OBSOLETE    
 class SBA_Packet_Header
     include SBA_Bytecode
     def initialize(type_or_wordlist,*more_args)
@@ -284,6 +285,7 @@ class SBA_Packet_Header
     end
 end # of SBA_Packet_Header
 # -----------------------------------------------------------------------------
+# OBSOLETE
 class SBA_Packet_Payload
     
     def initialize(content)
@@ -412,7 +414,8 @@ class SBA_Packet_Payload
         return str
     end
 end # of SBA_Packet_Payload
-#  -----------------------------------------------------------------------------  
+#  -----------------------------------------------------------------------------
+# OBSOLETE  
 class SBA_Packet
     include SBA_Bytecode
     def initialize(header_or_wordlist, *payload)
@@ -489,7 +492,7 @@ end # of SBA_Packet
 
 # -----------------------------------------------------------------------------
 
-# Objects are better than primitives
+# OBSOLETE
 class SBA_Packet_Fifo
     attr_accessor :packets,:status
     def initialize

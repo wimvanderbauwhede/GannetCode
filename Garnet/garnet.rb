@@ -1,24 +1,19 @@
 #!/usr/bin/ruby 
 
-#/** \file garnet.rb
+# garnet.rb
 #   
-# \brief Service-based SoC project 
+# :title: Gannet Service-based SoC project 
 #
-#*/
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# ==============================================================================
 #
-#//==============================================================================
-#//
-#// Service-based SoC project - Garnet, the Ruby Gannet
-#//
-#//==============================================================================
+# Service-based SoC project - Garnet, the Ruby Gannet
+#
+# ==============================================================================
 
 # $Id: garnet.rb 2513 2009-04-15 13:47:03Z socgroup $
-# 
-# THIS IS THE HARDWARE VERSION
+
 if ENV.has_key?('GANNET_DIR')
     $LOAD_PATH.push("#{ENV['GANNET_DIR']}/Garnet-HW/")
 else    
@@ -54,7 +49,7 @@ show_tasks=0
 opts.on("-S","--showtasks") {show_tasks=1 }
 VERBOSE=0
 opts.on("-v","--verbose") {VERBOSE=1;}
-#PRE=1
+# PRE=1
 DATA=0 # no support for external DATA
 USE_THREADS=0
 opts.on("-t","--threads") {USE_THREADS=1;}
@@ -86,15 +81,15 @@ opts.on("-E","--ext-syms") {EXT=1;} # obsolete
 opts.on("-Q","--quote-as-field") {QUOTEFLD=1;} # obsolete
 opts.on("-M","--mem") {MEM=1;}
 opts.on("-D","--debug") {DEBUG_ALL=1;}
-opts.on("-N","--numerify") {NUM=1;NUML=1;EXT=1} # obsolete
+opts.on("-N","--numerify") {NUM=1;NUML=1;EXT=1; } # obsolete
 opts.on("-B","--bytecompile") {BYC=1;NUM=1;NUML=1;EXT=1; warn "The -B option is obsolete"} # obsolete
-opts.on("-C","--C-translatable") {BYC=1;NUM=1;NUML=1;NUMK=1;SYM=1;EXT=1;QUOTEFLD=1} # obsolete
-opts.on("-i","--int-only") {FP=0}
-opts.on("-f","--float-only") {FP=2}
-opts.on("-q","--quit") {QUIT=1;VERBOSE=1}
-opts.on("-R","--run-only") {BYC=1;NUM=1;NUML=1;NUMK=1;SYM=1;EXT=1;QUOTEFLD=1;RUNONLY=1}
-opts.on("-A","--direct-addressing") {DIRADDR=1} # obsolete
-opts.on("-y","--yaml") {TO_YAML=1}
+opts.on("-C","--C-translatable") {BYC=1;NUM=1;NUML=1;NUMK=1;SYM=1;EXT=1;QUOTEFLD=1; } # obsolete
+opts.on("-i","--int-only") {FP=0;}
+opts.on("-f","--float-only") {FP=2;}
+opts.on("-q","--quit") {QUIT=1;VERBOSE=1 }
+opts.on("-R","--run-only") {BYC=1;NUM=1;NUML=1;NUMK=1;SYM=1;EXT=1;QUOTEFLD=1;RUNONLY=1; }
+opts.on("-A","--direct-addressing") {DIRADDR=1; } # obsolete
+opts.on("-y","--yaml") {TO_YAML=1;}
 SBA_YML='SBA.yml'
 opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| SBA_YML=yml_file }
 opts.on("-h","--help") {

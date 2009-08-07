@@ -107,23 +107,7 @@ end
 
 # -----------------------------------------------------------------------------
 # A high-level model for the subtask argument list. 
-# As several labels can point to an address, the arguments must be the labels.
-# That's a shame because they take a lot more space.
-# The structure is an ordered but searchable list of {label=>[kind,status]} pairs.
-# As we will impose a max. number of arguments, likely 16, searching this structure
-# is straightforward. 64=>4,4. So (64+8)*16=64*16+2*64=64*18, or rather 8*9*16
-# Makes you wonder if we could remove a byte somewhere?
-# The best structure IMO is like this:
-#   Label1
-#   Label2
-#   ...
-#   Labeln (n<=16)
-#   [kind7,status7]:[kind6,status6]:...[kind0,status0]
-#   [kind15,status15]:[kind14,status14]:...[kind8,status8]
-# The [kind,status] byte for argument n is addressed as
-#   ((item_offset+3+nargs+(n>>3)) & (255<<(n & 7)))>>(n & 7)
-#   
-#   WV20052008: I think this is deprecated and no longer used
+# OBSOLETE
 class SBA_Subtask_Argument_List
     def initialize
         @args_status_hash={}
@@ -209,7 +193,7 @@ end # of SBA_Subtask_Argument_List
 # subtask_status # 3bits
 # mode: 2 bits
 # arg_addresses # 8-16 * 2bytes
-# => 1+1+1+3+3= 9bytes
+#     => 1+1+1+3+3= 9bytes
 #    3+2+4+3=1byte 4bits 
 #    10bytes+4bits = 2 words+ 2bytes+4bits, space left: 5 words + 1byte+ 4 bits
 #                =>  10 args to fit into 8 words = 32 bytes

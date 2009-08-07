@@ -1,23 +1,13 @@
 #   
 # :title: Gannet Service-based SoC project - SBA Memory class
 #
-#--
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk> 
 #
 # $Id: Memory.rb 2532 2009-04-22 16:15:08Z socgroup $
-#++
-
-
-# This class is a model for the data store of the SBA Service Manager.
-# It is actually a wrapper around an SBA_Store 
-# SBA_Memory#read and SBA_Memory#write are aliases for SBA_Store#get and SBA_Store#put
-# SBA_Memory#is_free? is the inverse of SBA_Store#has
 
 #skip
 
+# UNUSED, alternative memory organisation
 # SBA_Store needs a header as we want to organise it as a linked list;
 # even if we don't, we need to store some status information.
 # So the first word of any Linked list mem block should contain some status information
@@ -50,6 +40,10 @@ attr_accessor :Streaming, :Data_Status, :Subtask, :Next_Addr, :Full, :List, :Use
     end
 end
 
+# This class is a model for the data store of the SBA Service Manager.
+# It is actually a wrapper around an SBA_Store 
+# SBA_Memory#read and SBA_Memory#write are aliases for SBA_Store#get and SBA_Store#put
+# SBA_Memory#is_free? is the inverse of SBA_Store#has
 class SBA_Memory 
 
     def initialize
@@ -84,7 +78,6 @@ end
 # This class is a model for the RAM memory of the SBA Service Manager.
 # SBA_Store#has and SBA_Store#remove could be implemented by a single bit at the start of the word
 # Later we can create a proper memory-managed store, e.g. with Knuths tagged approach
-
 class SBA_Store
 attr_reader :store
     def initialize

@@ -28,11 +28,14 @@
 #include "Transceiver.h" //skiph
 =end #inc
 
+
+#FIXME: I'm not entirely satisfied with this implementation of Transceiver and Network. But at least it's decoupled from the Service manager.
+ 
+require "SBA/System.rb"
+
 # The SBA Transceiver is the interface between the Service Manager and the Network.
 # It transfers data from the Network tx_fifo to a local rx_fifo 
 # and from the local tx_fifo to the Network rx_fifo
-# FIXME: I'm not entirely satisfied with this implementation of Transceiver and Network. But at least it's decoupled from the Service manager. 
-require "SBA/System.rb"
 class SBA_Transceiver
     include SBA
 

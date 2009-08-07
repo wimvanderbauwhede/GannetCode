@@ -1,20 +1,10 @@
-#/** \file ServiceConfiguration.rb
+# ServiceConfiguration.rb
 #  
-# \brief Gannet Service-based SoC project - Service Configuration module
+# Gannet Service-based SoC project - Service Configuration module
 #
-#*/
-
-#*
-#*  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-#*  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-#//==============================================================================
-#//
-#// Gannet Service-based SoC project - Service Configuration module
-#//
-#//==============================================================================
-#
-#// $Id: ServiceConfiguration.rb 2534 2009-04-23 11:21:04Z socgroup $
+# $Id: ServiceConfiguration.rb 2534 2009-04-23 11:21:04Z socgroup $
 
 #require "SBA/ServiceCoreLibrary.rb"
 module SBA_ServiceConfiguration
@@ -77,7 +67,7 @@ K_B|T_x => 11|xx, so K_B spans 6 and 7
     }    
     
 # For compatibility with streaming data, we either add a Mode field (stream or 'datagram') or we use a bit in the Type field
-# Adding the Mode is a lot of hassle. Say we use the MSB to indicate the mode.
+# We use the MSB to indicate the mode.
     Packet_Types={ # >7, so needs at least 4 bits. We have a 3 bits ... but things like MM can be done using a reference!
 # and for non-reconfigurable systems, no need for the last three.
         'error'=>0, # Payload could be error message. In general not Symbols
@@ -101,8 +91,6 @@ K_B|T_x => 11|xx, so K_B spans 6 and 7
         #    '-'=>5,
     }
     
-    # We need a status "inactive"; 
-    # And maybe also "parsed", I'm not sure
     Subtask_Status={ 
    'new'=>0, # 000 activated
    'pending'=>1, # 001 means being parsed or waiting for execution I guess

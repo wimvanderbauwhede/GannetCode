@@ -2,14 +2,10 @@
 #   
 # :title: Gannet Service-based SoC project - SBA Tile class
 #
-#--
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk> 
 #
 # $Id: GatewayTile.rb 2532 2009-04-22 16:15:08Z socgroup $
-#++
+
 
 require "SBA/Transceiver.rb"
 require "SBA/Gateway.rb"

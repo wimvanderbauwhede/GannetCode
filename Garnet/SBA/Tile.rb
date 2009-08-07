@@ -17,11 +17,9 @@ require "SBA/Memory.rb"
 require "SBA/LookupTable.rb"
 require "SBA/ServiceCore.rb"
 
-# Let's start with a tile that is simply a wrapper around the ServiceManager
-# Then move the Store outside, to the memory; use SBA_Store, not SBA_Memory
-# Then move the Core outside.
-
 #skip
+
+# Tile is a container for the ServiceManager, ServiceCore and Transceiver and all memories
 class SBA_Tile #< public Base::Tile
 	attr_reader :service,:address,:status
 	attr_accessor :data_store,:code_store,:lookup_table,:service_manager,:service_core,:transceiver,:th

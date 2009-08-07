@@ -2,22 +2,11 @@
 #   
 # :title: Gannet Service-based SoC project - Transmitter/Receiver class
 #
-#--
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
-#
-#//==============================================================================
-#//
-#// Gannet Service-based SoC project - LookupTable class 
-#//
-#//==============================================================================
-#
-#// $Id: LookupTable.rb 2155 2009-01-28 11:39:41Z socgroup $
-#++
+# $Id: LookupTable.rb 2155 2009-01-28 11:39:41Z socgroup $
 
-
+# LookupTable is a simple wrapper around Ruby's native hash, for flexibility
 class SBA_LookupTable
 
     def initialize

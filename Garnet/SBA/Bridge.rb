@@ -1,19 +1,9 @@
 #
 # Gannet Service-based SoC project - NoC Bridge class
 #
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
-
-#
-#//==============================================================================
-#//
-#// Gannet Service-based SoC project - NoC Bridge class 
-#//
-#//==============================================================================
-#
-#// $Id: Bridge.rb 2155 2009-01-28 11:39:41Z socgroup $
+# $Id: Bridge.rb 2155 2009-01-28 11:39:41Z socgroup $
 
 =begin #inc
 #include "Base/System.h" //skipcc
@@ -31,6 +21,8 @@ require "SBA/BridgeCore.rb"
 # Let's start with a tile that is simply a wrapper around the Bridge Core
 
 #skip
+
+# The Bridge is the interfance between the VM's NoC and the actual hardware
 class SBA_Bridge #< public Base::Tile
 	attr_accessor :bridge_core,:transceiver #t BridgeCore;Transceiver
 	

@@ -1,11 +1,7 @@
 #   
 # Gannet Service-based SoC project - Network class
 #
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
-#
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>#
 #
 # $Id: Network.rb 2155 2009-01-28 11:39:41Z socgroup $
 
@@ -29,6 +25,7 @@ namespace SBA {
 =end #C++
 #endskipcc
 
+# A star topology NoC model, the only aim is to have full connectivity
 class SBA_Network #< public Base::Network
     include SBA
     

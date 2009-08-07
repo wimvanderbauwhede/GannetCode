@@ -2,10 +2,7 @@
 # 
 # :title: Gannet Service-based SoC project - Interface class
 #
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
 # $Id: Interface.rb 2253 2009-02-17 17:35:14Z socgroup $
 
@@ -30,6 +27,7 @@ require "SBA/TaskDescription.rb"
 
 #C++ using namespace GannetSocket;
 
+# Interface to file or socket
 class SBA_Interface 
 
     include  SBA

@@ -1,22 +1,14 @@
-#/** \file Bytecode.rb
+# Bytecode.rb
 #   
-# \brief Gannet Service-based SoC project - Service Configuration module
+# Gannet Service-based SoC project - Service Configuration module
 #
-#*/
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
-#
-#//==============================================================================
-#//
-#// Gannet Service-based SoC project - Auxiliary stuff for emitting bytecode
-#//
-#//==============================================================================
-#
-#// $Id: Bytecode.rb 2263 2009-02-19 11:48:28Z socgroup $
+# $Id: Bytecode.rb 2263 2009-02-19 11:48:28Z socgroup $
 
 #skip
+
+# Gannet bytecode manipulation
 module SBA_Bytecode #skip
     include Math
 

@@ -1,5 +1,5 @@
 #
-# Gannet Service-based SoC project - Service Manager class
+# :title: Gannet Service-based SoC project - Service Manager class
 #
 #
 #
@@ -28,8 +28,8 @@
 
 require "SBA/ServiceManagerObjects.rb"
 
-# The Service Manager is the core of the SBA. This is the module that does all bookkeeping and subtask "parsing"
-# Essentially, it queues subtasks, and parses the "current" subtask according to very simple rules:
+# The Service Manager is the core of the SBA. This is the module that does all bookkeeping and subtask "parsing".
+# It queues subtasks, and parses the "current" subtask according to very simple rules:
 #  * Subtask (S|F) => delegate
 #  * Data (D|V|A|U|L) => request
 #  * Built-in or Quoted (B|Q) => store
@@ -133,6 +133,8 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
 
     #endskipcc
     #skip
+    
+    # Service Manager constructor
     def initialize(sba_tile,service)
         @debug_all=(DEBUG_ALL==1)
         @debug_service=0
@@ -243,13 +245,14 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
     end
     #endskip
     # -----------------------------------------------------------------------------
+    
     #
     # Main methods
     #
+    
     # At every timestep, the run() function checks for events:
     # - is there a packet for me?
-    # - has my service processing finished?
-    # WV 08/11/2007: TODO: for VM performance, every call should be inside an if block
+    # - has my service processing finished?    
     def run()
         #      puts "Running ServiceManager #{@service_id}"
         #ifdef CYCLES_DETAILED
@@ -473,79 +476,10 @@ end
     
     # ------------------------------------------------------------------------------------
     # Helper for code activation
-# Helper for code activation
-def activate_subtask_helper(task_address,tservice_id,packet,is_subtask_packet) #t void (CodeAddress;Name_t;Word_List&;bool)
-#    #tile
-    #iv
-    if (@service!=tservice_id)
-        puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> @service #{@service}"
-    end
-    #ev
-    if VM==1
+    def activate_subtask_helper(task_address,tservice_id,packet,is_subtask_packet) #t void (CodeAddress;Name_t;Word_List&;bool)
+    #    #tile
         #iv
-        puts "#{@service} SUBTASK STACK SIZE: #{@subtasks_address_stack.size}"
-        #ev
-        if @subtasks_address_stack.size==0
-            raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++  std::cerr << service << " SUBTASK STACK ("<< SUBTASKS_SZ <<") OVERFLOW\n"; exit(0);
-        end
-        subtask_address=@subtasks_address_stack.pop #t CodeAddress            
-        puts "NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" if @v #skip
-        puts "SUBTASK requested by \n#{ppPacket(packet)}" if @v #skip
-    else # VM==0
-        subtask_address=task_address #t CodeAddress
-    end # VM
-    #iv
-    if @debug_all or @service==@debug_service
-        puts "#{@service} activate_subtask_helper(): address: #{subtask_address}"
-    end
-    #ev
-    if is_subtask_packet
-    @subtask_list.add(subtask_address)
-    end
-
-    if VM==1
-        subtask_word=(subtask_address << 16) + task_address #t Word
-    else # VM==0
-        subtask_word=task_address #C++ Word subtask_word=(Word)task_address;
-    end # VM
-    puts "#{@service} activate_subtask_helper(): <#{task_address}> #{packet.inspect}" if @v #skip
-    puts ppPacket(packet) if @v #skip
-    puts @code_status.inspect if @v #skip
-    # really, this should be redundant as we should send task packets, not code & ref
-    # WV23072008: and with direct mem transfers there should never be a race condition!
-    if VM==1
-        # s/push/push_back/
-        @subtask_fifo.push(subtask_word) 
-    else # VM==0
-        if @code_status[task_address]>=2 # code is present
-            @subtask_fifo.push(subtask_word) 
-            @code_status[task_address]=2 # reset "request activation"
-        else # code is not present, request activation
-        #iv
-            puts "DEFER ACTIVATION #{task_address}:#{code_status[task_address]}" #sysc
-            #ev
-            @code_status[task_address]=1
-        end
-    end # VM
-    if is_subtask_packet
-    @subtask_list.return_as(subtask_address,getReturn_as_p(packet))
-    @subtask_list.return_to(subtask_address,getReturn_to_p(packet))
-    @subtask_list.to(subtask_address,getReturn_to_p(packet))
-    @subtask_list.redir(subtask_address, getRedir_p(packet))
-    @subtask_list.ack_to(subtask_address, getAck_to_p(packet))
-    @subtask_list.code_address(subtask_address,task_address)
-    @subtask_list.service_id(subtask_address,tservice_id)
-    # FIXME sysc should support service_id!
-    @service_id=tservice_id #skipsysc
-    end        
-end # of activate_subtask_helper
-
-    
-    
-    def activate_subtask_helper_ORIG(task_address,tservice_id,packet) #t void (CodeAddress;Name_t;Word_List&)
-        
-        #iv
-        if (@service!=service_id)
+        if (@service!=tservice_id)
             puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> @service #{@service}"
         end
         #ev
@@ -554,9 +488,9 @@ end # of activate_subtask_helper
             puts "#{@service} SUBTASK STACK SIZE: #{@subtasks_address_stack.size}"
             #ev
             if @subtasks_address_stack.size==0
-                raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++  std::cerr << "SUBTASK STACK OVERFLOW\n"; exit(0);
+                raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++  std::cerr << service << " SUBTASK STACK ("<< SUBTASKS_SZ <<") OVERFLOW\n"; exit(0);
             end
-            subtask_address=@subtasks_address_stack.pop #t CodeAddress
+            subtask_address=@subtasks_address_stack.pop #t CodeAddress            
             puts "NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" if @v #skip
             puts "SUBTASK requested by \n#{ppPacket(packet)}" if @v #skip
         else # VM==0
@@ -567,29 +501,10 @@ end # of activate_subtask_helper
             puts "#{@service} activate_subtask_helper(): address: #{subtask_address}"
         end
         #ev
+        if is_subtask_packet
         @subtask_list.add(subtask_address)
-        #       @subtask_list.return_as(subtask_address,getReturn_as(header))
-        #       @subtask_list.return_to(subtask_address,getReturn_to(header))
-        #       @subtask_list.to(subtask_address,getReturn_to(header))
-        #       @subtask_list.redir(subtask_address, getRedir(header))
-        #       @subtask_list.ack_to(subtask_address, getAck_to(header))
-        #WV23072008: doesn't seem a jot faster ...
-        @subtask_list.return_as(subtask_address,getReturn_as_p(packet))
-        @subtask_list.return_to(subtask_address,getReturn_to_p(packet))
-        #iv
-        if @debug_all or @service==@debug_service
-            puts "#{@service} activate_subtask_helper(): setting TO: #{getReturn_to_p(packet)} for #{subtask_address}" #skip
-            #C++ cout << service <<" activate_subtask_helper(): setting TO: "<<(int)getReturn_to_p(packet)<<" for "<<subtask_address<<endl;
         end
-        #ev
-            
-        @subtask_list.to(subtask_address,getReturn_to_p(packet))
-        @subtask_list.redir(subtask_address, getRedir_p(packet))
-        @subtask_list.ack_to(subtask_address, getAck_to_p(packet))
-
-        @subtask_list.code_address(subtask_address,task_address)
-        @subtask_list.service_id(subtask_address,tservice_id)
-        @service_id=tservice_id
+    
         if VM==1
             subtask_word=(subtask_address << 16) + task_address #t Word
         else # VM==0
@@ -600,21 +515,33 @@ end # of activate_subtask_helper
         puts @code_status.inspect if @v #skip
         # really, this should be redundant as we should send task packets, not code & ref
         # WV23072008: and with direct mem transfers there should never be a race condition!
-        # WV21042009: nevertheless...
         if VM==1
-            @subtask_fifo.push(subtask_word) #s/push/push_back/
+            # s/push/push_back/
+            @subtask_fifo.push(subtask_word) 
         else # VM==0
             if @code_status[task_address]>=2 # code is present
-                @subtask_fifo.push(subtask_word) #s/push/push_back/
+                @subtask_fifo.push(subtask_word) 
                 @code_status[task_address]=2 # reset "request activation"
             else # code is not present, request activation
-                #iv
-                puts "DEFER ACTIVATION #{task_address}:#{code_status[task_address]}"
+            #iv
+                puts "DEFER ACTIVATION #{task_address}:#{code_status[task_address]}" #sysc
                 #ev
                 @code_status[task_address]=1
             end
         end # VM
-    end # of activate_subtask_helper_ORIG
+        if is_subtask_packet
+        @subtask_list.return_as(subtask_address,getReturn_as_p(packet))
+        @subtask_list.return_to(subtask_address,getReturn_to_p(packet))
+        @subtask_list.to(subtask_address,getReturn_to_p(packet))
+        @subtask_list.redir(subtask_address, getRedir_p(packet))
+        @subtask_list.ack_to(subtask_address, getAck_to_p(packet))
+        @subtask_list.code_address(subtask_address,task_address)
+        @subtask_list.service_id(subtask_address,tservice_id)
+        # FIXME sysc should support service_id!
+        @service_id=tservice_id #skipsysc
+        end        
+    end # of activate_subtask_helper
+
     # -----------------------------------------------------------------------------
 
     def store_subtask_code()
@@ -732,8 +659,8 @@ end # of activate_subtask_helper
     end # of activate_subtask()
     # ------------------------------------------------------------------------------------
     # store DATA packets on arrival. Only DATA resulting from requests and results form subtasks should ever arrive here.
-    # With direct addressing, the label contains the memory address, so no need for a lookup. But we need a separate, small
-    # memory to store the status information -- or we need a word per block of data with this information
+    # With direct addressing, the label contains the memory address. But we need a separate, small
+    # memory to store the status, @symbol_table.
     def store_data()
         #tile
         #iv
@@ -885,18 +812,8 @@ end # of activate_subtask_helper
         end # of while        
     end # of store_data
     # -----------------------------------------------------------------------------
-    # Dispatch data packets in answer to a request packet
-    # WV: This is only used by ASSIGN and similar services. Should be # ifdef'ed!
-    # Even better: we don't need this, the ASSIGN core should handle it
-    # It means the core must know how to wait for packets to arrive without blocking
-    # Anyway, even if the ServiceManager handles this, we should use a lookup
-    # mechanism instead of the "unshift" approach
-    # We'll do this:
-    # ASSIGN still uses READ;
+    # Dispatch data packets in answer to a request packet. 
     # CACHE, BUFFER and ACC can each support 8 requests per register
-    # (See notes for the new register approach; we 'll have 8 registers as well)
-    # So what we need is: Fifo<Word,8> request_table[8]
-    # request_table[reg].push(request_packet)
     def dispatch_data_packets()  # In answer to a request packet
         #tile
         #iv
@@ -1036,9 +953,7 @@ so we have:
 
     # -----------------------------------------------------------------------------
     # Parse subtask packets.
-    # This is the key subroutine for parsing the SBA. It implements the actual parsing rules and actions. It is called from
-    # parse_subtask. It's factored out purely for ease of maintenance.
-
+    # This is the key subroutine for parsing the SBA. It implements the actual parsing rules and actions.
     def parse_subtask()
         #tile
         #WV23072008: replace by single call to length + for loop and maybe unguarded shift
@@ -1292,14 +1207,10 @@ so we have:
     end # of parse_subtask
 
     # -----------------------------------------------------------------------------
-    #if MULTI_THREADED_CORE==0
-
-    # WV19062008
-    # I want MemAddresses to be an Array
-    # So I can simply assign addresses=@subtask_list.arguments(@current_subtask) #t const MemAddresses&
-    #
-    # helper function for core_control()
+    #if MULTI_THREADED_CORE==0    
     #ifndef STATIC_ALLOC
+    
+    # helper function for core_control()
     def build_value_address_list() #t MemAddresses # sba_tile
         # tile
         addresses=[] #t MemAddresses #s/=..//
@@ -1396,9 +1307,7 @@ so we have:
         end # VM
     end # of restart_subtask
     # -----------------------------------------------------------------------------
-    # refactoring of ServiceCore run() and dispatch_result_packets()
-
-
+    # The FSM that handles all state transitions and communication between the Service Manager and the core
     def core_control()
         #tile
         #iv
@@ -1681,6 +1590,7 @@ end # VM
 
     #else
 
+    # multi-threaded version of core_control
     def multi_threaded_core_control()
         #tile
         #WV02092008: the simple but inefficient way first: loop over threads
@@ -1878,10 +1788,10 @@ end # VM
     # WV19062008
     # I want MemAddresses to be an Array
     # So I can simply assign addresses=@subtask_list.arguments(@current_subtask) #t const MemAddresses&
-    #
-    # helper function for core_control()
 
     #ifndef STATIC_ALLOC
+    
+    # helper function for multi_threaded_core_control
     def multi_threaded_build_value_address_list(i) #t MemAddresses (int)
         # tile
         addresses=[] #t MemAddresses #s/=..//
@@ -1931,10 +1841,7 @@ end # VM
     end # of multi_threaded_send_ack()
 
     # -----------------------------------------------------------------------------
-    # This method does the actual memory management after the core finishes a subtask. It's called from run_service_core.
-    # The principle is simple reference counting.
-    # This is an essential block as without it memory would never get freed.
-    # Still, I feel it's far from being finished. Needs some proper analysis.
+    # This method does the actual memory management after the core finishes a subtask. It's called from core_control.
     def multi_threaded_clean_up(i) #t void (int)
         #tile
         # Clean up arguments
@@ -1967,79 +1874,9 @@ end # VM
 
     #endif
     # -----------------------------------------------------------------------------
-
-    def transmit_packets()
-        raise "OBSOLETE: write directly to TRX fifo"
-        #ifdef CYCLES_INT
-        #C++      ticks t1=getticks();
-        #endif
-
-        #tile
-        #iv
-        if @debug_all or @service==@debug_service
-            puts "#{@service} transmit_packets()"
-        end
-        #ev
-        while @tx_fifo.length>0
-            packet=@tx_fifo.shift #t Packet_t
-            @sba_tile.transceiver.tx_fifo.push(packet)
-        end
-        #ifdef CYCLES_INT
-        #C++      ticks t2=getticks();
-        #C++      std::cout << "CYCLES_INT[transmit_packets]: "<<service<<": "<<  elapsed(t2,t1) <<"\n";
-        #endif
-
-    end # of transmit_packets
-    # -----------------------------------------------------------------------------
-    # Check if there's a subtask ready to be processed and the core is ready. If so, push pending subtasks on the pending_subtasks list
-
-    #    #WV16082008: Is this not obsolete?
-    #
-    #    def prepare_subtask
-    # #ifdef CYCLES_INT
-    # #C++      ticks t1=getticks();
-    # #endif
-    #        t_subtasks = @subtask_list.subtasks #t Subtasks
-    #        for pending_subtask in t_subtasks #t Subtasks
-    # #iv
-    # if @debug_all or @service==@debug_service
-    #        puts "#{@service} prepare_subtask(): status of #{pending_subtask}=#{@subtask_list.status(pending_subtask)}"
-    # end
-    # #ev
-    #            if @subtask_list.status(pending_subtask)==STS_pending # ready for processing
-    #                # now check if the task is already there
-    #                c=1 #t uint
-    #                for item in @pending_subtasks_fifo #t Subtasks
-    # #iv
-    # if @debug_all or @service==@debug_service
-    #                    puts "prepare_subtask(): Subtask in pending_subtasks_fifo: #{item}"
-    # end
-    # #ev
-    #                     c=c*((item!=pending_subtask)?1:0)
-    #                end
-    #                if c==1
-    #                    # if not, add it
-    #                    #iv
-    #                    if @debug_all or @service==@debug_service
-    #                    puts "#{@service} prepare_subtask(): Push #{pending_subtask} onto pending_subtasks_fifo"
-    #                    end
-    #                    #ev
-    #                    @pending_subtasks_fifo.push(pending_subtask) #;
-    #                end
-    #            end
-    #        end
-    # #ifdef CYCLES_INT
-    # #C++      ticks t2=getticks();
-    # #C++      std::cout << "CYCLES_INT[prepare_subtask]: "<<service<<": "<<  elapsed(t2,t1) <<"\n";
-    # #endif
-    #    end # of prepare_subtask
-
-    # -----------------------------------------------------------------------------
-    # This method does the actual memory management after the core finishes a subtask. It's called from run_service_core.
-    # The principle is simple reference counting.
-    # This is an essential block as without it memory would never get freed.
-    # Still, I feel it's far from being finished. Needs some proper analysis.
-    #if MULTI_THREADED_CORE==0
+#if MULTI_THREADED_CORE==0
+        
+    # This method does the actual memory management after the core finishes a subtask. It's called from core_control.
     def clean_up()
         #tile
         # Clean up arguments

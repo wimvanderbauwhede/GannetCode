@@ -2,19 +2,11 @@
 #   
 # :title: Service-based SoC project - Bridge Transmitter/Receiver class
 #
-#--
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
-#//==============================================================================
-#//
-#// Gannet Service-based SoC project - Bridge Tansmitter/Receiver class 
-#//
-#//==============================================================================
+# Gannet Service-based SoC project - Bridge Tansmitter/Receiver class 
 #
-#// $Id: BridgeTransceiver.rb 2155 2009-01-28 11:39:41Z socgroup $
-#++
+# $Id: BridgeTransceiver.rb 2155 2009-01-28 11:39:41Z socgroup $
 
 =begin #inc
 #include "Base/Network.h" //skipcc
@@ -27,11 +19,13 @@
 #include "BridgeTransceiver.h" //skiph
 =end #inc
 
+
+# FIXME: I'm not entirely satisfied with this implementation of BridgeTransceiver and Network. But at least it's decoupled from the Service manager. 
+require "SBA/System.rb"
+
 # The SBA BridgeTransceiver is the interface between the Service Manager and the Network.
 # It transfers data from the Network tx_fifo to a local rx_fifo 
 # and from the local tx_fifo to the Network rx_fifo
-# FIXME: I'm not entirely satisfied with this implementation of BridgeTransceiver and Network. But at least it's decoupled from the Service manager. 
-require "SBA/System.rb"
 class SBA_BridgeTransceiver
     include SBA
 

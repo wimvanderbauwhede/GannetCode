@@ -2,10 +2,7 @@
 #   
 # :title: Gannet Service-based SoC project - System Configuration module
 #
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
 #==============================================================================
 #
@@ -13,7 +10,7 @@
 #
 #==============================================================================
 #
-#// $Id: SystemConfiguration.rb 2446 2009-03-27 17:31:57Z socgroup $
+# $Id: SystemConfiguration.rb 2446 2009-03-27 17:31:57Z socgroup $
 
 require 'yaml'
 

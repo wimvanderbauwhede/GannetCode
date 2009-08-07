@@ -2,12 +2,7 @@
 #   
 # :title: Garnet Service-based SoC project - SBA Packet class
 #
-#    This version of Gannet is for implementation in HW
-#    This is the version to be ported to SystemC and Verilog
-#
-# *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
-# *  
+# (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 #
 # $Id: Packet.rb 2535 2009-04-29 14:00:17Z socgroup $ 
 
@@ -22,7 +17,7 @@
 
 =end #inc
 
-
+# This module contains accessor functions for the fundamental SBA types: Word, Packet, Header fields, Payload
 module SBA
 
 #skipcc
@@ -150,12 +145,15 @@ end
 def setStatus(word,status) #t Word (Word;DS_t)
     return setTask(word,status)
 end
+
+#--
 # CodeAddress is a 16-bit number for WORDSZ=32. We have 10 bits address space in the HW 
 # We take 2 bits for the Page (from Task); the Subtask field provides 5 bits, so we can store 8-word chunks as we have 3 bits left
 # But in the VM, we need to take the Service into account (because of LAMBDA/APPLY), that's 8 bits. So we need Service:Task:part(Subtask) in 16+2 bits
 # because we send a Code packet to APPLY with the Return_as containing the address in the Subtask field
 # unless the Subtask Address is less than 16+2 bits.
 # Well, let's assume that we use 8:2:8, then we can address 4 Tasks, 256 Services, 256 subtasks per service.
+#++
 
 def getCodeAddress(word) #t CodeAddress
     # extract page form word
@@ -178,7 +176,6 @@ end # VM
 	return code_address
 end
 
-# Do we need this?
 def setCodeAddress(word,task,subtask) #t Word (Word;Task_t;Subtask_t) 
 if VM==1
 raise "FIXME! setCodeAddress"
@@ -371,7 +368,7 @@ end
          modheader.push(header[2]) #s/push/push_back/
          return modheader
     end
-# // with &, can't do getType(getHeader)??
+
 	def getType(header) #t Packet_type_t (const Header_t&) 
 		return getPacket_type(header)
 	end

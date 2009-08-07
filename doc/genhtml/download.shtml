@@ -44,5 +44,13 @@
 <div id="bottomnavigation"></div>
 <div id="footer"></div>
 </div>
+
+<script language="javascript" type="text/javascript" >
+log('gannetcode','download');
+</script>
+<noscript>
+<img src="/scripts/globaldownload/wim/gannetlog.cgi?site=gannetcode&page=download_noscript" alt="" border="0">
+</noscript>
+
 </body>
 </html>
