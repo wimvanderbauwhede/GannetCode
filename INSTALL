@@ -44,14 +44,14 @@ For cross-compilation to linux-ppc:
 
 ### INSTALLATION:<a name="setup"></a>
 
-    # get the archive (GannetCode-0.1.tgz)
-     wget www.gannetcode.org/downloads/GannetCode-0.1.tgz	
+    # get the archive (Gannet-alpha.tgz)
+     wget www.gannetcode.org/downloads/Gannet-alpha.tgz	
     # create a directory Gannet:
      mkdir Gannet
     # go there
      cd Gannet
     # unpack the archive 
-     tar -zxvf ../GannetCode-0.1.tgz
+     tar -zxvf ../Gannet-alpha.tgz
 
 The environment variable `GANNET_DIR` must be set to the above directory.
 The file etc/gannetrc contains the environment settings for Gannet.
