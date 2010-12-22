@@ -1,0 +1,109 @@
+--- # R2N Configuration for Gannet
+Methods:
+    addresses : 1
+    aliases : 1
+    alunames : 1
+    as_is : 1
+    by_status : 1
+    check_status : 1
+    collect_lambda_refs : 1
+    copy : 1
+    corestatus : 1
+    datastatus : 1
+    get_storage_usage : 1
+    kinds : 1
+    labels : 1
+    length : 1
+    mode : 1
+    nargs : 1
+    occ : 1
+    packettypes : 1
+    pop : 1
+#    push : 1
+    prepare_subtask : 1
+    services : 1
+    shift : 1
+    show_status : 1
+    size : 1	
+    subtasks : 1
+    subtaskstatus : 1
+    to_bytecode : 1
+    to_bytes : 1
+    to_float : 1
+    to_float_list : 1
+    to_l : 1
+    to_l_C : 1
+    to_num : 1
+    to_s : 1
+    to_signed_int : 1
+    to_signed_int_list : 1
+    to_symbol : 1
+    to_symbol_list : 1
+    to_word_list : 1
+    to_wordlist : 1
+    to_w_C : 1
+    types : 1
+    utilised : 1
+    utilized : 1
+    Header : 1
+    Payload : 1
+    Type : 1
+    Length : 1
+    Priority : 1
+    To : 1
+    Send_to : 1
+    Redir : 1
+    Return_to : 1
+    Return_as : 1
+    Kind : 1
+    Datatype : 1
+    Ext : 1
+    Quoted : 1
+    Task : 1
+    Subtask : 1
+    Name : 1
+    Count : 1
+	
+ListItemTypes:
+    Packet_Fifo  : Packet_t
+    Subtasks     : Subtask
+    Addresses    : Address
+    MemAddresses : MemAddress
+    Word_List    : Word
+    Symbol_List  : Symbol
+    Arguments    : Argument
+    Labels       : Label
+    Double_List  : double
+    Packet_List  : Packet_t
+    Services     : Service
+    SubtaskRefs  : Subtask
+    Requests     : Word
+    
+Snippets:
+    tile : |
+        Tile& sba_tile=*(sba_system.instances[address]);
+
+    system : |
+        System& sba_system=*((System*)sba_system_ptr);
+
+    gwtile : |
+        GatewayTile& gw_tile=*((GatewayTile*)sba_gwtile_ptr);
+
+    core : |
+        // Set up context
+        ServiceCore* servicecore_ptr=(ServiceCore*)parent_ptr;
+        ServiceCore& parent=*servicecore_ptr;
+        System* sba_system_ptr=(System*)(servicecore_ptr->sba_system_ptr);
+        System& sba_system=*sba_system_ptr;
+        Tile& sba_tile=*(sba_system.instances[servicecore_ptr->address]);
+
+# On-the-fly substitution rules, via eval(" s/key/value/ ")
+# use #nosubs to avoid these substitutions
+Rules:
+    '\.push' : '.push_back'
+    '=\s*\[\]' : ''
+    '=(.*)?\.shift\(\)' : '= $1.front();$1.pop_front();'
+    
+CustomTranslators:
+    'ServiceConfiguration\.rb' : 'ServiceConfiguration'    
+    

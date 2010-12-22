@@ -1,0 +1,70 @@
+/*
+ Lists are delivered by the LIST service, but can also be viewed as data types.
+So we could have:
+
+List l1();
+l1.head(); 
+l1.tail();
+l1.length();
+l1.empty();
+l1.push();
+
+But I would actually like typed lists, so it would have to be
+// [1,2,3,4,5]
+template service List<T> {
+    void push(T); 
+    void unshift(T); // or cons 
+    T pop(); // or last
+    T shift(); // or head
+    List(...);
+}
+
+and then we say
+
+List<int> l1();
+l1.push(42);
+
+The alternative is that we never declare this List<> service.
+We simply have List<int> l1();
+
+The fact is that "template service" is a misnomer. In practice all lists will be handled by the List service.
+So maybe we could do this:
+*/
+
+service List {
+// constructor
+    List(...);    
+	List<any>(...); // not supported
+// common operations    
+    bool empty(); // or null
+    int length(); 
+// core immutable list operations
+    List<any> tail(); 
+    List<any> cons(any);
+    List<any> append(List<any>); 
+    any head(); // or front()
+    any last(); // or back()
+// other immutable list operations
+    List<any> reverse();
+    List<any> init(); // complement of last
+    List<any> map(Lambda<any>);
+    List<any> filter(Lambda<any>);
+// mutable list operations
+    void push(any); // or push_back
+    void unshift(any); // or push_front
+    any pop(); // pop_back; but that returns void
+    any shift(); // or pop_front; but that returns void
+    void append(List<any>); // (++) or merge    
+    any at(int); // (!!), would be nice if I could use []; but then how do I update, i.e. []= 
+};
+
+/*
+ Lists in Gannet-C are lazy and functional-style, i.e. we never modify the original list
+Guess I could use an "alias" keyword
+ */
+{
+List<int> l1(11,22,33);
+l1.push(42);
+const List<int> l2(11,22,33);
+const List<int> l3=l2.cons(42);
+}

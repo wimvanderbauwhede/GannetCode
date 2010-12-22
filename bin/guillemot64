@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Std;
+
+my $gannet_dir = $ENV{GANNET_DIR};
+
+my %opts;
+getopts( 'hpso:vwVY:', \%opts );
+
+if ( $opts{'h'} or (not scalar %opts and not @ARGV)) {
+	die "
+    Wrapper around gannetc compiler. Scans the .td file
+	for SystemConfiguration YAML file
+    $0 [opts] 
+    -Y YAML-file.yml: SBA config file to use
+    \n".`$gannet_dir/bin/gannetc -h`;
+}
+
+@ARGV or die "Usage: $0 [-h] [-Y yml-file] task description file (.td)\n";
+my $tdfile=shift @ARGV;
+my $verbose= $opts{'v'}?1:0;
+my $ymlfile = $opts{'Y'}||"$gannet_dir/SystemConfigurations/SBA.yml";
+my $flags='';
+for my $opt ( qw(p s v w V)) {
+    $flags.=$opts{$opt}?' -'.$opt:'';
+}
+$flags.=$opts{'o'}?" -o $opts{'o'}":'';
+
+open(my $TD, '<', $tdfile);
+while (my $line=<$TD>) {
+	if ($line=~/^\s*\;\s*[Ss]ys(?:tem)*\s*[cC]onfig(?:uration)*\s*[\:\=\/]?\s*([\w\.\/]+)/) {
+		my $maybe_yml_file=$1;
+		if ($maybe_yml_file!~/\.yml/) {
+			$maybe_yml_file.='.yml';
+		}
+		if (-e "$gannet_dir/SystemConfigurations/$maybe_yml_file") {
+			print "Found YAML-file $maybe_yml_file\n";
+			$ymlfile="$gannet_dir/SystemConfigurations/$maybe_yml_file";
+		}
+	last;
+	}
+}
+close $TD;
+
+system("gannetc64 $flags -Y $ymlfile $tdfile");
+

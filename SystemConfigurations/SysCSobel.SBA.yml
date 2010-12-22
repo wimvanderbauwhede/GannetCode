@@ -1,0 +1,75 @@
+# Dynamic Reconfiguration for the Sobel example
+
+# For SystemC, it seems both service id and address must be contiguous
+# And we must have exactly 15 services!
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads, [t_setup, t_proc_value], Addr: Service NoC Address }
+
+--- # SystemConfiguration.rb
+System:
+  NServices: 15 # excluding gateway
+  Services:
+    0: { GATEWAY: [0, sba_GATEWAY, 1, [0, 0]], Addr: 15 }    
+    1: { IO: [0, ls_IO, 1, [1, 1]], Addr: 3 }
+    2: { BEGIN: [0, ls_BEGIN, 1, [1, 1]], Addr: 2 }    
+    3: { LET: [0, ls_LET, 1, [1, 1]], Addr: 1 }
+    4: { IF: [0, ls_IF, 1, [0, 0]], Addr: 4 }    
+    5: { IMG: [0, cs_IMG_IN, 1, [0, 0]], Addr: 5 }            
+    6: { MADD: [0, ls_PROC_MATRIX, 1, [0, 0]], Addr: 6 }         
+    7: { ALU: [0, ls_ALU, 1, [0, 1]], Addr: 7 }   
+    8: { APPLY: [0, ls_APPLY, 1, [0, 0]], Addr: 8 }     
+    9: { LAMBDA: [0, ls_LAMBDA, 1, [0, 0]], Addr: 9 }    
+    10: { PROCIMG: [0, cs_IMG_OUT, 1, [0, 0]], Addr: 10 }
+    11: { R2Y: [0, ls_PROC_MATRIX, 1, [0, 10]], Addr: 11 }
+    12: { Y2R: [0, ls_PROC_MATRIX, 1, [0, 10]], Addr: 12 }
+    13: { SOBH: [0, ls_PROC_MATRIX, 1, [5, 20]], Addr: 13 }
+    14: { SOBV: [0, ls_PROC_MATRIX, 1, [5, 20]], Addr: 14 }
+    15: { CALL: [0, ls_CALL, 1, [0, 0]], Addr: 0 }
+    
+  Aliases:
+  # Alias Name: [Service Name, Service Id, Opcode]
+    NONE: [NONE, 0, 0, [0, 0]]
+    'plus': [ALU, 7, 9, [0, 1]]
+    minus: [ALU, 7, 10, [0, 1]]
+    times: [ALU, 7, 11, [0, 1]]
+    over: [ALU, 7, 12, [0, 18]]
+    lt: [ALU, 7, 13, [0, 1]]
+    gt: [ALU, 7, 14, [0, 1]]
+    eq: [ALU, 7, 15, [0, 1]]
+    not: [ALU, 7, 21, [0, 1]] # (! 1) :  0; (! 0) :  1; otherwise :  Error
+    RETURN: [IF, 4, 1, [0, 0]]    
+    RETURNTC: [IF, 4, 2, [0, 0]]
+    IFTC: [IF, 4, 3, [0, 0]]
+    FOPEN: [IO, 1, 1, [0, 0]]
+    FCLOSE: [IO, 1, 2, [0, 0]]
+    IOREAD: [IO, 1, 3, [0, 0]]
+    IOWRITE: [IO, 1, 4, [0, 0]]
+    DISPLAY: [IO, 1, 5, [0, 0]]
+    ASSIGN: [LET, 3, 1, [0, 0]]
+    UPDATE: [LET, 3, 3, [0, 0]]
+    READ: [LET, 3, 2, [0, 0]]
+    LIST: [LET, 3, 4, [0, 0]]
+    HEAD: [LET, 3, 5, [0, 0]]
+    TAIL: [LET, 3, 6, [0, 0]]
+    LENGTH: [LET, 3, 7, [0, 0]]
+    CONS: [LET, 3, 8, [0, 0]]
+    APPEND: [LET, 3, 9, [0, 0]]
+    LETTC: [LET, 3, 10, [0, 0]]
+    APPLYTC: [APPLY, 8, 1, [0, 0]]
+    IMG.SIZE: [IMG, 5, 1, [0, 0]]
+    PROCIMG.DUMP: [PROCIMG, 10, 1, [0, 0]] 
+    S_IF: [SOBH, 13, 30, [0, 0]]  
+    S_RETURN: [SOBH, 13, 31, [0, 0]]
+            
+  ALU_Names:
+    '+': 'plus'
+    '-': minus
+    '*': times
+    '/': over
+    '<': lt
+    '>': gt
+    '==': eq
+    '!': not
+
+
+    

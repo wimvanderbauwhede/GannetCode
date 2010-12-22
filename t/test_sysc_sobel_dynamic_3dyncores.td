@@ -1,0 +1,33 @@
+; SystemConfiguration: DynSobel.SBA.yml
+
+; full Sobel for System-C. Dynamic services but no actual dyn reconf, as ref
+;        1: [dyn_rgb2ycbcr.rb, ds_RGB2YCbCr]
+;        2: [dyn_ycbcr2rgb.rb, ds_YCbCr2RGB]
+;        3: [dyn_madd.rb, ds_MADD]
+;        4: [dyn_sobel.rb, ds_SOBEL_HOR]
+;        5: [dyn_sobel.rb, ds_SOBEL_VERT]
+;        6: [dyn_mirror.rb, ds_MIRROR]
+(let
+    '(buf 'b0 (img '16))
+    '(let
+ 	(buf 'b1 (s1.confrun '1 '(config '1 '1) (get 'b0) ))
+ 	(buf 'bm (s2.confrun '6 '(config '6 '1) (get 'b1) ))
+	(buf 'bsh1 (s3.confrun '4 '(config '4 '1) (get 'b1) '16 ))
+	)
+	'(let
+	(buf 'bsv1 (s2.confrun '5 '(config '5 '1) (get 'b1) '16 ))
+	(buf 'bsh2 (s3.confrun '4 '(config '4 '1) (get 'bm) '16 ))
+	(buf 'bsv2 (s1.confrun '5 '(config '5 '1) (get 'bm) '16 ))
+	)
+	'(let
+	(buf 'ba1 (s1.confrun '3 '(config '3 '1) (get 'bsh1) (get 'bsv1) ))
+	(buf 'ba2 (s2.confrun '3 '(config '3 '1) (get 'bsh2) (get 'bsv2) ))
+	(buf 'bm2 (s3.confrun '6 '(config '6 '1) (get 'ba2) ))
+	)
+	'(let
+	(buf 'ba3 (s2.confrun '3 '(config '3 '1) (get 'ba1) (get 'bm2) ))
+	(buf 'b2 (s1.confrun '2 '(config '2 '1) (get 'ba3) ))	
+	)
+	'(procimg (get 'b2))
+	'(procimg.dump (img.size)) 
+)

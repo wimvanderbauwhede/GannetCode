@@ -1,0 +1,28 @@
+#!/usr/bin/perl 
+use Getopt::Std;
+my %opts=();
+getopts( 'hvPpsY:', \%opts );
+my $flags='';
+my $ext='gc';
+
+if ($opts{'h'}) {
+system("./Main -h");
+}
+if ($opts{'P'}) {
+$flags='-P';
+$ext='pl';
+}
+
+die unless @ARGV;
+my $gcfile=shift @ARGV;
+if ($opts{'P'}) {
+    system("./Main -P $gcfile");
+    exit;
+}
+if (-e 'tmp.'.$ext) {
+    unlink 'tmp.'.$ext;
+}
+system("cpp -C -P $gcfile > tmp.$ext");
+system("./Main $flags tmp.$ext");
+unlink 'tmp.$ext';
+

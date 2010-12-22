@@ -1,0 +1,36 @@
+Can I use
+
+{ 
+use seq;
+...
+}
+
+to mean
+
+seq {
+
+}
+
+I see the problem: a seq means that all statements in a block are seq
+But what I want is the ability to say that a for loop can be unrolled,
+or not.
+
+So, in Gannet-C, 
+
+    for () seq {} 
+
+does not express that! 
+
+OTOH, there is actually no need to indicate that a loop can't be unrolled.
+
+question is what 
+
+use seq qw<do> means. Guess it is the same as 
+
+
+do {
+use seq;
+
+};
+
+So in short, use seq/no seq is enough!

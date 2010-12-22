@@ -1,0 +1,14 @@
+#!/usr/bin/perl 
+use Getopt::Std;
+my %opts=();
+getopts( 'hvpsY:', \%opts );
+my $flags='-P';
+my $ext='pl';
+
+if ($opts{'h'}) {
+system("./Main -h");
+}
+
+die unless @ARGV;
+my $gcfile=shift @ARGV;
+system("./Main -P $gcfile");

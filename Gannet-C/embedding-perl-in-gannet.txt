@@ -1,0 +1,25 @@
+The model for calling Perl from Gannet:
+
+- a "new" creates a new interpreter which runs a script which creates an object
+
+- a method call takes either no arguments, an int or a list of ints
+-> How do I know which? Based on the Gannet arglist 
+
+- It should return a list of ints, or at least a list of Words.
+
+- The main question is: how to prevent the interpreter from exiting after it runs the "creator" script? Maybe it is like an interactive interpreter: it only exits when you explicitly tell it to.
+
+So basically, we 
+1/ get the arg addresses
+2/ get the args, which are Word_Lists
+3/ Problem: a Word_List can be anything, how do I know what it is?
+It's like this: if it is "data", we don't need to know
+if it is to be symbolised, we'll need to know
+I think I'll have to supply a serialise/deserialise API
+Or can we use Freeze/Thaw?
+
+- We definitely need symbol/unsymbol calls to interface between the
+objects and built-in functions. I think it would be best to give them
+type information: (symbol 'int (...)) (unsymbol 'string (...))
+- That practically means we need to use the 64-bit version as 
+we need to have this type info in the symbol. 

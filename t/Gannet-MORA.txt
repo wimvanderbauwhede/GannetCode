@@ -1,0 +1,85 @@
+MORA for Gannet
+---------------
+
+-We assume every Gannet service consists of 3 (or 4?) MORA cores (for image processing, 3 is enough)
+-Key differences from current MORA: 
+1. 16-bit datapath
+2. no direct local memory. Every RC uses Gannet's memory through an address translator.
+The main reason is to be able to unpack RGB from a Word. But also to have a larger address space.
+-We will have 4 Virtual memories (instead of 2) with a seemingly continuous address space.
+-The address translator is configured using 
+
+	offset: 2 bytes (at least). This will typically be the data address
+	step: to indicate which byte from a word to use. 1 byte? 4 bits?
+	skip: as in MORA, to operate on blocks. 1 byte
+	word_width: how many bytes to read from the given address 1 byte? 4 bits?
+
+So about 4 bytes configuration data. We need an output mem address translator as well, if only to combine the results back into a single word. So we have 6*4 bytes or 6 Words fixed memory config data. At run time, I guess the translators might add a cycle latency on each side.
+
+The extended address space will lead to a slighty larger instruction word, I assume 12 bytes is enough but 
+if we really want 16-bit address space it will of course have to be 92+3*7=113, so let's say 14 bytes per instruction
+
+3. It is essential to have access to the accumulation registers; ideally I'd like access to the counter of the address generator but for now I assume we don't.
+
+Application to Sobel edge detection
+-----------------------------------
+
+In general, if we can't use a SIMD instruction, we have to loop. A loop takes 2 extra instructions:
+
+DECR counter
+[OPS]
+JMPIF counter
+
+Operations: 
+
+* RGB-YCbCr conversion
+/*
+Config data: using the table-based approach, the computation is a simple addition of 3 values and a shift, so 3 operations in a loop. But of course the coefficients themselves take space. Assuming 16-bit, we have 256*8*2 bytes = 1024 Words; the instructions + addr dec another 5*14+4=74 bytes=19 Words for each RC, so 1081 Words! Same for YCbCr-RGB.
+Run time: the pointer lookup takes 1 cycle, the additions 1 each, the shift I think 2, so 5 cycles + 2 loop = 7 cycles/pixel.
+
+This means loading the conversion code will take about 1100 cycles, running it about 1800, so this is clearly the killer. 
+*/
+Using the original equations makes more sense:
+
+ *  Y  =  0.29900 * R + 0.58700 * G + 0.11400 * B  + 0
+ *  Cb = -0.16874 * R - 0.33126 * G + 0.50000 * B  + CENTERJSAMPLE
+ *  Cr =  0.50000 * R - 0.41869 * G - 0.08131 * B  + CENTERJSAMPLE
+
+Config Data:
+This would mean a 4-step MAC per equation, written as a matrix operation, so, accounting for the last term, we need 4 MAC operations, simply 4 instructions = 4*14 = 14*4 bytes = 14 Words. But we also have to provide the coefficients. So either we have 14 Words + 12*2 bytes = 14 Words instr + 6 Words data; or we have 3*14=42 Words instr + 0 Words data
+=> 14*4+12*2 bytes = 80 is the smallest it can be, not including the 24 bytes address dec
+=20+6
+
+Run time:
+It's a classic matrix MAC, so it would take 5 cycles. We might have to add a shift for Q-correction, so say 6 cycles/pixel
+Note: There is an issue if we multiply a 1-byte 8.0 with a 2-byte 0.16. The intermediate result is a 3-byte 8.16 number.
+In general, multiplying 2 2-byte numbers gives a 4-byte number. It actually means the accumulator must be 4 bytes.
+In our case it means we only keep the highest 2 bytes so there's no need for a shift.
+
+* Sobel convolution
+Config data: the convolution is a classic MAC op, in a 3x3 block. MORA can write this in 1 instruction per pixel
+But it's a loop => 3 instructions + addr dec = 3*14 = 42, so 11 Words
+Run time: the MAC takes 9 cycles+1, the loop another 2 => 11 cycles/pixel+1
+=> 42 bytes + 24 = 11+6
+* Mirror
+Config data: To "mirror" actually means to reverse the list of pixels. The address generator supports reverse iterations, so we can write this as a special matrix move! So it is a single instruction, 4 Words
+Run time: 1 cycle/pixel+1.
+=> 14 bytes + 24 =4+6
+* Add
+Config data: 1 instruction + addr dec = 14, so 4 Words
+Run time: 1 cycle/pixel+1
+=> 14 bytes + 24 =4+6
+Currently, we assume that Gannet will load a block of data but start working on it right away if possible. That means that the configuration data should contain information about this: should the core wait for all data, or part of it? I guess that would take another 2 bytes, at least 1 byte. There is also a flag that indicates that a config is global or not
+=> 1 extra Word
+
+Summary Table
+
+			Config(Words)	Fixed(Cycles) 	PerWord(Cycles)
+RGB2YCbCr	27				3				6
+Mirror		11				3				1
+Add			11				3				1
+Sobel		18				3				11
+YCbCr2RGB	27				3				6
+
+
+

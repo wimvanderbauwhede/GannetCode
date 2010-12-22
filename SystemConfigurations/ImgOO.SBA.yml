@@ -1,0 +1,83 @@
+# Dynamic Reconfiguration for the Image Stream (OO) example
+
+# For SystemC, it seems both service id and address must be contiguous
+# And we must have exactly 15 services!
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads, [t_setup, t_proc_value], Addr: Service NoC Address }
+
+--- # SystemConfiguration.rb
+System:
+  NServices: 15 # excluding gateway
+  ServiceInstances:
+    0: { GATEWAY: [GATEWAY, 0, sba_GATEWAY, 1, [0, 0]], Addr: 0 }    
+    1: { NO_IO: [None, 0, none, 1, [1, 1]], Addr: 3 }
+    2: { NO_BEGIN: [None, 0, none, 1, [1, 1]], Addr: 2 }    
+    3: { LET: [LET, 0, ls_LET, 1, [1, 1]], Addr: 1 }
+    4: { IF: [IF, 0, ls_IF, 1, [0, 0]], Addr: 4 }    
+    5: { IMG: [Img, 0, cs_IMG_IN, 1, [0, 0]], Addr: 5 }            
+    6: { NO_CONFIG: [None, 0, none, 1, [20, 0]], Addr: 6 }         
+    7: { ALU: [ALU, 0, ls_ALU, 1, [0, 1]], Addr: 7 }   
+    8: { APPLY: [APPLY, 0, ls_APPLY, 1, [0, 0]], Addr: 8 }     
+    9: { LAMBDA: [Lambda, 0, none, 1, [0, 0]], Addr: 9 } # MUST    
+    10: { PROCIMG: [ProcImg, 0, cs_IMG_OUT, 1, [0, 0]], Addr: 10 }
+    11: { MADD: [MADD, 0, ls_PROC_MATRIX, 1, [0, 0]], Addr: 11 }
+    13: { S1: [None, 0, none, 1, [5, 0]], Addr: 13 }
+    14: { S2: [None, 0, none, 1, [5, 0]], Addr: 14 }
+    12: { S3: [None, 0, none, 1, [5, 0]], Addr: 12 }
+    15: { NO_CALL: [None, 0, none, 1, [0, 0]], Addr: 15 }
+    
+  Aliases:
+  # Alias Name: [Service Name, Service Id, Opcode]
+    NONE: [NONE, 0, 0, [0, 0]]
+    'plus': [ALU, 7, 9, [0, 1]]
+    minus: [ALU, 7, 10, [0, 1]]
+    times: [ALU, 7, 11, [0, 1]]
+    over: [ALU, 7, 12, [0, 18]]
+    lt: [ALU, 7, 13, [0, 1]]
+    gt: [ALU, 7, 14, [0, 1]]
+    eq: [ALU, 7, 15, [0, 1]]
+    not: [ALU, 7, 21, [0, 1]] # (! 1) :  0; (! 0) :  1; otherwise :  Error
+    RETURN: [IF, 4, 1, [0, 0]]    
+    RETURNTC: [IF, 4, 2, [0, 0]]
+    IFTC: [IF, 4, 3, [0, 0]]
+#    FOPEN: [IO, 1, 1, [0, 0]]
+#    FCLOSE: [IO, 1, 2, [0, 0]]
+#    IOREAD: [IO, 1, 3, [0, 0]]
+#    IOWRITE: [IO, 1, 4, [0, 0]]
+#    DISPLAY: [IO, 1, 5, [0, 0]]
+    ASSIGN: [LET, 3, 1, [0, 0]]
+    UPDATE: [LET, 3, 3, [0, 0]]
+    READ: [LET, 3, 2, [0, 0]]
+    LIST: [LET, 3, 4, [0, 0]]
+    HEAD: [LET, 3, 5, [0, 0]]
+    TAIL: [LET, 3, 6, [0, 0]]
+    LENGTH: [LET, 3, 7, [0, 0]]
+    CONS: [LET, 3, 8, [0, 0]]
+    APPEND: [LET, 3, 9, [0, 0]]
+    LETTC: [LET, 3, 10, [0, 0]]
+    APPLYTC: [APPLY, 8, 1, [0, 0]]
+    S_RETURN: [IF, 4, 31, [0, 0]] # MUST
+    S_IF: [IF, 4, 31, [0, 0]] # MUST
+        
+  Services:    
+    Img: 
+        ServiceId: 5
+        in: [1, [0, 0]]
+        size: [2, [0, 0]]
+    ProcImg:
+        ServiceId: 10
+        in: [1, [0, 0]]
+        dump: [2, [0, 0]]
+        draw: [3, [0, 0]]
+
+  ALU_Names:
+    '+': 'plus'
+    '-': minus
+    '*': times
+    '/': over
+    '<': lt
+    '>': gt
+    '==': eq
+    '!': not
+
+        

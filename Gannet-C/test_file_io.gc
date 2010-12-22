@@ -1,0 +1,41 @@
+/*
+(let
+	'(fopen '1 "SBA.yml" "r")
+	'(fopen '2 "tmpp" "w")
+'(label L
+    (if
+	 (== '1 (iowrite '2 (ioread '1 '0)))
+    '(return 'L)
+    '(return '1)
+)
+)
+'(fclose '1)
+'(fclose '2)
+)
+*/
+service IO {
+	IO(string);
+	IO(string,string);
+	IO(string,string,int);
+	string read();
+	int write(string);
+};
+
+// need special case for stdin/stdout
+// or we say STDIN/STDOUT is the special case;
+// STDIN could be defined as "<" and STDOUT as ">"
+// the 2nd arg should be optional
+// there should be an option for a third arg: NBYTES
+seq {
+	IO fh1( "SBA.yml","r");
+	IO fh2("tmpp","w");
+	while (
+		fh2.write(fh1.read())
+	);
+	fh1.close();
+	fh2.close();
+}
+
+/*
+The typemapper must map the IO instances to numbers. 
+*/

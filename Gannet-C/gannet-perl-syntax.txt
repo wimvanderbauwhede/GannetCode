@@ -1,0 +1,70 @@
+# Rule1: if a for-loop has an index that is used in an array of services
+# then it's preproc
+
+# Rule2: if a for-loop has a small (1byte) constant range
+# then it's preproc
+
+for my $i (0..$N-1) {
+    my $f[$i]=new Service::Math();
+}
+
+for my $i (0..$N-1) {
+    for my $j (0..$M-1) {
+        &f[$i]($j);
+    }
+}
+
+# parallel evaluation by default in all blocks and function arg lists
+# if you want sequences, use "use seq;"
+
+my $b = 0;
+ {
+    my $a=6;
+    $b=$a*($a+1);
+ };
+ 
+ my $b = 0;
+ do {
+    use seq;
+    my $a=6;
+    $b=$a*($a+1);
+ };
+ 
+# The key syntax that I need to parse is:
+
+- bare blocks, which evaluate in parallel: { ... }
+- my vars inside such blocks
+my $v;
+my $v=42;
+$v++;
+- if/else/elsif
+if () {...} else {...}; to sequence, use do {}
+- for, while
+while () {
+}
+say, C-style for only:
+for (my $i=0;$i<10;$i++) {
+}
+- maybe foreach? only if I have proper lists! But at least:
+foreach my $i (0..9) {
+}
+
+- Buffers an streaming:
+
+my $b = new Buffer( some_inst->some_call() );
+my $b = Buffer->new( some_inst->some_call() );
+:
+$b->stream();
+$b->peek();
+$b->get();
+
+* I need to think hard about things like
+my @bs;
+
+$bs[$i]=...
+
+This looks very handy but buffers are tied to the service inside the constructor.
+So maybe we need $some_inst->buf( ... );
+
+
+

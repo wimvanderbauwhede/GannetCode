@@ -1,0 +1,7 @@
+/usr/bin/ghc:exec /Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/ghc -B/Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/. -optc -m32 -opta -m32 -optl -m32 -dynload wrapped ${1+"$@"}
+/usr/bin/ghc-6.10.4:exec /Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/ghc -B/Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/. -optc -m32 -opta -m32 -optl -m32 -dynload wrapped ${1+"$@"}
+/usr/bin/hsc2hs:exec /Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/hsc2hs $tflag $HSC2HS_EXTRA --cflag="-m32" --lflag="-m32" ${1+"$@"} "$Iflag"
+/usr/bin/runghc:exec /Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/runghc -f /Library/Frameworks/GHC.framework/Versions/610/usr/bin/ghc -optc-m32 -opta-m32
+/usr/bin/runghc:-optl-m32  ${1+"$@"}
+/usr/bin/runhaskell:exec /Library/Frameworks/GHC.framework/Versions/610/usr/lib/ghc-6.10.4/runghc -f /Library/Frameworks/GHC.framework/Versions/610/usr/bin/ghc -optc-m32 -opta-m32
+/usr/bin/runhaskell:-optl-m32  ${1+"$@"}

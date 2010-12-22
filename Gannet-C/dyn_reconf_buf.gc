@@ -1,0 +1,70 @@
+/* Gannet-C example of dynamic reconfiguration with buffers */
+
+/* in Gannet this would be:
+	; assume config 1 is a rotation
+   (let
+       '(s1.reconf '1 (config '1 '1))
+       '(label img1 (img.in "img.raw" '8))
+	   '(buf 'b1 (s1.run img1 '90) )
+	   '(img.out (get 'b1) '8)
+   )
+*/   
+/*
+ service & configuration declarations would typically go in an include file,
+ e.g. with a .gh extension
+ 
+ */
+#ifdef CXX_COMPAT
+#include "cxx-compat.h"
+#endif
+
+typedef Matrix<int> ImgBlock;
+ 
+service Img {
+	ImgBlock in(string,int);
+	void (ImgBlock,int) out;
+	Img();
+	Img(int)
+};
+
+service DynService {
+	//int operator=(Configuration); //TODO1
+	int configure(Configuration);
+	DynService(Configuration,int); 
+	DynService(int);
+	data run(...);
+	data run(Configuration); 
+	data run(data);	
+	data run(Configuration,...) 
+};
+
+configuration ImgProc {
+	typedef ImgBlock(ImgBlock,int) Rotate;
+	typedef ImgBlock(ImgBlock) Sharpen;
+};
+
+/*
+   To make C/C++ programmers happy, and not totally alienate Java people, we need int main(void)
+   I'd prefer main as a keyword, like par or seq; or alternatively Main {}
+   Or we could have a system keyword:
+   system ImgProc {}
+   Too many possibilities...
+*/
+seq {
+	// Create service & configuration instances
+	// maybe we need declaration expressions separate from binding and pure expressions
+	Img img(); 
+	DynService s1; // empty parens are optional 
+	ImgProc::Rotate rot(); 
+	// Configure the service
+	s1=rot;
+	// The line below translates to (label img1 (img.in "img.raw" '8))
+	ImgBlock() img1 = img.in("img.raw",8);
+	// img1 is a procedure call, as can be seen from the type; but it masquerades as a variable
+	Buf<ImgBlock> b1=s1.run(img1,90);
+	ImgProc::Sharpen sharp();
+	Buf<ImgBlock> b2=s1.run(sharp,b1);
+	img.out(b1,8)
+}
+
+// END

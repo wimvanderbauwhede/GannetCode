@@ -1,0 +1,120 @@
+# Dynamic Reconfiguration for the Sobel example
+
+# For SystemC, it seems both service id and address must be contiguous
+# And we must have exactly 15 services!
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads, [t_setup, t_proc_value], Addr: Service NoC Address }
+
+--- # SystemConfiguration.rb
+System:
+  NServices: 15 # excluding gateway
+  Services:
+    0: { GATEWAY: [0, sba_GATEWAY, 1, [0, 0]], Addr: 15 }    
+    1: { IO: [0, ls_IO, 1, [1, 1]], Addr: 3 }
+    2: { BEGIN: [0, ls_BEGIN, 1, [1, 1]], Addr: 2 }    
+    3: { LET: [0, ls_LET, 1, [1, 1]], Addr: 1 }
+    4: { IF: [0, ls_IF, 1, [0, 0]], Addr: 4 }    
+    5: { IMG: [0, cs_IMG_IN, 1, [0, 0]], Addr: 5 }            
+    6: { CONFIG: [0, ds_CONFIG, 1, [20, 0]], Addr: 6 }         
+    7: { ALU: [0, ls_ALU, 1, [0, 0]], Addr: 7 }   
+    8: { S5: [0, ds_DYNAMIC, 1, [0, 0]], Addr: 8 }     
+    9: { LAMBDA: [0, ls_LAMBDA, 1, [0, 0]], Addr: 9 }    
+    10: { PROCIMG: [0, cs_IMG_OUT, 1, [0, 0]], Addr: 10 }
+    11: { S4: [0, ds_DYNAMIC, 1, [0, 0]], Addr: 11 }
+    13: { S1: [0, ds_DYNAMIC, 1, [0, 0]], Addr: 13 }
+    14: { S2: [0, ds_DYNAMIC, 1, [0, 0]], Addr: 14 }
+    12: { S3: [0, ds_DYNAMIC, 1, [0, 0]], Addr: 12 }
+    15: { CALL: [0, ls_CALL, 1, [0, 0]], Addr: 0 }
+    
+  Aliases:
+  # Alias Name: [Service Name, Service Id, Opcode]
+    NONE: [NONE, 0, 0, [0, 0]]
+    'plus': [ALU, 7, 9, [0, 1]]
+    minus: [ALU, 7, 10, [0, 1]]
+    times: [ALU, 7, 11, [0, 1]]
+    over: [ALU, 7, 12, [0, 18]]
+    lt: [ALU, 7, 13, [0, 1]]
+    gt: [ALU, 7, 14, [0, 1]]
+    eq: [ALU, 7, 15, [0, 1]]
+    not: [ALU, 7, 21, [0, 1]] # (! 1) :  0; (! 0) :  1; otherwise :  Error
+    RETURN: [IF, 4, 1, [0, 0]]    
+    RETURNTC: [IF, 4, 2, [0, 0]]
+    IFTC: [IF, 4, 3, [0, 0]]
+    FOPEN: [IO, 1, 1, [0, 0]]
+    FCLOSE: [IO, 1, 2, [0, 0]]
+    IOREAD: [IO, 1, 3, [0, 0]]
+    IOWRITE: [IO, 1, 4, [0, 0]]
+    DISPLAY: [IO, 1, 5, [0, 0]]
+    ASSIGN: [LET, 3, 1, [0, 0]]
+    UPDATE: [LET, 3, 3, [0, 0]]
+    READ: [LET, 3, 2, [0, 0]]
+    LIST: [LET, 3, 4, [0, 0]]
+    HEAD: [LET, 3, 5, [0, 0]]
+    TAIL: [LET, 3, 6, [0, 0]]
+    LENGTH: [LET, 3, 7, [0, 0]]
+    CONS: [LET, 3, 8, [0, 0]]
+    APPEND: [LET, 3, 9, [0, 0]]
+    LETTC: [LET, 3, 10, [0, 0]]
+#    APPLYTC: [APPLY, 8, 1, [0, 0]]
+    IMG.SIZE: [IMG, 5, 1, [0, 0]]
+    PROCIMG.DUMP: [PROCIMG, 10, 1, [0, 0]] 
+    S_RUN: [S1, 13, 1, [0, 0]]
+    s1.run: [S1, 13, 1, [0, 0]]
+    s2.run: [S2, 14, 1, [0, 0]]
+    s3.run: [S3, 12, 1, [0, 0]]
+    s4.run: [S4, 11, 1, [0, 0]]
+    s5.run: [S5, 8, 1, [0, 0]]
+    S_CONFRUN: [S1, 13, 3, [0, 0]]
+    s1.confrun: [S1, 13, 3, [5, 0]]
+    s2.confrun: [S2, 14, 3, [5, 0]]
+    s3.confrun: [S3, 12, 3, [5, 0]]    
+    s4.confrun: [S4, 11, 3, [5, 0]]
+    s5.confrun: [S5, 8, 3, [5, 0]]
+    S_RECONF: [S1, 13, 2, [0, 0]]
+    s1.reconf: [S1, 13, 2, [5, 1]]
+    s2.reconf: [S2, 14, 2, [5, 1]]
+    s3.reconf: [S3, 12, 2, [5, 1]]
+    s4.reconf: [S4, 11, 2, [5, 1]]
+    s5.reconf: [S5, 8, 2, [5, 1]]    
+    S_IF: [S1, 13, 30, [0, 0]]
+    s1.if: [S1, 13, 30, [2, 0]]
+    s2.if: [S2, 14, 30, [2, 0]]
+    s3.if: [S3, 12, 30, [2, 0]]    
+    s4.if: [S4, 11, 30, [2, 0]]
+    s5.if: [S5, 8, 30, [2, 0]]
+    S_RETURN: [S1, 13, 31, [0, 0]]
+    s1.return: [S1, 13, 31, [1, 0]]
+    s2.return: [S2, 14, 31, [1, 0]]
+    s3.return: [S3, 12, 31, [1, 0]]       
+    s4.return: [S4, 11, 31, [1, 0]]
+    s5.return: [S5, 8, 31, [1, 0]]
+        
+  ALU_Names:
+    '+': 'plus'
+    '-': minus
+    '*': times
+    '/': over
+    '<': lt
+    '>': gt
+    '==': eq
+    '!': not
+
+  Configurations:
+    ruby:
+        1: [dyn_rgb2ycbcr.rb, ds_RGB2YCbCr]
+        2: [dyn_ycbcr2rgb.rb, ds_YCbCr2RGB]
+        3: [dyn_madd.rb, ds_MADD]
+        4: [dyn_sobel.rb, ds_SOBEL_HOR]
+        5: [dyn_sobel.rb, ds_SOBEL_VERT]
+        6: [dyn_mirror.rb, ds_MIRROR]
+    native:
+        # tuple info:
+        # the first number is the size of the configuration in bytes
+        # the other two numbers are t_setup and t_proc_value
+        1: [./libRGB2YCbCr.so, ds_RGB2YCbCr, 108, 3, 6]
+        2: [./libYCbCr2RGB.so, ds_YCbCr2RGB, 108, 3, 6]
+        3: [./libMADD.so, ds_MADD, 44, 3, 1]
+        4: [./libDummy.so, ds_DUMMY, 72, 3, 11] # Sobel
+        5: [./libDummy.so, ds_DUMMY, 72, 3, 11]
+        6: [./libMirror.so, ds_Mirror, 44, 3, 1]
+        

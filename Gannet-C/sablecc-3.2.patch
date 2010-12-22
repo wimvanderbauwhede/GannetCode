@@ -1,0 +1,38 @@
+--- sablecc-3.2/src/org/sablecc/sablecc/alternatives.txt	2005-12-24 14:44:04.000000000 +0000
++++ sablecc-3.2p/src/org/sablecc/sablecc/alternatives.txt	2009-08-28 09:22:25.628830000 +0100
+@@ -148,15 +148,27 @@
+     public void set$0$(List<$2$> list)
+     {
+         this._$1$_.clear();
+-        this._$1$_.addAll(list);
+-        for($2$ e : list)
+-        {
+-            if(e.parent() != null)
+-            {
+-                e.parent().removeChild(e);
+-            }
++        if (list.size()>0) {
++            this._$1$_.addAll(list);
++            if (list.size()>1) {
++                for($2$ e : list)
++                {
++                    if(e.parent() != null)
++                    {
++                        e.parent().removeChild(e);
++                    }
+ 
+-            e.parent(this);
++                    e.parent(this);
++                }
++            } else {
++                $2$ e = list.get(0);
++                if(e.parent() != null)
++                {
++                    e.parent().removeChild(e);
++                }
++
++                e.parent(this);
++            }
+         }
+     }
+ 

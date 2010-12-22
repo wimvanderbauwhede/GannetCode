@@ -1,0 +1,34 @@
+TODO for quick-win Gannet-Perl
+
+Goal: allow early testing on multicore system
+
+Requires:
+1. Perl-to-Gannet minimal
+Is furthest advanced, we can already run some trivial scripts
+
+2. Automatic generation of SBA.yml
+- use SBA.yml template with all control services
+- get the interfaces
+- create service instances
+
+3. Automatic generation of C++-readable service opcode list based on SBA.yml
+- All we need is a list like this:
+ninstances
+service instance id 1
+nmethods
+opcode1 method1
+opcode2 method2
+...
+service instance id 1
+nmethods 
+opcode1 method1
+opcode2 method2
+...
+
+We could actually generate these with a Perl script ...
+
+4. Embedding Perl in Gannet via libperl++
+https://github.com/Leont/libperl
+
+5. POSIX threads or (better) MPI calls
+- we need these anyway, can do this on work time!
