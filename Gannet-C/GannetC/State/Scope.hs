@@ -37,7 +37,10 @@ showSR sr = (show (enclosing sr)) ++ " " ++ (show (varmap sr)) ++ "\n"
                    
 initScopeRec :: Integer -> Integer -> ScopeRecord
 initScopeRec enclosing isinlambda = MkScopeRecord enclosing isinlambda emptyVarMap
-                                        
+-- WV27122010: for proper type inference, this should become
+--type VarMap = Hash.Map String (GCType,[Expr])
+-- with Expr the list of nodes bound to the var 
+-- it is a list because vars are updateable                                          
 type VarMap = Hash.Map String GCType
 
 emptyVarMap :: VarMap
@@ -50,7 +53,7 @@ getGCTypefromScope var currentscope scopes niters =
     case Hash.lookup currentscope scopes of
         Just scoperec -> 
             case Hash.lookup var (varmap scoperec) of 
-                Just gct -> gct -- OK, found the var in this scope
+                Just gct -> gct -- OK, found the var in this scope -- (gct,e)
                 Nothing -> if enclosing scoperec == 0 -- at top level
                                 then
                                     GCYada 
@@ -98,12 +101,12 @@ appendScope varname vartype current enclosing inlambda scopes = let
         case Hash.lookup current scopes of
             Just scoperec ->
                 let
-                    cvarmap= Hash.insert varname vartype (varmap scoperec)
+                    cvarmap= Hash.insert varname vartype (varmap scoperec) -- (vartype,expr)
                 in                    
                       scoperec{varmap=cvarmap,isinlambda=inlambda}
             Nothing -> 
                 let
-                    cvarmap= Hash.singleton varname vartype
+                    cvarmap= Hash.singleton varname vartype -- (vartype,expr)
                 in
                     MkScopeRecord enclosing inlambda cvarmap
     in

@@ -85,6 +85,7 @@ data DeclExpr =
         | DUseDecl UseDecl -- Perl
         | DIncludeDecl String
         | DOpDecl OpDecl
+        | DVarDecl VarDecl
 --            | DInstDeclSpec InstDeclSpec
 --            | DTypeDecl TypeDef
 	deriving (Eq, Show, Typeable, Data)
@@ -93,7 +94,7 @@ data ConfigDecl = MkConfigDecl
     {
         cd_name::String,
 --        cd_typedefs::[TypeDef]  
-        cd_typedefs::[Expr] -- purely to make it accessible via Data.Generics  
+        cd_typedefs::[Expr] -- purely to make it accessible via Data.Generics, it's actually TypeDef  
     }
 	deriving (Eq, Show, Typeable, Data)
 	 
@@ -114,8 +115,9 @@ data InstDecl = MkInstDecl
     }
 	deriving (Eq, Show, Typeable, Data)
 
-data GannetDecl = MkGannetDecl String
-    deriving (Eq, Show, Typeable, Data)
+data VarDecl = MkVarDecl {vd_name:: String, vd_type:: GCType} deriving (Eq, Show, Typeable, Data)
+--data GannetDecl = MkGannetDecl String
+--    deriving (Eq, Show, Typeable, Data)
 
 data UseDecl = MkUseDecl Bool String -- True for "use", False for "no"
     deriving (Eq, Show, Typeable, Data)
@@ -155,12 +157,14 @@ data PureExpr =
 		| PBegin Begin
         | PNumber Number
         | PString String
+        | PRegex String -- for Perl
         | PVar Var
+        | PPair Pair -- for Perl
         | PInstAlloc InstAlloc
 	deriving (Eq, Show, Typeable, Data)
 	
 data Var = MkVar {v_name:: String, v_type:: GCType}	deriving (Eq, Show, Typeable, Data)
-
+data Pair = MkPair {p_key:: Expr, p_value:: Expr, p_type::GCType}	deriving (Eq, Show, Typeable, Data)
 data OpCall = MkOpCall 
     {
         oc_name::String, oc_args::[PureExpr], oc_type::GCType --TODO: make it Expr
@@ -323,5 +327,30 @@ data OpDecl = MkOpDecl
          od_type::GCType
     }
 	deriving (Eq, Show, Typeable, Data)    
-    
 
+getType :: Expr -> GCType    
+getType   (DeclE (DInstDecl ide)) = id_type ide
+getType   (DeclE (DVarDecl vd)) = vd_type vd
+getType   (BindE (BAssign  ae)) = a_type ae
+getType   (BindE (BUpdate  ue)) = u_type ue
+getType   (BindE (BOpUpdate  oue)) = ou_type oue
+getType   (BindE (BFunDef  fd)) = fd_type fd
+getType   (PureE ( PVar  v)) =	v_type v
+getType   (PureE ( POpCall  oc)) = oc_type oc
+getType   (PureE ( PFunAppl  fa)) = fa_type fa
+getType   (PureE ( PServiceCall sc))=sc_type sc
+getType   (PureE ( PLambdaDef ld))=ld_type ld	
+getType   (PureE ( PReturn pe)) = getType (PureE pe)
+getType   (PureE ( PCond c))= getType (c_iftrue c) -- FIXME!!
+getType   (PureE ( PWhile w))= getType (w_body w)
+getType   (PureE ( PFor f))= getType (f_body f)
+getType   (PureE ( PForeach fe))= getType (fe_body fe)
+getType   (PureE ( PLet l))=l_type l
+getType   (PureE ( PBegin bb))=bb_type bb
+getType   (PureE ( PNumber (NInt _)))= GCBasic (MkBasic [] (NumberT (SimpleT (MkSimpleNumType "Int")))) 
+getType   (PureE ( PNumber (NFloat _)))= GCBasic (MkBasic [] (NumberT (SimpleT (MkSimpleNumType "Float"))))
+getType   (PureE ( PString s))= GCBasic (MkBasic [] (OtherT (MkOtherType "String")))
+getType   (PureE ( PPair p))=p_type p
+getType   (PureE ( PInstAlloc ia))= ia_type ia
+getType   e = GCAny 
+        

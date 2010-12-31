@@ -34,7 +34,7 @@ my @a=(1,2,3);
 my @b=@a;
 my $bb=42;
 my $cc=$b[0][$bb];
-my $d=shift;
+my $d=shift; # FIXME
 
 {
       my $c=1;
@@ -73,9 +73,29 @@ while ($i<10) {
 
 my $acc=0;
 my $N=10;
-foreach my $i (1,2,3,$N) { # FIXME" dotdot is not working!
-	my	$acc = $acc + $i * $i; # FIXME: update is not working!
+foreach my $i (1 .. $N) { 
+	use seq;
+	$acc = $acc + $i * $i;
+	$acc++;
+#	$acc+= 2;  # FIXME: opupdate is not working!
+
+};
+
+foreach my $j (@b) {
+print($j);
 }
+
+my @ar = 1 .. 10;
+
+my $aref1 = [1 ,3, 3];
+my $aref2 = [1 .. 3];
+my $href0 = {};
+my $href1 = { 1=> $aref1, "2" => $aref2};
+my $href2 = { 1=> $aref1, "2" => $aref2};
+
+my $url = "http://www.perl.org";
+$url=~m/http:\/\//;
+
 ## Required conversions, we can do them in the Emitter or create a separate PerlASTConversions module
 #(assign 'io (new '1 '2 '3)) => (io.new '1 '2 '3)
 #So, if we have a PAssign which contains a PInstAlloc, we do a conversion

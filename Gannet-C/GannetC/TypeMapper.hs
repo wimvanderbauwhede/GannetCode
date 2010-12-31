@@ -71,8 +71,13 @@ getTypeInfoIn x = do
 	ctxt <-get			
 	let
 		nctxt = case x of
-				BindE (BAssign a) -> inAssign a ctxt
+				BindE (BAssign a) -> inAssign x ctxt
+				DeclE (DVarDecl vd) -> inAssign x ctxt
 				BindE (BFunDef f) -> inFunDef f ctxt
+				PureE (PLambdaDef f) -> inLambdaDef f ctxt
+				PureE (PFor f) -> inFor f ctxt
+				PureE (PForeach f) -> inForeach f ctxt
+				PureE (PWhile f) -> inWhile f ctxt
 				DeclE (DInstDecl i) -> inInstDecl i ctxt
 				PureE (PLet l) -> inLet ctxt
 				DeclE (DConfigDecl cd) -> inConfigDecl cd ctxt
@@ -109,20 +114,112 @@ addDecl n t ctxt =
 	in
 		nctxt			
 
-inAssign :: AssignExpr -> Context -> Context
-inAssign a ctxt = addDecl (a_name a) (a_type a) ctxt
+addDeclCE :: String -> GCType -> Context -> Integer -> Integer -> Context
+addDeclCE n t ctxt current enclosing =
+	let		
+		inlambda = 0
+		ntypeinfo = Hash.insert n (t,current) (typeinfo ctxt)
+		nscope = appendScope n t current enclosing inlambda (scope ctxt)
+		nctxt=if n=="" 
+				then error $ "current:"++(show current)++";enclosing:"++(show enclosing)++";type:"++(show t)
+				else ctxt{typeinfo=ntypeinfo,scope=nscope}
+	in
+		nctxt		
 
+inAssign :: Expr -> Context -> Context
+inAssign (BindE (BAssign a)) ctxt = addDecl (a_name a) (a_type a) ctxt
+inAssign (DeclE (DVarDecl vd)) ctxt = addDecl (vd_name vd) (vd_type vd) ctxt
+
+--inFunDef f ctxt =
+--	let
+--		fname = fd_name f
+--		rettype = fd_type f
+--		argtypes = case (fd_argstypes f) of
+--			[Void] -> [] 
+--			ts -> map (\(Arg x)->(at_type x)) ts 
+--		ftype = GCFunc $ MkFunc rettype argtypes
+--		nctxt=addDecl fname ftype ctxt		
+--	in
+--		nctxt
+		
 inFunDef f ctxt =
 	let
+		nctxt = ctxt
 		fname = fd_name f
 		rettype = fd_type f
-		argtypes = case (fd_argstypes f) of
+		argstypes = case (fd_argstypes f) of
 			[Void] -> [] 
-			ts -> map (\(Arg x)->(at_type x)) ts 
-		ftype = GCFunc $ MkFunc rettype argtypes
-		nctxt=addDecl fname ftype ctxt		
+			ts -> map (\(Arg x)->x) ts 
+		ftype = GCFunc $ MkFunc rettype (map at_type argstypes)
+		current = currentScope ctxt
+		enclosing = enclosingScope ctxt		
+		nnctxt=addDeclCE fname ftype nctxt current enclosing
 	in
-		nctxt
+		stowArgsCtxt argstypes nnctxt
+		
+-- FIXME: do the same for Lambda, For, Foreach, While, If (?) 
+
+inLambdaDef f ctxt =
+	let
+		argstypes = case (ld_argstypes f) of
+			[Void] -> [] 
+			ts -> map (\(Arg x)->x) ts 
+	in
+		stowArgsCtxt argstypes ctxt
+		
+-- data Foreach = MkForeach { fe_iterator::Expr, fe_list::Expr, fe_body::Expr }		
+inForeach fe ctxt =		
+	let
+		argtup = [(\(PureE (PVar mkv))-> MkArgTup (v_type mkv) (v_name mkv) )  (fe_iterator fe)]
+	in
+		stowArgsCtxt argtup ctxt
+
+--data For = MkFor { f_guard::Guard, f_body::Expr }	
+--data Guard = MkGuard {f_init::Expr, f_cond::Expr, f_mod::Expr}
+inFor fl ctxt =
+	let
+		argtup = [ (\(BindE (BAssign mka))-> MkArgTup (a_type mka) (a_name mka) )  (f_init (f_guard fl))]
+	in
+		stowArgsCtxt argtup ctxt
+		
+-- data While = MkWhile  { w_pred::Expr, w_body::Expr }		
+inWhile w ctxt =
+	let
+		argtup  = [ (\(BindE (BAssign mka))-> MkArgTup (a_type mka) (a_name mka) ) (w_pred w)] -- FIXME: pred can be function call!!
+	in
+		stowArgsCtxt argtup ctxt
+{-
+I guess what we need to do is have a table
+rcargs :: RCArgs
+	currentscope => args
+Then when we enter a Let or RCBody block, we look up the enclosingScope
+based on that, we get the args, and we call addArgsCtxt
+-}
+stowArgsCtxt :: [ArgTup]-> Context -> Context
+stowArgsCtxt args ctxt
+	| length args == 0 = ctxt
+	| otherwise =
+				let
+					current = currentScope ctxt
+					nstowedargs = Hash.insert current args (stowedargs ctxt) 		
+					nctxt = ctxt{stowedargs=nstowedargs}	
+				in
+					nctxt
+
+addArgsCtxt :: [ArgTup]-> Context -> Context
+addArgsCtxt args ctxt 
+	| length args == 0 = ctxt
+	| otherwise =
+				let
+					larg:rargs=args
+					largname = at_name larg
+					largtype = at_type larg
+					current = currentScope ctxt
+					enclosing = enclosingScope ctxt						
+					nctxt = addDeclCE largname largtype ctxt current enclosing	
+				in
+					addArgsCtxt rargs nctxt		
+		
 -- InstDecl can be Service or Configuration
 inInstDecl i ctxt = 
 	let

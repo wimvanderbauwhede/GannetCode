@@ -18,7 +18,7 @@ $(genInstances ''Program)
 
 emitProgram :: Program -> State Context String
 emitProgram (MkProg exprs) = do		
-		estrs <- (mapM emit exprs)
+		estrs <- (mapM emit exprs) -- estrs::[String], should maybe be [[String]], then we concat and unlines
 		return $ ";program\n" ++ (unlines (filter (\s->(s/="" && s/="'")) estrs))
 -- instance EmitG Program where emit = emitProgram
 
@@ -33,7 +33,8 @@ emitExpr (DeclE e) = emit e
 --------------------------------------------------------------------------------
 -- TODO
 
-emitInstDecl = return . show 
+emitInstDecl = return . show
+emitVarDecl = return . show  
 emitInstAlloc = return . show 
 emitServiceDecl = return . show
 emitConfigDecl = return . show
@@ -42,7 +43,8 @@ emitOpDecl = return . show
 -- for Perl
 emitUseDecl = return . show
 emitBool = return . show
-
+--emitPair = return . show
+-- MkPair {p_key:: Expr, p_value:: Expr, p_type::GCType}	deriving (Eq, Show, Typeable, Data)
 {--
         ftype::GCType,
         fname::String,
@@ -62,12 +64,12 @@ data ArgTup = MkArgTup
 
 emitFunDef fd 
 	| (fd_argstypes fd) == [Void] = do
-                estrs <- (emit (fd_body fd))
-                return $ "'(label " ++ (fd_name fd) ++" "++ estrs ++ ")"
+                estrs <- emit (fd_body fd)
+                return $ emitCallQStr "label" [fd_name fd,estrs]
 	| otherwise = do
                 efargs <- (emitFuncArgs (fd_argstypes fd))
-                efbody <- (emit (fd_body fd))
-                return $ "'(label " ++ (fd_name fd) ++ " (lambda " ++ efargs ++ " '" ++ efbody ++ "))"
+                efbody <- emit (fd_body fd)
+                return $ emitCallQStr "label" [fd_name fd,emitCallBlockStr "lambda" [efargs, q efbody]]
 					
 emitFuncArgs argts = return $ unwords (map (\(Arg argt)->( "'"++ (at_name argt))) argts)
 
@@ -79,7 +81,7 @@ emitLambdaDef ld
 	| otherwise = do
                 efargs <- (emitLambdaArgs (ld_argstypes ld))
                 efbody <- emit (ld_body ld)
-                return $ "(lambda " ++ efargs ++ " '" ++ efbody ++ ")"
+                return $ emitCallStr "lambda" [efargs, q efbody]
 					
 emitLambdaArgs argts = return $ unwords (map (\(Arg argt)->( "'"++ (at_name argt))) argts)
 
@@ -98,7 +100,7 @@ for (i=0;i<N;i++) {
 [...]
 }
 -}
-emitForeach = return . show
+
 emitFor fl = do
 	ctxt <- get
 	f_init_str <- emit (f_init (f_guard fl))
@@ -108,10 +110,12 @@ emitFor fl = do
 	let
 		unique_str = show (count ctxt)
 		ncount = (count ctxt) + 1
-		cond_true_str= "(let\n"++(unlines $ map (\s->"\t'"++s) [f_body_str ,f_mod_str,"(return 'FOR"++unique_str++")"])++"\n)"
+		cond_true_str= emitCallBlockStr "let" [q f_body_str,q f_mod_str,emitCallQStr "return" [q ("FOR_L"++unique_str)]]
 	put ctxt{count=ncount}
-	return $ unlines ["(label FOR"++unique_str,"(if ",f_cond_str,"'"++cond_true_str,"'(return)","))"]
-
+	return $ unlines $ -- ["(label FOR_L"++unique_str,"(if ",f_cond_str,"'"++cond_true_str,"'(return)","))"]
+		emitCallBlock ("label FOR_L"++unique_str) $
+			emitCallBlock "if" [f_cond_str, q cond_true_str, "'(return)"]
+			
 --  { w_pred::PureExpr, w_body::Let }	
 emitWhile wl = do
 	ctxt <- get	
@@ -120,13 +124,103 @@ emitWhile wl = do
 	let
 		unique_str = show (count ctxt)
 		ncount = (count ctxt) + 1
-		cond_true_str= unlines ["'(return 'WHILE"++unique_str,w_body_str,")"]
+		cond_true_str= unlines $ emitCallBlockQ ("return 'WHILE_L"++unique_str) [w_body_str] -- ["'(return 'WHILE_L"++unique_str,w_body_str,")"] -- 
 	put ctxt{count=ncount}
-	return $ unlines ["(label WHILE"++unique_str,"(if ",w_pred_str,cond_true_str,"'(return)","))"]
+	return $ unlines $
+		emitCallBlock ("label WHILE_L"++unique_str) $
+			emitCallBlock "if" [w_pred_str,cond_true_str,"'(return)"]
+	
+	
+	
+{-
+How do we emit a foreach?
+
+foreach my $i (1..$N) {
+    $a+=$l[$i];
+}
+
+We have a separate service, called Range
+Range:
+    new
+    done
+    inc
+    
+(label foreachLXXX
+(let
+    '(assign 'foreachXXX (Range.new start stop))  
+    '(if (Range.done foreachXXX) 
+        '(return)
+        '(let 
+            '(assign 'i (Array.inc foreachXXX))
+            '<body>, but strip any LET
+            '(return 'foreachLXXX)
+            )
+     )
+))
+
+If the value list not a range, it must be an array; if we're smart we can even get rid of single-value loops
+ 
+(label foreachLXXX
+(let
+    '(assign 'foreachXXX (Array.new <value list>))  
+    '(if (Array.empty foreachXXX) 
+        '(return)
+        '(let 
+            '(assign 'i (Array.shift foreachXXX))
+            '<body>, but strip any LET
+            '(return 'foreachLXXX)
+            )
+     )
+))
+
+MkForeach { fe_iterator::Expr, fe_list::Expr, fe_body::Expr }
+
+fe_iterator is PureE $ PVal $ MkVal {v_name:: String, v_type:: GCType}
+
+PServiceCall (MkServiceCall "Range" "new" rargs GCAny)
+sc_name::String, sc_op::String, sc_args::[Expr], sc_type::GCType
+-}	
+
+emitForeach fl = do
+	ctxt <- get
+	body <- emit (fe_body fl)
+	vl <-emit (fe_list fl)
+	let
+		iter = v_name ((\(PureE (PVar mkv))->mkv) (fe_iterator fl))		
+		lbl = "foreach"++(show (count ctxt))
+		srvc = sc_name (( \(PureE (PServiceCall mksrvc)) -> mksrvc ) (fe_list fl))	
+		iterval
+			| srvc == "Range" = emitCallStr "Range.inc" [lbl]
+			| srvc == "Array" = emitCallStr "Array.shift" [lbl]
+			| otherwise = error $ "Foreach list must either be Array or Range, not "++srvc
+		itercond
+			| srvc == "Range" = "Range.done"
+			| srvc == "Array" = "Array.empty"
+			| otherwise = error $ "Foreach list must either be Array or Range, not "++srvc	
+		ncount = (count ctxt) + 1
+	put ctxt{count=ncount}		
+	return $ unlines $
+		emitCallBlock ("label L_"++lbl) $ 
+			emitCallBlock "let" (concat [							
+					 emitCallQ "assign" [q lbl,vl] -- [,]  
+					,emitCallBlockQ "if" (concat [
+						 emitCall itercond [lbl] 
+						,["'(return)"] -- emitCallQ "return" []						
+						,emitCallBlockQ "let" (concat [ 
+							 emitCallQ "assign" [q iter, iterval]
+							,["'"++body]
+							,emitCallQ "return" [q "L_"++lbl]
+						])						
+					])
+				])
+						
+
 --------------------------------------------------------------------------------
 
 emitPureExpr (PString s) = return $ show s
+emitPureExpr (PRegex s) = return $ show s
 emitPureExpr (PVar v) = emit v
+emitPureExpr (PPair p) = emit p
 emitPureExpr (PReturn rv) = emit rv
 emitPureExpr (PNumber n) = emit n
 emitPureExpr (PLet l) = emit l
@@ -139,6 +233,7 @@ emitPureExpr (POpCall oc) = emit oc
 emitPureExpr (PServiceCall sc) = emit sc
 emitPureExpr (PFunAppl fa) = emit fa
 emitPureExpr (PLambdaDef ld) = emit ld
+
 emitPureExpr e = return $ "<pure " ++ show e ++">"
 -- instance EmitG PureExpr where emit = emitPureExpr
 
@@ -155,7 +250,7 @@ emitLet l
 				elbody <- (mapM emit (l_body l))
 				let
 					eqlbody = map (\x->(maybequote++x)) elbody
-				return $ "(let\n" ++ (unlines (filter (\s->(s/="" && s/="'" && s/="';<decl>")) eqlbody ) ) ++ "\n)"
+				return $ emitCallBlockStr "let" (filter (\s->(s/="" && s/="'" && s/="';<decl>")) eqlbody) 
 	| otherwise = emitMaybeBegin $ head (l_body l) -- but if this is a begin, it should become a let!
 	
 emitMaybeBegin e =	
@@ -184,7 +279,7 @@ emitBegin l
 				elbody <- (mapM emit (bb_body l))
 				let
 					eqlbody = map (\x->(maybequote++x)) elbody
-				return $ "(begin\n" ++ (unlines (filter (\s->(s/="" && s/="'" && s/="';<decl>")) eqlbody ) ) ++ "\n)"
+				return $ emitCallBlockStr "begin" (filter (\s->(s/="" && s/="'" && s/="';<decl>")) eqlbody ) 
 	| otherwise = emit $ head (bb_body l)	
 	
 -- instance EmitG Let where emit = emitLet
@@ -196,10 +291,10 @@ emitCond c = do
         		iff = (c_iffalse c)
         	eiftrue <- (emit ift)
         	eiffalse <- (emit iff) 
-        	return $ "(if\n" ++ epred ++"\n" ++(maybequote (emit_maybe_return ift eiftrue)) ++"\n" ++(maybequote (emit_maybe_return iff eiffalse)) ++ "\n)"
+        	return $ emitCallBlockStr "if" [epred ,(maybequote (emit_maybe_return ift eiftrue)) ,(maybequote (emit_maybe_return iff eiffalse))]
 	where
 		emit_maybe_return (PureE (PLet l)) el 
-			| length (l_body l) ==1 && isVar (head (l_body l)) = "(return "++el++")"
+			| length (l_body l) ==1 && isVar (head (l_body l)) = emitCallStr "return" [el]
 			| otherwise = el
 		maybequote str@('\'':_) = str
 		maybequote str = "'"++str   
@@ -208,13 +303,13 @@ emitCond c = do
 emitOpCall oc  
 	| (oc_name oc) /= "++" && (oc_name oc) /= "--" = do 
         	eocargs <- (mapM emit (oc_args oc))
-        	return $ "(" ++ (oc_name oc) ++" " ++ (unwords eocargs ) ++ ")"														
+        	return $ emitCallStr (oc_name oc) eocargs														
 	| (oc_name oc) == "++" = do
 		eocargs <- (emit (head (oc_args oc)))
-		return $ "(update '" ++ eocargs ++" (+ " ++ eocargs ++ " '1 ))"
+		return $ emitCallStr "update" $ (q eocargs):(emitCall "+" [eocargs,"'1"])
 	| (oc_name oc) == "--" = do 
 		eocargs <- (emit (head (oc_args oc)))
-		return $ "(update '" ++ eocargs ++" (- " ++ eocargs ++ " '1 ))"
+		return $ emitCallStr "update" $ (q eocargs):(emitCall "-" [eocargs,"'1"])
 -- instance EmitG OpCall where emit = emitOpCall
 
 --emitFunAppl sc = return $ "(apply " ++(fa_fname sc)++" "++ args ++ ")"
@@ -229,7 +324,7 @@ emitFunAppl sc = do
 		args
 			| length (fa_args sc) > 0 =  (unwords efaargs )
 			| otherwise = ""
-	return $ "(apply " ++(fa_fname sc)++" "++ args ++ ")"
+	return $ emitCallStr "apply" [fa_fname sc,args]
 -- instance EmitG FunAppl where emit = emitFunAppl
 
 --emitServiceCall sc = return $ "(" ++(sc_name sc)++"."++ (sc_op sc) ++" "++ args ++ ")"
@@ -261,7 +356,7 @@ emitServiceCall sc = do
 								otherwise -> "_"
 						in mcstr			
 		maybeconf = case Hash.lookup mcstr (configinsts ctxt) of
-			Just (t,c) -> "'"++(show c)++" '(config '"++(show c)++ " '1)"
+			Just (t,c) -> q $ (show c)++(emitCallQStr "config" [q (show c),"'1"])
 			Nothing -> ""
 		meth
 			| maybeconf == "" = (sc_op sc)
@@ -275,8 +370,8 @@ emitServiceCall sc = do
 			| length scargs > 0 = unwords escargs
 			| otherwise = ""
 		emitstr = case Hash.lookup (sc_name sc) (handles ctxt) of
-					Just fh -> "(io." ++ (sc_op sc) ++" '"++(show fh)++" "++ args ++ ")"				 
-					Nothing -> "(" ++(sc_name sc)++"."++ meth ++maybeconf++" "++ args ++ ")"
+					Just fh -> emitCallStr ("io." ++ (sc_op sc)) [q (show fh),args]				 
+					Nothing -> emitCallStr ((sc_name sc)++"."++ meth) [maybeconf,args]
 	return emitstr								
 -- instance EmitG ServiceCall where emit = emitServiceCall
 
@@ -309,6 +404,12 @@ emitVarByType _ vstr = vstr
 emitNumber (NInt i) = return $ "'"++(show i)
 emitNumber (NFloat f) = return $ "'"++(show f) 
 -- instance EmitG Number where emit = emitNumber
+
+
+emitPair p = do
+	k <- emit (p_key p)
+	v <- emit (p_value p)
+	return $ unwords [k,v]
 --------------------------------------------------------------------------------
 
 emitBindExpr (BAssign e) = emit e
@@ -326,17 +427,24 @@ emitAssignExpr e = do
 		earhs <- (emit $ a_rhs e)
 		let			
 			assign_or_label 
-				| isFuncType (a_type e) = "label "
-				| isBuf (a_type e) = "buf '"
-				| otherwise = "assign '"
+				| isFuncType (a_type e) = "label"
+				| isBuf (a_type e) = "buf"
+				| otherwise = "assign"
+			maybe_q str
+				| isFuncType (a_type e) = str
+				| isBuf (a_type e) = q str
+				| otherwise = q str
 			typestr = "" -- (show (a_type e)) ++":"				
-		return $ "("++ assign_or_label ++ typestr++(a_name e) ++" "++ (maybeCtor e earhs)++" )"
+		return $ emitCallStr (assign_or_label ++ typestr) [maybe_q $ a_name e, maybeCtor e earhs]
 
 maybeCtor e earhs 
-	| a_type e == arrayType = "(Array.new "++earhs++")"
-	| a_type e == hashType = "(Hash.new "++earhs++")"
+	| a_type e == arrayType && isRange (a_rhs e) = emitCallStr "Array.fromRange" [earhs]
+	| a_type e == arrayType = emitCallStr "Array.new" [earhs]
+	| a_type e == hashType = emitCallStr "Hash.new" [earhs]
 	| otherwise = earhs
-	
+
+isRange (PureE (PServiceCall (MkServiceCall "Range" _ _ _))) = True
+isRange _ = False	
 -- instance EmitG AssignExpr where emit = emitAssignExpr
 
 -- s1=rot; => (s1.reconf '3 (config '3 '1)) 
@@ -354,9 +462,9 @@ emitUpdateExpr e = do
 		typestr=""									
 	-- then check if it's a service
 		op = case Hash.lookup sname (services ctxt) of
-				Just s -> sinst++".reconf"++" '" ++eurhs++" (config '"++eurhs++" '1)"
-				Nothing -> "update"++" '" ++ typestr ++sinst ++" "++eurhs					
-	return $ "("++op ++" )"
+				Just s -> emitCallStr (sinst++".reconf") [ q eurhs, emitCallStr "config" [q eurhs,"'1"]]
+				Nothing -> emitCallStr "update" [" '" ++ typestr ++sinst,eurhs]					
+	return op
 -- instance EmitG UpdateExpr where emit = emitUpdateExpr
 
 --------------------------------------------------------------------------------
@@ -380,3 +488,27 @@ isFuncType _ = False
 
 isBuf (GCTemplObj (MkTemplObj _ ["Buf"] _ )) = True
 isBuf _ = False
+
+-- a utility function to quote expression strings
+q str = "'"++str
+-- a utility function to emit a Gannet service call given the service name and a list of arguments
+emitCall :: String -> [String] -> [String]
+emitCall srvc args = [ "("++(unwords (srvc:args))++")" ]
+emitCallQ :: String -> [String] -> [String]
+emitCallQ srvc args = [q (head (emitCall srvc args))]
+emitCallStr srvc args = head $ emitCall srvc args
+emitCallQStr srvc args = head $ emitCallQ srvc args
+
+
+--emitCallBlock srvc args = "("++srvc++"\n"++(unlines (map (\str->"\t"++str) args))++")"
+emitCallBlock :: String -> [String] -> [String]
+emitCallBlock srvc args = ["("++srvc]++(map (\str->("  "++str)) args)++[")"]
+
+emitCallBlockQ :: String -> [String] -> [String]
+emitCallBlockQ srvc args = (q (head (emitCallBlock srvc args))):(tail (emitCallBlock srvc args))
+
+emitCallBlockStr srvc args = unlines $ emitCallBlock srvc args
+emitCallBlockQStr srvc args = unlines $ emitCallBlockQ srvc args
+
+
+

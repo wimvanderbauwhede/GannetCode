@@ -16,18 +16,19 @@ module GannetC.PerlParser (
 ) where
 
 import GannetC.AST
+import GannetC.PerlServices
+import qualified GannetC.GannetParsec as GP
 
 import Control.Monad (liftM)
+
 import Text.ParserCombinators.Parsec hiding (State)
 import Text.ParserCombinators.Parsec.Expr
---import Text.ParserCombinators.Parsec.Char
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language 
 
--- -- WV: Can't get this to work ...
+-- -- WV: Can't get this to work, because I still use parsec-2.1.0.1
 --import Text.Parsec hiding (State)
 --import Text.Parsec.Expr
-----import Text.ParserCombinators.Parsec.Char
 --import qualified Text.Parsec.Token as P
 --import Text.Parsec.Language
 
@@ -68,9 +69,16 @@ parseGannetPerl input =  case parse program "" input of
 -- after blocks 
 -- we do not allow empty programs
 program :: Parser Program
-program = whiteSpace >> semiSepEnd1 expr >>= \exprs -> return $ MkProg exprs
+--program = whiteSpace >> semiSepEnd1 expr >>= \exprs -> return $ MkProg exprs
+program = whiteSpace >> semiOrBlockSepEndBy1 expr >>= \exprs -> return $ MkProg [PureE $ PLet $ MkLet [] (perlPrelude++(processPureExprs exprs)) GCAny]
 --program = many1 expr >>= \exprs -> return $ MkProg exprs
-
+perlPrelude = 
+	let
+		ds = DeclE (DVarDecl (MkVarDecl "_" scalarTypeAny)) 
+		da = DeclE (DVarDecl (MkVarDecl "_" arrayTypeAny)) 
+		dh = DeclE (DVarDecl (MkVarDecl "_" hashTypeAny))
+	in
+		[ds,da,dh]	
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
@@ -101,32 +109,37 @@ atomicPureE =
             numberExpr
         <|> boolExpr     
         <|> stringExpr 
+        <|> regExpr
         <|> returnExpr
         <|> try arrayIndex
         <|> try instAlloc
+        <|> fileOpenExpr
         <|> try serviceCall 
-        <|> try funAppl    
-		<|> try bareCommand    
-        <|> liftM PLet letExpr
+        <|> try funAppl    		    
+        <|> liftM PLet (try letExpr)
         <|> liftM PBegin beginExpr
         <|> condExpr
         <|> whileExpr 
         <|> forExpr
         <|> foreachExpr -- FIXME: allow "for" as "foreach"  
-        <|> liftM PLambdaDef lambdaDef 
+        <|> liftM PLambdaDef lambdaDef
+        <|> bareCommand 
         <|> varExpr 
+        <|> arefConst
+        <|> hrefConst
+        <|> fileReadExpr
         <|> parens pureExpr
 		<?> "atomicPureE"
 
 instAllocArgs = do
         reserved "new"
-        insttype <- oldType
+        insttype <- instanceType
         instargs <- parens (commaSep pureExpr)
         return $ PInstAlloc ( MkInstAlloc insttype (map PureE instargs))
 
 instAllocNoArgs = do
         reserved "new"
-        insttype <- oldType
+        insttype <- instanceType
         return $ PInstAlloc (MkInstAlloc insttype [])
     				
 instAlloc = try instAllocArgs <|> instAllocNoArgs <?> "instAlloc"
@@ -137,25 +150,50 @@ funAppl = do
 				return $ if fname/="shift" -- TODO: make generic!
 							then PFunAppl (MkFunAppl fname (map PureE args) GCAny)
 							else PServiceCall (MkServiceCall "Array" fname (map PureE args) GCAny) 
-				
-bareCommand = do
-				cname <- command
-				return $ commandAppl cname				
 
+bareCommand = printFHArgs <|>bareCommandArgs <|>  bareCommandNoArgs   				
+bareCommandNoArgs = do
+				cname <- identifier 
+				return $ commandAppl cname [PureE (PVar (MkVar "_" arrayTypeAny))]			
+-- FIXME
 bareCommandArgs = do
-				cname <- command
+				cname <- identifier
 				args <- commaSep pureExpr
-				return $ commandAppl cname				
+				return $ commandAppl cname (map PureE args)
+printFHArgs = do
+				symbol "print"
+				(fht,fhn) <- scalarIdentifierPair
+				args <- commaSep pureExpr
+				return $ commandAppl "print" (map PureE (PVar (MkVar fhn (fht fhType) ):args))
 
-command =
-				symbol "shift" 
-			<|> symbol "pop"
-			<|> symbol "scalar"
-			<|> symbol "push"
-			<|> symbol "unshift"
-			<|> symbol "print"
-			-- and many, many more!
-			<?> "commands"			
+regExpr = do
+		many (symbol "m")
+		x <- regexlit
+		return (PRegex x)
+
+{-
+How to parse regexes? The problem is mainly slashes in the pattern
+The =~ operator is actually a PureE: $v is never modified; it returns a list of matches
+
+(PCRE.match v restr)
+
+$v =~ /http:\/\// ; 
+
+a bare match should translate to an update or assign of $_; so how do we detect that 
+the regex is _not_ inside an assign or udate?
+-}				
+					
+-- something like foldlM (<|>) (head perlCommands) (tail perlCommands) -- BROKEN
+--command = choice (map symbol perlCommands) -- BROKEN
+--command =  
+--				symbol "shift" 
+--			<|> symbol "pop"
+--			<|> symbol "scalar"
+--			<|> symbol "push"
+--			<|> symbol "unshift"
+--			<|> symbol "print"
+--			-- and many, many more!
+--			<?> "commands"			
 {-
 Commands belong mostly to special objects:
 IO:
@@ -173,11 +211,9 @@ So we need to construct the corresponding object call, basically
 by a reverse lookup of the object
 	
 -}												
-commandAppl cname = PServiceCall (MkServiceCall cobj cname [cvar] GCAny)
-	where
-	-- FIXME: make this more generic!
-		cobj="Array"
-		cvar = PureE (PVar (MkVar "_" arrayType))
+commandAppl cname args
+	| perlService cname/="" = PServiceCall (MkServiceCall (perlService cname) cname args GCAny)
+	| otherwise = PFunAppl (MkFunAppl cname args  GCAny) 
 		  												
 serviceCall = do
 				inst <- identifier
@@ -187,7 +223,7 @@ serviceCall = do
 				return $ PServiceCall (MkServiceCall inst meth (map PureE args) GCAny) 
 -- $a[e1][e2]... -> (Array.at (Array.at a e1) e2)				
 arrayIndex = do
-			(vartype,varname) <- varIdentifierPair	
+			(vartype,varname) <- varIdentifierPairAny	
 			idxs <- many1 (brackets pureExpr)
 			let
 				inst = parseArray (PVar (MkVar varname vartype)) idxs	
@@ -199,13 +235,31 @@ parseArray var idxs
 
 
 arrow = symbol "->"
+
+arefConst = do
+	elts <- brackets (commaSepEnd pureExpr)
+	return $ PServiceCall (MkServiceCall "Array" "new" (map PureE elts) GCAny)
+
+hrefConst = do
+	elts <- braces (commaSepEnd pairExpr)
+	return $ PServiceCall (MkServiceCall "Hash" "new" (map PureE elts) GCAny)
+
+pair = symbol "=>"
+pairExpr = do
+			k <- keyExpr
+			pair
+			v <- pureExpr
+			return $ PPair (MkPair (PureE k) (PureE v) GCAny)
+
+keyExpr = stringExpr <|> numberExpr <|> varExpr
         
 blockType =  keyword "par" <|> keyword "seq"       
 letExpr = do
 			bt <- many blockType
 			exprs <- braces exprList
 			let
-				exprs' = processSeq exprs []			
+				exprs'' = processPureExprs exprs
+				exprs' = processSeq exprs'' []			
 			return $ MkLet bt exprs' GCAny
 			
 processSeq el el' 
@@ -221,7 +275,7 @@ processSeq el el'
                        (PureE (PBegin (MkBegin ["seq"] exprs GCAny)),xs')
                 else (x,xs)
         in
-            processSeq xs' (el'++[x'])
+            processSeq xs' (el'++[x'])            
             
 findNoSeq el = (takeWhile notNoSeq el,dropWhile notNoSeq el)
 
@@ -230,20 +284,22 @@ notNoSeq _ = True
 
 isSeq  (DeclE (DUseDecl (MkUseDecl True "seq"))) = True
 isSeq _ = False  			
-				
+
 beginExpr = do
 			exprs <- parens (commaSep1 expr)
 			return $ MkBegin [] exprs GCAny		
 
+processPureExprs el = map bindRegex el                        
+bindRegex x = case x of 
+	(PureE (PRegex _)) ->  BindE (BUpdate (MkUpdate "_" x (scalarType regexType)))
+	_ -> x
 lambdaDef = do
 			reserved "sub"
 			fbody <- letExpr
---			exprs <- braces exprList
 			let
 				exprs = l_body fbody
-				--(args,exprs') = getArgs exprs PVar
 				args 
-					| hasArgs exprs = [ Arg (MkArgTup arrayType "_" ) ]
+					| hasArgs exprs = [ Arg (MkArgTup arrayTypeAny "_" ) ]
 					| otherwise = []
 			return $ MkLambdaDef GCAny args (PureE (PLet fbody)) 						        
 
@@ -319,17 +375,25 @@ condExpr = do
 		return $ PCond (MkCond (PureE c) (PureE (PLet t)) (PureE (PLet f)))
 
 whileExpr = try whileExprLet <|> whileExprNoLet
-
+-- i.e. while(...);
 whileExprNoLet = do
                 reserved "while"
-                c <- parens pureExpr            
-                return $ PWhile (MkWhile (PureE c) (PureE (PLet (MkLet [] [] GCAny))))
+                c <- parens expr -- pureExpr
+                let c' =  case c of
+					PureE (PServiceCall (MkServiceCall "IO" "readline" _ _)) -> BindE (BAssign (MkAssign scalarTypeAny "_" c)) 
+					_ -> c
+                return $ PWhile (MkWhile c (PureE (PLet (MkLet [] [] GCAny))))
 
 whileExprLet = do
-		reserved "while"
-		c <- parens pureExpr		
-		b <- letExpr		
-		return $ PWhile (MkWhile (PureE c) (PureE (PLet b)))
+	reserved "while"
+	c <- parens expr
+	b <- letExpr		
+	let c' =  case c of
+	-- only a <...> inside a while () is assigned automatically to $_ 
+		PureE (PServiceCall (MkServiceCall "IO" "readline" _ _)) -> BindE (BAssign (MkAssign scalarTypeAny "_" c)) 
+		_ -> c
+--		_ -> BindE (BAssign (MkAssign scalarType "_" c))
+	return $ PWhile (MkWhile c' (PureE (PLet b)))
 
 forExpr = do
 		reserved "for"
@@ -344,74 +408,43 @@ forGuard = do
 		semi 
 		vmod <- expr
 		return $ MkGuard vinit (PureE vcond) vmod 
-{-
-How do we emit a foreach?
 
-foreach my $i (1..$N) {
-    $a+=$l[$i];
-}
-
-We have a separate service, called Range
-Range:
-    new
-    done
-    inc
-    
-(label foreachLXXX
-(let
-    '(assign 'foreachXXX (Range.new start stop))  
-    '(if (Range.done foreachXXX) 
-        '(return)
-        '(let 
-            '(assign 'i (Array.inc foreachXXX))
-            '<body>, but strip any LET
-            '(return 'foreachLXXX)
-            )
-     )
-))
-
-If the value list not a range, it must be an array; if we're smart we can even get rid of single-value loops
- 
-(label foreachLXXX
-(let
-    '(assign 'foreachXXX (Array.new <value list>))  
-    '(if (Array.empty foreachXXX) 
-        '(return)
-        '(let 
-            '(assign 'i (Array.shift foreachXXX))
-            '<body>, but strip any LET
-            '(return 'foreachLXXX)
-            )
-     )
-))
-
--}
 foreachExpr = do
 		reserved "foreach"
 		reserved "my"
-		(ivt,ivn) <- varIdentifierPair
+		(ivt,ivn) <- varIdentifierPairAny
 		lv <- listExpr -- problem is that Perl is somewhat unlogical here 		
 		b <- letExpr		
 		let
 			lv' = case lv of
+				PBegin (MkBegin _ [(PureE (PServiceCall (MkServiceCall "Range" "new" rargs _)))] _) -> PServiceCall (MkServiceCall "Range" "new" rargs GCAny)
 				PBegin (MkBegin _ body _) -> PServiceCall (MkServiceCall "Array" "new" body GCAny)
 				otherwise -> lv
 		return $ PForeach (MkForeach (PureE (PVar (MkVar ivn ivt))) (PureE lv') (PureE (PLet b)))
 		
-listExpr = commasepList <|> dotdotList  
+listExpr = commasepList -- <|> dotdotList  
 
 commasepList = liftM PBegin beginExpr 
 dotdotList= do
-				symbol "("
-				start_expr <- pureExpr
-				symbol ".."
-				stop_expr <- pureExpr
-				symbol ")"
-				return $ PServiceCall (MkServiceCall "Range" "new" [PureE start_expr,PureE stop_expr] GCAny)
+				dotdotExpr <- parens pureExpr
+				return $ dotdotExpr
 											
 returnExpr = reserved "return" >> pureExpr >>= \arg -> return $ PReturn arg
 			 		
-		
+fileOpenExpr = do
+		reserved "open"
+		reserved "my"
+		(fht,fhn) <- varIdentifierPair -- a FH is a uint
+		comma
+		mode <- stringExpr
+		comma
+		filename <- stringExpr
+		return $ PServiceCall (MkServiceCall "IO" "open" [(PureE (PVar (MkVar fhn (fht fhType)))),PureE filename,PureE mode] GCAny) 
+
+fileReadExpr = do
+	(fht,fhn) <- angles varIdentifierPair
+	return  $ PServiceCall (MkServiceCall "IO" "readline" [PureE (PVar (MkVar fhn (fht fhType)))] GCAny) -- FIXME: it's a String!
+	 		
 --exprList = do 
 --			exprs <- sepEndBy1 expr semi
 --			return exprs
@@ -424,8 +457,8 @@ bindExpr :: Parser Expr
 bindExpr = 
 		try assignExpr 
 	<|> liftM BindE (try updateExpr)
---	<|>	try opUpdateExpr
-	<|> (liftM (BindE . BTypeDef) (try typeDef))
+	<|>	liftM BindE (try opUpdateExpr)
+--	<|> (liftM (BindE . BTypeDef) (try typeDef))
 	<|> (liftM (BindE . BFunDef) funDef)
 	<?> "bindExpr"
 	
@@ -433,10 +466,12 @@ bindExpr =
 -- my $a; $a=1;
 -- or
 -- my $a=1;
--- In both cases this is not an update!	
+-- In both cases this is not an update!
+
+-- We could do some context-free type inferencing in assign and update:
+-- get type from RHS, use it on LHS. To make it easier, vartype should be a function 	
 --assignExpr :: Parser BindExpr
 assignExpr = do
---		vartype <- oldType -- typeExpr
         reserved "my"
         (vartype,varname) <- varIdentifierPair
         reservedOp "="
@@ -448,8 +483,26 @@ assignExpr = do
             else
             do
             	let
-            		rhs' = transformList vartype rhs            		
-                return $ BindE $ BAssign (MkAssign vartype varname rhs')
+            		rhs' = transformList (vartype GCAny) rhs            		
+                return $ BindE $ BAssign (MkAssign (vartype GCAny) varname rhs')
+
+{-
+We need list assignments and updates as well:
+
+(my $a, my $b, my @c) = @r;
+
+I think we parse this as
+
+my $a = shift @r;
+my $b = shift @r;
+my @c = @r;
+
+and similarly,
+(my $a, $b, @c) = @r;
+
+i.e. any arg in the list can result in either an assign or an update ...
+
+-}
                 
 isInstAlloc (PInstAlloc ( MkInstAlloc insttype instargs)) = True
 isInstAlloc _ = False
@@ -469,37 +522,28 @@ data ServiceCall = MkServiceCall
          sc_name::String, sc_op::String, sc_args::[Expr], sc_type::GCType -- sc_args is  [PureExpr] but for Data.Generics, use Expr
     }
  
+BindE (BAssign 
+(MkAssign {
+	a_type = GCTemplObj (MkTemplObj {to_typequal = [], to_qtype = ["Array"], to_args = [TArgT GCAny]}), 
+	a_name = "ar", 
+	a_rhs = PureE (PServiceCall (MkServiceCall {sc_name = "Range", sc_op = "new", sc_args = [PureE (PNumber (NInt 1)),PureE (PNumber (NInt 10))], sc_type = GCAny}))}))
 
 -}
+transformList (GCTemplObj (MkTemplObj [] ["Array"] [TArgT GCAny])) (PBegin (MkBegin bt [(PureE (PServiceCall (MkServiceCall "Range" "new" body GCAny)))] _)) = PureE (PServiceCall (MkServiceCall "Range" "new" body GCAny))
 transformList (GCTemplObj (MkTemplObj [] ["Array"] [TArgT GCAny])) (PBegin (MkBegin bt body _)) = PureE (PServiceCall (MkServiceCall "Array" "new" body GCAny))
 transformList _ e = PureE e
-
-varIdentifierPair = scalarIdentifierPair <|> arrayIdentifierPair <|> hashIdentifierPair <?> "varIdentifierPair"
-scalarType = GCTemplObj $ MkTemplObj [] ["Scalar"] [TArgT GCAny]
-scalarIdentifierPair = do
-        s <- scalarIdentifier
-        return (scalarType,s)
-arrayType = GCTemplObj $ MkTemplObj [] ["Array"] [TArgT GCAny]        
-arrayIdentifierPair = do
-        s <- arrayIdentifier
-        return (arrayType,s)
-hashType = GCTemplObj $ MkTemplObj [] ["Hash"] [TArgT GCAny]        
-hashIdentifierPair = do
-        s <- hashIdentifier
-        return (hashType,s)
-        
+       
 updateExpr = do		
-		(vartype,varname) <- varIdentifierPair
+		(vartype,varname) <- varIdentifierPairAny
 		reservedOp "="
 		rhs <- pureExpr
-		return $ BUpdate (MkUpdate varname (PureE rhs) GCAny)
+		return $ BUpdate (MkUpdate varname (PureE rhs) vartype)
 		
 opUpdateExpr = do		
-		(vartype,varname) <- varIdentifierPair
-		op <- resOps		
-		symbol "="		
+		(vartype,varname) <- varIdentifierPairAny
+		op <- updateOps			
 		rhs <- pureExpr
-		return $ BOpUpdate (MkOpUpdate varname op (PureE rhs) GCAny)				
+		return $ BOpUpdate (MkOpUpdate varname op (PureE rhs) vartype)				
 
 funDef = do
 		reserved "sub"
@@ -510,7 +554,7 @@ funDef = do
 		let
 			exprs = l_body fbody
 			args
-				| hasArgs exprs = [ Arg (MkArgTup arrayType "_" ) ]
+				| hasArgs exprs = [ Arg (MkArgTup arrayTypeAny "_" ) ]
 				| otherwise = []		
 		return $ MkFunDef GCAny fname args (PureE (PLet fbody))
 		
@@ -518,17 +562,56 @@ argExpr = do
 		argtype <- typeExpr
 		argname <- identifier
 		return $ Arg $ MkArgTup argtype argname
-		
-voidArgExpr = reserved "void" >> return [Void]
+---- unused in Perl		
+--voidArgExpr = reserved "void" >> return [Void]
+---- unused in Perl
+--typeDef = do
+--		reserved "typedef"
+--		otype <- instanceType
+--		ntype <- instanceType -- typeExpr
+--		return $ MkTypeDef otype ntype 		
 
-typeDef = do
-		reserved "typedef"
-		otype <- oldType
-		ntype <- oldType -- typeExpr
-		return $ MkTypeDef otype ntype 		
-
-oldType = (try funcType) <|> (try templObjType) <|> (try objType) <|> basicType <|> yadaType <|> anyType
 -- ------------------------------------------------------------
+-- ------------------------------------------------------------
+
+varIdentifierPair = scalarIdentifierPair <|> arrayIdentifierPair <|> hashIdentifierPair <?> "varIdentifierPair"
+varIdentifierPairAny = scalarIdentifierPairAny <|> arrayIdentifierPairAny <|> hashIdentifierPairAny <?> "varIdentifierPairAny"
+
+scalarType t = GCTemplObj $ MkTemplObj [] ["Scalar"] [TArgT t]
+scalarTypeAny = GCTemplObj $ MkTemplObj [] ["Scalar"] [TArgT GCAny]
+scalarIdentifierPair = do
+        s <- scalarIdentifier
+        return (scalarType,s)
+scalarIdentifierPairAny  = do
+        s <- scalarIdentifier
+        return (scalarTypeAny,s)
+         
+arrayType t = GCTemplObj $ MkTemplObj [] ["Array"] [TArgT t]
+arrayTypeAny = GCTemplObj $ MkTemplObj [] ["Array"] [TArgT GCAny]        
+arrayIdentifierPair = do
+        s <- arrayIdentifier
+        return (arrayType,s)
+arrayIdentifierPairAny = do
+        s <- arrayIdentifier
+        return (arrayTypeAny,s)        
+        
+hashType t = GCTemplObj $ MkTemplObj [] ["Hash"] [TArgT t]
+hashTypeAny = GCTemplObj $ MkTemplObj [] ["Hash"] [TArgT GCAny]        
+hashIdentifierPair = do
+        s <- hashIdentifier
+        return (hashType,s)
+hashIdentifierPairAny = do
+        s <- hashIdentifier
+        return (hashTypeAny,s)
+
+refType t = GCTemplObj $ MkTemplObj [] ["Ref"] [TArgT t]
+refTypeAny = GCTemplObj $ MkTemplObj [] ["Ref"] [TArgT GCAny]
+fhType = GCObj $ MkObj [] ["FileHandle"]
+
+regexType = GCObj $ MkObj [] ["RegEx"]
+-- ------------------------------------------------------------
+instanceType = (try funcType) <|> (try templObjType) <|> (try objType) <|> basicType <|> yadaType <|> anyType
+
 
 typeExpr = 
 			yadaType
@@ -549,6 +632,7 @@ objType = do
 -- for basic tyes and List<> types. 
 -- I guess List without <> means List<data> or List<any>
 
+-- not used in Perl
 templObjType = do
 		tq <- many typeQual
 		qobjtype <- sepBy1 objIdentifier nsSep
@@ -626,9 +710,10 @@ declExpr :: Parser DeclExpr
 declExpr = 
                 (liftM DServiceDecl (try serviceDecl))
 			<|> (liftM DUseDecl (try useDecl))
-			<|> (liftM DUseDecl noDecl)                
-            <|> (liftM DConfigDecl configDecl)
-            <|> (liftM DIncludeDecl includeDecl)
+			<|> (liftM DUseDecl noDecl)         
+			<|> (liftM DVarDecl varDecl)      
+--            <|> (liftM DConfigDecl configDecl)
+--            <|> (liftM DIncludeDecl includeDecl)
 --            <|> (liftM DInstDecl (try instDecl)) --  we have to use InstAlloc
             <?> "declExpr"
 			
@@ -638,6 +723,10 @@ serviceDecl = do
 				reserved "qw"
 				methoddecls <- parens (many1 identifier)
 				return $ MkServiceDecl (last service) (map (PureE . PString) methoddecls)
+varDecl = do
+        reserved "my"
+        (vartype,varname) <- varIdentifierPair
+        return $ MkVarDecl varname (vartype GCAny)
 
 useDecl = do
 				reserved "use"
@@ -678,12 +767,12 @@ methodDeclV = do
 				ftype <- funcType
 				service <- identifier
 				return $ DeclE $ DOpDecl $ MkOpDecl service ftype 	
-				
-configDecl = do
-				reserved "configuration"
-				configname <- identifier
-				configtypes <- braces (semiSepEnd1 typeDef)
-				return $ MkConfigDecl configname (map (BindE . BTypeDef) configtypes)
+---- unused in Perl				
+--configDecl = do
+--				reserved "configuration"
+--				configname <- identifier
+--				configtypes <- braces (semiSepEnd1 typeDef)
+--				return $ MkConfigDecl configname (map (BindE . BTypeDef) configtypes)
 
 {-
 In Gannet-C, an instance declaration is like this:
@@ -707,7 +796,7 @@ instDeclArgs = do
         instname <- scalarIdentifier        
         reservedOp "="
         reserved "new"
-        insttype <- oldType
+        insttype <- instanceType
         instargs <- parens (commaSep pureExpr)
         return $ MkInstDecl insttype instname (map PureE instargs)
 
@@ -716,28 +805,15 @@ instDeclNoArgs = do
         instname <- scalarIdentifier
         reservedOp "="
         reserved "new"
-        insttype <- oldType
+        insttype <- instanceType
         return $ MkInstDecl insttype instname []
     
-{-
-        
-instDeclArgs = do
-			insttype <- oldType
-			instname <- identifier
-			instargs <- parens (commaSep pureExpr)
-			return $ MkInstDecl insttype instname instargs
-			
-instDeclNoArgs = do
-			insttype <- oldType
-			instname <- identifier			
-			return $ MkInstDecl insttype instname []		
--}				
 instDecl = try instDeclArgs <|> instDeclNoArgs <?> "instDecl"
 
-
-includeDecl = do
-		reserved "#include" 
-		(stringLiteral <|> (angles identifier ) ) >>= return
+---- unused in Perl
+--includeDecl = do
+--		reserved "#include" 
+--		(stringLiteral <|> (angles identifier ) ) >>= return
 			 													
 {--				
 service Img {
@@ -759,7 +835,7 @@ data DeclExpr =
 
 varExpr = do 
 		(vartype,x) <- varIdentifierPair
-		return (PVar (MkVar x vartype))
+		return (PVar (MkVar x (vartype GCAny)))
 		
 stringExpr = 
 	do
@@ -815,7 +891,63 @@ sign  =  do { char '-'
      <|> return Positive
      
 semiSepEnd p = sepEndBy p semi
-semiSepEnd1 p = sepEndBy1 p semi
+semiSepEnd1 p = sepEndBy1 p semi 
+
+commaSepEnd p = sepEndBy p comma
+commaSepEnd1 p = sepEndBy1 p comma 
+
+{-
+FIXME: I need a better combinator than semiSepEnd1
+
+What we do is: look at x, which is an Expr in our case
+if it is a block, don't look for a semi, otherwise do
+Blocks are parsed into Let or a list of TypeDefs ( in Gannet-C)
+but of course these are inside other expressions. We have to consider 
+the outermost expression, i.e.
+
+PIf
+PFor
+PForeach
+PWhile 
+BFunDef
+PLambdaDef
+-}
+-- | @sepEndBy1 p sep@ parses /one/ or more occurrences of @p@,
+-- separated and optionally ended by @sep@. Returns a list of values
+-- returned by @p@. 
+
+--semiOrBlockSepEndBy1 :: (Stream s m t) => ParsecT s u m a -> ParsecT s u m [a]
+semiOrBlockSepEndBy1 p = do
+	x <- p -- consume p
+	do
+		case x of
+			PureE (PFor _) -> noSemi x p
+			PureE (PForeach _) -> noSemi x p
+			PureE (PWhile _) -> noSemi x p
+			PureE (PLet _) -> noSemi x p
+			PureE (PCond _) -> noSemi x p
+			otherwise -> do				                            
+				semi -- find a sep. So this needs to become conditional: if p was braces, we just go on without sep
+				xs <- semiOrBlockSepEndBy p -- recurse
+				return (x:xs)
+		<|> return [x]
+                        
+noSemi x p = do
+	many semi
+	xs <- semiOrBlockSepEndBy p -- recurse
+	return (x:xs)
+-- | @sepEndBy p sep@ parses /zero/ or more occurrences of @p@,
+-- separated and optionally ended by @sep@, ie. haskell style
+-- statements. Returns a list of values returned by @p@.
+--
+-- >  haskellStatements  = haskellStatement `sepEndBy` semi
+
+--semiOrBlockSepEndBy :: (Stream s m t) => ParsecT s u m a -> ParsecT s u m [a]
+semiOrBlockSepEndBy p = semiOrBlockSepEndBy1 p <|> return []
+
+strlit = GP.stringLiteral lexer 
+regexlit = GP.regexLiteral lexer
+--------------------
 
 scalarIdentifier   = do {sigil <- char '$'; c <- (letter<|> char '_');cs <- many (alphaNum <|> char '_'); whiteSpace; return (c:cs)}
 arrayIdentifier   = do {sigil <- char '@'; c <- (letter <|> char '_');cs <- many (alphaNum <|> char '_'); whiteSpace; return (c:cs)}
@@ -825,8 +957,13 @@ typeIdentifier   = do {c <- letter;cs <- many (alphaNum <|> char '_'); return (c
 objIdentifier   = do {c <- upper;cs <- many (alphaNum <|> char '_'); return (c:cs)}
 
 keyword name = reserved name >> return name
+
 resOp name = reservedOp name >> return name
-resOps = resOp "+" <|> resOp "-" <|> resOp "*" 
+resOps = resOp "+" <|> resOp "-" <|> resOp "*"
+
+updateOp name = reservedOp name >> return (init name)
+updateOps = choice (map updateOp [ "+=",  "-=",  "*=",  "/=", "%=", "**=", "&=", "|=", "^=", "||=", "&&="]) 
+
 
 pureExpr :: Parser PureExpr
 pureExpr = buildExpressionParser optable atomicPureE <?> "pureExpr"
@@ -841,18 +978,22 @@ optable =
 --try (do {many1 anyChar; notFollowedBy (oneOf ">,;")});   
 --		arrow = Infix ( try $ do { reservedOp "->";  return (\x y ->(POpCall (MkOpCall "->" [x,y] GCAny))) } ) AssocLeft        
 		arrow = Infix ( try $ do { reservedOp "->";  return (\x y ->(arrowAppl x y)) } ) AssocLeft		
-		pair = Infix ( try $ do { reservedOp "=>";  return (\x y ->(POpCall (MkOpCall "->" [x,y] GCAny))) } ) AssocRight 		
+--		pair = Infix ( try $ do { reservedOp "=>";  return (\x y ->(POpCall (MkOpCall "=>" [x,y] GCAny))) } ) AssocRight 		
 		ltop = Infix ( try $ do { reservedOp "<";  return (\x y ->(POpCall (MkOpCall "<" [x,y] GCAny))) } ) AssocNone    
---		opupdate name = Infix ( do {  reservedOp name; return (\x y ->(BOpUpdate (MkOpUpdate x name (pureExpr y)))) } ) AssocRight                                                          	
+		dotdot = Infix ( try $ do { reservedOp "..";  return (\x y ->(dotdotAppl x y)) } ) AssocNone
+		regexmatch = Infix ( try $ do { reservedOp "=~";  return (\x y ->(regexMatchAppl x y)) } ) AssocLeft
+--		opupdate name = Infix ( do {  reservedOp name; return (\x y ->(BOpUpdate (MkOpUpdate "x" name (PureE y)))) } ) AssocRight -- FIXME: is not a PureE BOpUpdate !!!                                                          	
 	in
 		[ --[ prefix "-", prefix "+" ]
-		  [ postfix "++", postfix "--"]
+		  [ postfix "++", postfix "--"] -- Int
 --		, [opupdate "+=", opupdate "-=", opupdate "*=", opupdate "/=",opupdate "%=",opupdate "&=",opupdate "|=",opupdate "^="]      
 --        , [binop "->" AssocLeft]
         , [arrow]        
 		, [binop "**" AssocRight]
 		, [ postfix "!", postfix "~"] 
 		, [ binop "^"  AssocRight ]
+		, [regexmatch]
+		, [ binop "!~"  AssocLeft]
 		, [ binop "*"  AssocLeft, binop "/"  AssocLeft, binop "%" AssocLeft ]
 		, [ binop "+"  AssocLeft, binop "-"  AssocLeft ] 
 		, [binop "<<" AssocLeft, binop ">>" AssocLeft]
@@ -861,11 +1002,17 @@ optable =
 		, [ binop "&" AssocLeft, binop "bitand" AssocLeft]
 		, [ binop "|" AssocLeft, binop "^" AssocLeft, binop "bitor" AssocLeft, binop "xor" AssocLeft ]    
 		, [ binop "&&" AssocLeft, binop "and" AssocLeft ]
-		, [ binop "||" AssocLeft, binop "or" AssocLeft ]    
+		, [ binop "||" AssocLeft, binop "or" AssocLeft ]
+--		, [pair]
+		, [dotdot]
+--		, [ binop ".." AssocNone]    
 		]
 
 arrowAppl (PVar (MkVar vname vtype)) (PFunAppl (MkFunAppl fname fargs ftype)) = PServiceCall (MkServiceCall vname fname fargs ftype) -- or is it vtype?
 arrowAppl x y = POpCall (MkOpCall "->" [x,y] GCAny) -- this must be FunAppl!!!
+
+dotdotAppl start_expr stop_expr = PServiceCall (MkServiceCall "Range" "new" [PureE start_expr,PureE stop_expr] GCAny)
+regexMatchAppl str re = PServiceCall (MkServiceCall "PCRE" "match" [PureE str,PureE re] GCAny)
 
 -- The lexer
 gannetcDef = emptyDef {
@@ -876,7 +1023,7 @@ gannetcDef = emptyDef {
 	, P.identStart = letter  <|> char '_'
 	, P.identLetter = alphaNum <|> char '_'
 	, P.opStart = P.opLetter emptyDef
-	, P.opLetter = oneOf ":!*+./<=>?^|-~"
+	, P.opLetter = oneOf ":!*+./<=>?^|-~\\"
 	-- I'm not sure what 'reserved' actually means but I observe that '*' is never 
 	-- included  
 	-- reservedOpNames result in matching the rest of a string not the name, e.g.
@@ -884,63 +1031,59 @@ gannetcDef = emptyDef {
 	, P.reservedOpNames= ["->","=>","+","-","*","=","and","or","xor","bitand","bitor"]
 --	, P.reservedOpNames= []
 	, P.reservedNames = [
-		"case", -- Perl doesn't have this
-		"default",
+--		"case", -- Perl doesn't have this
+--		"default",
 		"if", -- service
 		"else",
 		"elsif",
-		"switch", -- Perl doesn't have this
+--		"switch", -- Perl doesn't have this
 		"while",
 		"do",
 		"for",
 		"seq",
-		"par",
+--		"par",
 		"goto",
 		"continue",
 		"break",
 		"return", -- service
-		"typedef", -- Perl doesn't have this
-		"lambda", -- service
-		"configuration", -- Perl doesn't have this
-		"service", -- Perl doesn't have this
-		"void", -- Perl doesn't have this
-		"char", -- Perl doesn't have this
-		"int", -- Perl doesn't have this
-		"uint", -- Perl doesn't have this
-		"short", -- Perl doesn't have this
-		"long", -- Perl doesn't have this
-		"float", -- Perl doesn't have this
-		"double", -- Perl doesn't have this
-		"signed", -- Perl doesn't have this
-		"unsigned", -- Perl doesn't have this
-		"bool", -- Perl doesn't have this
-		"true", -- Perl doesn't have this
-		"false", -- Perl doesn't have this
-		"template", -- Perl doesn't have this
-		"string", -- Perl doesn't have this
-		"tuple", -- Perl doesn't have this
-		"data", -- Perl doesn't have this
-		"any", -- Perl doesn't have this
-		"word", -- Perl doesn't have this
-		"symbol", -- Perl doesn't have this
---		"Buf",
---		"Gen",
---		"Lambda",
---		"Stream",
+--		"typedef", -- Perl doesn't have this
+--		"lambda", -- service
+--		"configuration", -- Perl doesn't have this
+--		"service", -- Perl doesn't have this
+--		"void", -- Perl doesn't have this
+--		"char", -- Perl doesn't have this
+--		"int", -- Perl doesn't have this
+--		"uint", -- Perl doesn't have this
+--		"short", -- Perl doesn't have this
+--		"long", -- Perl doesn't have this
+--		"float", -- Perl doesn't have this
+--		"double", -- Perl doesn't have this
+--		"signed", -- Perl doesn't have this
+--		"unsigned", -- Perl doesn't have this
+--		"bool", -- Perl doesn't have this
+--		"true", -- Perl doesn't have this
+--		"false", -- Perl doesn't have this
+--		"template", -- Perl doesn't have this
+--		"string", -- Perl doesn't have this
+--		"tuple", -- Perl doesn't have this
+--		"data", -- Perl doesn't have this
+--		"any", -- Perl doesn't have this
+--		"word", -- Perl doesn't have this
+--		"symbol", -- Perl doesn't have this
 		"local",
-		"const", -- Perl doesn't have this
-		"inline", -- Perl doesn't have this
-        "operator", -- Perl doesn't have this
+--		"const", -- Perl doesn't have this
+--		"inline", -- Perl doesn't have this
+--        "operator", -- Perl doesn't have this
 		"...",
-		"#include", -- Perl doesn't have this
-		"#define", -- Perl doesn't have this
-		"#if", -- Perl doesn't have this
-		"#ifdef", -- Perl doesn't have this
-		"ifndef", -- Perl doesn't have this
-		"#else", -- Perl doesn't have this
-		"#elif", -- Perl doesn't have this
-		"#endif", -- Perl doesn't have this
-		"#pragma", -- Perl doesn't have this
+--		"#include", -- Perl doesn't have this
+--		"#define", -- Perl doesn't have this
+--		"#if", -- Perl doesn't have this
+--		"#ifdef", -- Perl doesn't have this
+--		"ifndef", -- Perl doesn't have this
+--		"#else", -- Perl doesn't have this
+--		"#elif", -- Perl doesn't have this
+--		"#endif", -- Perl doesn't have this
+--		"#pragma", -- Perl doesn't have this
 		--"extern",
 		--"static",
 		--"auto",
@@ -955,15 +1098,13 @@ gannetcDef = emptyDef {
 		"new", -- promoted to keyword
 		"strict",
 		"warnings"		
---		"seq"  -- only in "use seq"
-		-- not sure about shift, print etc 
 		]
 	, P.caseSensitive = True	
 }
 
 lexer       = P.makeTokenParser gannetcDef    
 
-strlit      = P.stringLiteral lexer
+--strlit      = P.stringLiteral lexer
 intp			= P.integer lexer
 unsignedNum         = P.naturalOrFloat lexer
 other         = P.identifier lexer <|> P.operator lexer 
@@ -986,7 +1127,7 @@ reserved        = P.reserved lexer
 reservedOp      = P.reservedOp lexer
 integer         = P.integer lexer    
 charLiteral     = P.charLiteral lexer    
-stringLiteral   = P.stringLiteral lexer    
+--stringLiteral   = P.stringLiteral lexer  
 dot 			= P.dot lexer
 comma			= P.comma lexer
 semi			= P.semi lexer

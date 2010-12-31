@@ -17,16 +17,281 @@ require 'yaml'
 require "SBA/Packet.rb"
 require "SBA/ServiceCoreLibrary.rb"
 
-#custom_services=Dir.new("Services").entries
-#for custom_service in custom_services
-#    require "Services/"+custom_service
-#end    
 module SBA_SystemConfiguration
     #TODO: At the moment, service id numbering must be contiguous!
     # There's no reason to keep it like this -- in the long run :-)
     # Although contiguous network addresses do make sense!
     # key => method,network address, service identifier
 
+=begin
+ServiceConfig is the class that contains the config data read from SBA.yml
+ServiceInstances is a list/map of ServiceConfig instances.
+service_id => ServiceConfig.new({scid1=>[method,service_name_str,nthreads],scid2=>...,'Addr'=>})
+=end
+
+    class ServiceThreadConfig
+        attr_reader :scid, :core_method_name,:name, :nthreads
+        def initialize(service_name,thread_data)
+            @core_method_name=thread_data[1]
+            @scid=thread_data[0]
+            @nthreads=thread_data[2]
+            @name=service_name
+        end
+    end
+
+    class ServiceConfig
+        attr_reader :service_id,:address, :scids, :threads
+        def initialize(service_id,service_data)
+            @service_id=service_id
+            @scids=[]
+            @threads={}
+           for service_name in service_data.keys
+                if service_name == 'Addr'
+                    @address=service_data['Addr']
+                else
+                    scid=service_data[service_name][0]
+                    @scids.push(scid)
+                    @threads[scid]=ServiceThreadConfig.new(service_name,service_data[service_name])
+                end
+            end
+       end    
+    end    
+    
+      
+          
+    if ENV.has_key?('GANNET_DIR') and (SBA_YML=='SBA.yml')
+        cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{SBA_YML}"))        
+    else
+        cfg = YAML.load(File.open(SBA_YML))
+    end
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads], Addr: Service NoC Address, Service: Service Type }           
+    ServiceInstances={}  
+    ServiceTypes={}    
+    for service_id_str in cfg['System']['ServiceInstances'].keys
+        service_id =service_id_str.to_i
+        ServiceInstances[service_id]={}
+        for service_name_str in cfg['System']['ServiceInstances'][service_id_str].keys
+#            puts    service_name_str         
+            if service_name_str!='Addr'
+                entries=cfg['System']['ServiceInstances'][service_id_str][service_name_str]
+                sctype=entries[0]    
+                scid=entries[1].to_i
+                core_method_name=entries[2]
+                nthreads=entries[3].to_i
+                #Services[service_id][scid]=[method,service_name_str,nthreads]
+                ServiceInstances[service_id][scid]=[SBA_SCLib.method(:"#{core_method_name}"),service_name_str,nthreads]
+                ServiceTypes[sctype]=scid  # FIXME: possible conflict: inst1: [T1,0], inst2: [T2,1], inst3: [T2,0], inst4: [T1,1]      
+            elsif service_name_str=='Addr'
+                noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
+                ServiceInstances[service_id]['Addr']=noc_addr
+            else
+                # nothing 
+            end                
+        end
+    end
+    
+    Aliases={}
+    
+#        'plus': [ALU, 7, 9] => ALU => scid
+        
+    for alias_str in cfg['System']['Aliases'].keys
+#        puts alias_str
+        next if alias_str=='NONE'
+        entries=cfg['System']['Aliases'][alias_str]
+        service_name_str=entries[0]
+        service_id_str=entries[1]
+        service_id=service_id_str.to_i
+        opcode=entries[2].to_i
+#        puts "#{service_id_str},#{service_name_str}"
+        scid=cfg['System']['ServiceInstances'][service_id_str][service_name_str][1].to_i
+        Aliases[alias_str]=[scid,service_id,opcode]
+    end
+          
+    ALU_Names={}
+    
+    for alu_op in cfg['System']['ALU_Names'].keys
+        entry=cfg['System']['ALU_Names'][alu_op]
+        ALU_Names[alu_op]=entry
+    end  
+
+    Interfaces={}
+    ServiceIds={}
+    if cfg['System'].has_key?('Services')
+        for servicetype in cfg['System']['Services'].keys            
+            Interfaces[servicetype]={}
+            methods = cfg['System']['Services'][servicetype]
+            ServiceIds[servicetype]=methods['ServiceId']
+            for methname in methods.keys
+                next if methname == 'ServiceId'
+                entry=methods[methname]
+                Interfaces[servicetype][methname]=entry[0].to_i
+            end
+        end  
+    end      
+    
+    Configurations={}
+    
+    if cfg['System'].has_key?('Configurations')
+        for conftype in cfg['System']['Configurations'].keys
+            Configurations[conftype]={}
+            for libid in cfg['System']['Configurations'][conftype].keys
+                entry=cfg['System']['Configurations'][conftype][libid]
+                Configurations[conftype][libid]=entry
+            end
+        end  
+    end        
+    
+    def services
+        ServiceInstances
+    end
+    def servicetypes
+        ServiceTypes
+    end    
+    def aliases
+        Aliases
+    end
+    def interfaces
+        Interfaces
+    end
+    def serviceids
+        ServiceIds
+    end     
+    def alunames        
+        ALU_Names
+    end
+    
+    def configurations
+        Configurations
+    end
+    
+    
+    def denum_alias(num)
+        # Check aliases first
+        for name in Aliases.keys
+            if Aliases[name][2]==num
+                return name
+#                break
+            end
+        end
+    end 
+    
+    
+    def denum(num)    
+        # Then check services
+        for name in ServiceInstances.keys
+            if ServiceInstances[name][2]==num
+                return name
+#                break
+            end
+        end                      
+    end
+    
+    def nservices
+        nservices_={}          
+            for id in services.keys                      
+                for scid in services[id].keys      
+                    coderef=services[id][scid][0]
+                    name=services[id][scid][1]
+                    address=services[id]['Addr']
+                    nservices_[name]=[coderef,address,id, scid]
+                end
+            end        
+        return nservices_
+    end
+    
+    def num2name(num)
+#FIXME:WV10122009: num2name is BROKEN, 1 num can refer to several names!
+# we simply take the first name, for now
+        if ServiceInstances.has_key?(num)
+            for scid in ServiceInstances[num].keys
+                if scid != 'Addr'
+                    return ServiceInstances[num][scid][1]
+                end                
+            end                
+        else 
+          warn "No NAME for #{num}"
+          return "NOSERVICE"
+        end
+    end
+   #skip
+    def service_by_address(address)
+        for service_id in ServiceInstances.keys
+            if ServiceInstances[service_id]['Addr'] == address
+                break
+            end 
+        end
+        return service_id
+    end
+    def address_by_service(service)
+        if ServiceInstances.has_key?(service)
+            address=ServiceInstances[service]['Addr']       
+#                            warn "SERVICE: #{service} ADDRESS: #{address}"
+        else
+            warn "No entry in ServiceInstances for #{service}"
+            address=service  
+        end 
+
+        return address
+    end
+#endskip    
+end
+include SBA_SystemConfiguration
+
+NSERVICES=services.keys.length-1 
+#    addr_counter=0
+    for service_id in services.keys
+    #try auto-assigned addresses!
+#    Services[key][1]=addr_counter 
+#    addr_counter+=1
+#        next if key=~/\W/
+#        eval "S_#{services[key][2]} = #{key}"
+        for scid in services[service_id].keys
+            next if scid=='Addr'             
+            service_name_str=services[service_id][scid][1]
+#            puts "SC_#{service_name_str} = #{scid << FS_SCId}"
+#            puts "S_#{service_name_str} = #{service_id}"
+            eval "SC_#{service_name_str} = #{scid << FS_SCId}"
+            eval "S_#{service_name_str} = #{service_id}"
+        end            
+    end
+    
+    for key in aliases.keys
+#        next if key=~/\W/
+        next if key=='NONE' or key=='none'        
+        # new numbering scheme: alias=opcode, so we need corresponding service first
+        service_id = aliases[key][1]        
+        scid = aliases[key][0]
+        scid_field = 0 # scid  << FS_SCId # FIXME: see below
+#        key_=key.sub(/:/,'_')
+         key_lc=key.sub(/[\.:]/,'_').downcase
+         key_uc=key.sub(/[\.:]/,'_').upcase
+#        puts "A_#{key_uc} = #{scid_field+aliases[key][2]}"
+#        puts "A_#{key_lc} = #{scid_field+aliases[key][2]}"
+        eval "A_#{key_uc} = #{scid_field+aliases[key][2]}"
+        eval "A_#{key_lc} = #{scid_field+aliases[key][2]}"
+    end
+
+    for st_key in interfaces.keys    
+        stid = serviceids[st_key]
+        stid_field = 0 # stid  << FS_SCId # FIXME: We can't fit both the Service Core ID and the Service Type ID in the Name field
+        # I think the Service Type ID is not required at run time so I set it to 0; 
+        # We can't have the Service Core ID here as it makes no sense!
+        st_key_lc=st_key.sub(/[\.:]/,'_').downcase
+        st_key_uc=st_key.sub(/[\.:]/,'_').upcase
+        
+        for m_key in interfaces[st_key].keys            
+            m_key_lc=m_key.downcase
+            m_key_uc=m_key.upcase
+            eval "M_#{st_key}_#{m_key} = #{scid_field+interfaces[st_key][m_key]}"        
+            eval "M_#{st_key_uc}_#{m_key_uc} = #{scid_field+interfaces[st_key][m_key]}"
+            eval "M_#{st_key_lc}_#{m_key_lc} = #{scid_field+interfaces[st_key][m_key]}"
+            eval "A_#{st_key_uc}_#{m_key_uc} = #{scid_field+interfaces[st_key][m_key]}"
+            eval "A_#{st_key_lc}_#{m_key_lc} = #{scid_field+interfaces[st_key][m_key]}"            
+        end 
+    end    
+    
+        
 =begin
 
 WV04122008: Multi-threaded cores provided by multiple service cores
@@ -162,213 +427,4 @@ Aliases:
 The K_S:Name field now gets the "tid" as an extra field. This is not the actual thread id but rather the id of the core providing the service. We limit NCORE_THREADS to 8 so 3 bits will do. Leaves 5 bits for the opcodes.
 Note that now non-threaded, non-aliased services have a scid and opcode of 0. For non-threaded services, it is sufficient to take Name & F_Opcode (5 bits); the complement is (Name & F_SCId) >> FS_SCId
 
-
 =end
-
-# service id => service core name, service address, service name, scid
-
-=begin
-ServiceConfig is the class that contains the config data read from SBA.yml
-Services is a list/map of ServiceConfig instances.
-service_id => ServiceConfig.new({scid1=>[method,service_name_str,nthreads],scid2=>...,'Addr'=>})
-class ServiceConfig 
-    attr_reader :address, scids, 
-end
-
-=end
-
-    class ServiceThreadConfig
-        attr_reader :scid, :core_method_name,:name, :nthreads
-        def initialize(service_name,thread_data)
-            @core_method_name=thread_data[1]
-            @scid=thread_data[0]
-            @nthreads=thread_data[2]
-            @name=service_name
-        end
-    end
-
-    class ServiceConfig
-        attr_reader :service_id,:address, :scids, :threads
-        def initialize(service_id,service_data)
-            @service_id=service_id
-            @scids=[]
-            @threads={}
-           for service_name in service_data.keys
-                if service_name == 'Addr'
-                    @address=service_data['Addr']
-                else
-                    scid=service_data[service_name][0]
-                    @scids.push(scid)
-                    @threads[scid]=ServiceThreadConfig.new(service_name,service_data[service_name])
-                end
-            end
-       end    
-    end    
-
-    Services={}    
-    
-    if ENV.has_key?('GANNET_DIR') and (SBA_YML=='SBA.yml')
-#cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/Garnet-HW/SBA.yml"))
-        cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{SBA_YML}"))
-    else
-#cfg = YAML.load(File.open('SBA.yml'))
-        cfg = YAML.load(File.open(SBA_YML))
-    end
-
-# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads], Addr: Service NoC Address }   
-   
-#    for service_id_str in cfg['System']['Services'].keys
-#        service_id =service_id_str.to_i        
-#        entries=cfg['System']['Services'][service_id_str]
-##        Services[service_id]=[SBA_SCLib.method(:"#{entries[2]}"),entries[4].to_i,entries[0],entries[1].to_i]
-#    end      
-   
-    for service_id_str in cfg['System']['Services'].keys
-        service_id =service_id_str.to_i
-        Services[service_id]={}
-        for service_name_str in cfg['System']['Services'][service_id_str].keys            
-            if service_name_str!='Addr'
-                entries=cfg['System']['Services'][service_id_str][service_name_str]
-                scid=entries[0].to_i
-                core_method_name=entries[1]
-                nthreads=entries[2].to_i
-                #Services[service_id][scid]=[method,service_name_str,nthreads]
-                Services[service_id][scid]=[SBA_SCLib.method(:"#{core_method_name}"),service_name_str,nthreads]        
-            else
-                noc_addr=cfg['System']['Services'][service_id_str]['Addr']
-                Services[service_id]['Addr']=noc_addr
-            end                
-        end
-    end
-    
-    Aliases={}
-    
-#        'plus': [ALU, 7, 9] => ALU => scid
-        
-    for alias_str in cfg['System']['Aliases'].keys
-        next if alias_str=='NONE'
-        entries=cfg['System']['Aliases'][alias_str]
-        service_name_str=entries[0]
-        service_id_str=entries[1]
-        service_id=service_id_str.to_i
-        opcode=entries[2].to_i
-        scid=cfg['System']['Services'][service_id_str][service_name_str][1].to_i
-        Aliases[alias_str]=[scid,service_id,opcode]
-    end
-          
-    ALU_Names={}
-    
-    for alu_op in cfg['System']['ALU_Names'].keys
-        entry=cfg['System']['ALU_Names'][alu_op]
-        ALU_Names[alu_op]=entry
-    end  
-    
-    def services
-        Services
-    end
-    def aliases
-        Aliases
-    end
-    def alunames
-        ALU_Names
-    end
-    
-    def denum_alias(num)
-        # Check aliases first
-        for name in Aliases.keys
-            if Aliases[name][2]==num
-                return name
-#                break
-            end
-        end
-    end 
-    
-    
-    def denum(num)    
-        # Then check services
-        for name in Services.keys
-            if Services[name][2]==num
-                return name
-#                break
-            end
-        end                      
-    end
-    
-    def nservices
-        nservices_={}          
-            for id in services.keys                      
-                for scid in services[id].keys      
-                    coderef=services[id][scid][0]
-                    name=services[id][scid][1]
-                    address=services[id]['Addr']
-                    nservices_[name]=[coderef,address,id, scid]
-                end
-            end        
-        return nservices_
-    end
-    
-    def num2name(num)
-#FIXME:WV10122009: num2name is BROKEN, 1 num can refer to several names!
-# we simply take the first name, for now
-        if Services.has_key?(num)
-            for scid in Services[num].keys
-                if scid != 'Addr'
-                    return Services[num][scid][1]
-                end                
-            end                
-        else 
-          warn "No NAME for #{num}"
-          return "NOSERVICE"
-        end
-    end
-   #skip
-    def service_by_address(address)
-        for service_id in Services.keys
-            if Services[service_id]['Addr'] == address
-                break
-            end 
-        end
-        return service_id
-    end
-    def address_by_service(service)
-        if Services.has_key?(service)
-            address=Services[service]['Addr']       
-#                            warn "SERVICE: #{service} ADDRESS: #{address}"
-        else
-            warn "No entry in Services for #{service}"
-            address=service  
-        end 
-
-        return address
-    end
-#endskip    
-end
-include SBA_SystemConfiguration
-
-NSERVICES=services.keys.length-1 
-    addr_counter=0
-    for service_id in services.keys
-    #try auto-assigned addresses!
-#    Services[key][1]=addr_counter 
-    addr_counter+=1
-#        next if key=~/\W/
-#        eval "S_#{services[key][2]} = #{key}"
-        for scid in services[service_id].keys
-            next if scid=='Addr'             
-            service_name_str=services[service_id][scid][1]
-            eval "SC_#{service_name_str} = #{scid << FS_SCId}"
-            eval "S_#{service_name_str} = #{service_id}"
-        end            
-    end
-    
-    for key in aliases.keys
-#        next if key=~/\W/
-        next if key=='NONE' or key=='none'        
-        # new numbering scheme: alias=opcode, so we need corresponding service first
-        service_id = aliases[key][1]        
-        scid = aliases[key][0]
-        scid_field = scid  << FS_SCId
-        key_=key.sub(/:/,'_')
-        eval "A_#{key_} = #{scid_field+aliases[key][2]}"
-    end
-

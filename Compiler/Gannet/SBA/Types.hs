@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-{-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
+{-# OPTIONS_GHC -cpp -D_WORDSZ=32 #-}
 -- |Fundamental Gannet types and utility functions for manipulating them.
 module Gannet.SBA.Types (
 -- * Types
@@ -29,6 +29,7 @@ GannetHeader(..),
 -- * Helper functions
 addToken,
 isTokenList,
+lengthTL,
 stringInToken,
 getSL,
 getSLH,
@@ -82,6 +83,10 @@ addToken v1s@(Token v1) v2s@(Token v2) = (TokenList [v1s,v2s])
 isTokenList :: TokenTree -> Bool
 isTokenList (TokenList t) = True
 isTokenList (Token t) = False 
+
+lengthTL :: TokenTree -> Int
+lengthTL (TokenList t) = length t
+lengthTL (Token t) = 0
 
 stringInToken :: TokenTree -> String
 stringInToken (Token t) = show t
@@ -225,9 +230,9 @@ data GannetSymbol = MkGannetSymbol
                         reg         :: GRegister                        
                     } 
     deriving (Eq,Ord)
-
-data GMode = M_normal | M_var | M_buf  
-    deriving (Show,Eq,Ord,Enum) -- assuming Acc | Cache are synonyms for Var, Stream for Buf and Get | Peek are requests
+--			 0        | 1     | 2     | 3
+data GMode = M_normal | M_var | M_buf | M_eos 
+    deriving (Show,Eq,Ord,Enum) -- assuming Acc | Cache are synonyms for Var; Stream for Buf; Get | Peek are requests
 
 type GRegister = (GannetToken, Integer)
 emptyGReg = (emptyGT,0)
@@ -251,13 +256,28 @@ pow2 0 = 1
 pow2 n = 2*(pow2 (n-1))
 
 namebits :: Integer
-namebits=16
+#if WORDSZ==32
+namebits=16 
+#else
+namebits=32
+#endif
 namesize :: Integer
 namesize=pow2 namebits -1
 
 numeric=False
+{-
+K_D|T_x => 001|x, 1
+K_A|T_x => 010|x, 2 # because S_APPLY==2 
+K_L|T_x => 011|x, 3 # because S_LET==3
+K_R|T_x => 100|x, 4
+K_C|T_x => 101|x, 5  
+K_B|T_x => 11|xx, so K_B actually spans 6 and 7 (not for 64-bit!)
+-}
+
+
 -- At the very very least we need B, R, A, L => 1,2,3,4 = 3 bits! 000->111
 -- Alas, we also need K_D and K_C, so 4 bits
+--				   000   001   010   011   100   101   110   111  1000  1001  1010      1011
 --                 0     1     2     3     4     5     6     7     8     9     10        11          12        13
 data GSymbolKind = K_S | K_D | K_A | K_L | K_R | K_C | K_B | K_Q | K_E | K_X | K_Label | K_Unknown | K_Debug | K_Lref
     deriving (Show,Eq,Ord,Enum)
@@ -268,22 +288,49 @@ showGSK k
     | otherwise = k'
         where 
             _:_:k'= show k   
+{-
 
+- The _essential_ types are integer, float and string, so 2 bits, let's say 00 means any
+- A list type is nice too
+- I'm not sure we need a Lambda type, as symbols of this type should never be passed to agnostic services
+- We don't really need Bool nor Quote
+ 
+-}
 {- | Gannet DataTypes
 
 > i: Integer
 > f: Float
 > s: String
-> b: Bool (unused. use T_i)
-> d: Data
-> q: Quote
-> l: List
+> b: Bool (unused. use T_i) 
+> d: Data, means "don't know, don't care"
+> q: Quote -- Obsolete?
+> l: List, a list of non-extended symbols
 > L: Lambda
 > x: Any
 
 -}
---                0     1     2     3     4     5     6     7     8
-data GDataType =  T_i | T_f | T_s | T_b | T_d | T_l | T_L | T_q | T_x | T_Error 
+--                0     1     2     3     4(0)  5(1)  6(0)  7(1)  8(0)
+--data GDataType =  T_i | T_f | T_s | T_b | T_d | T_l | T_L | T_q | T_x | T_Error
+{- | Gannet DataTypes
+New proposal, for 64-bit of course. For 32-bit, we only have one bit, 2 bits for K_B 
+So for 32-bit we can encode d,i,f,c but what we can do is say that
+if it's extended, we use L,I,F,S
+> d: Data, i.e. Any			000
+> i: Integer	 			001 -- 64-bit signed integer
+> f: Float					010
+> c: Char					011
+> L: List of Data			100
+> I: List of Integers		101
+> F: List of Floats		101 (not that "Floats" are actually Doubles!
+> s: String, List of Char	111				
+
+> q: Quote -- only used by the compiler -- 8
+> x: Unknown -- only used by the compiler -- 9, becomes 1
+> Error: only used by the compiler
+-}
+
+
+data GDataType =  T_d | T_i | T_f | T_c | T_L | T_I | T_F | T_s | T_q | T_x | T_Error  
     deriving (Show,Eq,Ord,Enum)
 showGDT :: GDataType -> String 
 showGDT = show . fromEnum  
@@ -320,11 +367,11 @@ extendGS gs
             GannetTokenB gtb =  name gs
             one=GannetTokenB (GannetBuiltinI 1)
             zero=GannetTokenB (GannetBuiltinI 0)
-            uint16=False -- if True, uint16 values are not Extended            
+            nonext=True -- if True, int16 (int32 for 64-bit) values are not Extended            
         in
             case gtb of
                 GannetBuiltinI gi -> 
-                    if uint16 && ((gi>0 && gi<=namesize)|| gi<0) -- (gi<0 && gi> -1*namesize) simpler to only have uint16 in name field
+                    if nonext && ((gi>=0 && gi<=namesize)|| (gi<0 && -gi<=namesize)) -- (gi<0 && gi> -1*namesize) simpler to only have uint16 in name field
                         then
                             [gs]
                         else -- integer value larger than field

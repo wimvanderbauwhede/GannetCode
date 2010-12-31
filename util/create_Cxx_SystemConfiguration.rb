@@ -24,7 +24,7 @@ end
 
 help= <<EOH
     -S, --sysc: generate SC_SystemConfiguration.h for SystemC
-    -Y, --yaml: generate YAML ServiceConfiguration.yml and exit
+    -Y, --yaml [YAML SystemConfiguration to be used as input]
     -D, --dir: relative path to directory for generated files
 
 EOH
@@ -75,105 +75,237 @@ end
 @@has_let=0
 
 def cxx_services(cfg)
-    gw_addr = cfg['System']['Services'][0]['Addr'].to_i
+    gw_addr = cfg['System']['ServiceInstances'][0]['Addr'].to_i
+    if gw_addr!=0
+        raise "Gateway address MUST be 0!"
+    end
     cxx_service_tuples=[] 
-    for service_id_str in cfg['System']['Services'].keys
+    for service_id_str in cfg['System']['ServiceInstances'].keys
         service_id =service_id_str.to_i
-        Services[service_id]={}
-        noc_addr=cfg['System']['Services'][service_id_str]['Addr']
-        if noc_addr<gw_addr
-        for service_name_str in cfg['System']['Services'][service_id_str].keys            
+        ServiceInstances[service_id]={}
+        noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
+#        if noc_addr<gw_addr
+        for service_name_str in cfg['System']['ServiceInstances'][service_id_str].keys            
             if service_name_str!='Addr'
                 if service_name_str=='LET'
                     @@has_let=1
                 end    
-                entries=cfg['System']['Services'][service_id_str][service_name_str]
-                scid=entries[0].to_i
-                core_method_name=entries[1]
-                nthreads=entries[2].to_i
+                entries=cfg['System']['ServiceInstances'][service_id_str][service_name_str]
+                sctype=entries[0]
+                scid=entries[1].to_i
+                core_method_name=entries[2]
+                nthreads=entries[3].to_i
                 if @@sysc==1
-                    t_setup=entries[3][0].to_i
-                    t_proc=entries[3][1].to_i   
+                    t_setup=entries[4][0].to_i
+                    t_proc=entries[4][1].to_i   
                     timing_str=",#{t_setup},#{t_proc}"
                 else
                     timing_str=""                
                 end             
-                #Services[service_id][scid]=[method,service_name_str,nthreads]
-                Services[service_id][scid]=[SBA_SCLib.method(:"#{core_method_name}"),service_name_str,nthreads]
+                #ServiceInstances[service_id][scid]=[method,service_name_str,nthreads]
+                ServiceInstances[service_id][scid]=[SBA_SCLib.method(:"#{core_method_name}"),service_name_str,nthreads]
                 if (service_id!=0)                
-                    cxx_service_tuples.push("\tservices[#{service_id}]=ServicePair( #{noc_addr},&#{@@prefix_SC}SBA::SCLib::#{core_method_name}#{timing_str} );" )                    
+                    cxx_service_tuples.push("\tservices[#{service_id}]=ServicePair( #{noc_addr},&#{@@prefix_SC}SBA::SCLib::#{core_method_name}#{timing_str} );" )      
                 end                        
             else
-                #noc_addr=cfg['System']['Services'][service_id_str]['Addr']
-                Services[service_id]['Addr']=noc_addr
+                #noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
+                ServiceInstances[service_id]['Addr']=noc_addr
             end                
         end
-        end
+#        end
     end
     return cxx_service_tuples
 end
 
 def cxx_aliases(cfg)
-    gw_addr = cfg['System']['Services'][0]['Addr'].to_i
+    gw_addr = cfg['System']['ServiceInstances'][0]['Addr'].to_i
+    if gw_addr!=0
+        raise "Gateway address MUST be 0!"
+    end        
     cxx_alias_tuples=[]
+            
     for alias_str in cfg['System']['Aliases'].keys
         next if alias_str=='NONE'
         entries=cfg['System']['Aliases'][alias_str]
         service_name_str=entries[0]
         service_id_str=entries[1]
-        noc_addr=cfg['System']['Services'][service_id_str]['Addr']
+        noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
         service_id=service_id_str.to_i
         opcode=entries[2].to_i
         if @@sysc==1
             t_setup=entries[3][0].to_i
-            t_proc=entries[3][1].to_i   
+            t_proc=entries[3][1].to_i  "Level 1 labs" 
             timing_str=",#{t_setup},#{t_proc}"
         else
             timing_str=""                
         end         
-        if noc_addr<gw_addr
+#        if noc_addr<gw_addr
             cxx_alias_tuples.push("\t"+'aliases["'+ "#{alias_str}" + '"]=AliasPair("' + "#{service_name_str}" +'",' + "#{opcode}#{timing_str} );")            
-        end
+#        end
     end
     return cxx_alias_tuples.join("\n") 
 end
 
-#def cxx_constants
-#    cxx_service_constants=[]
-#    cxx_alias_constants=[]    
-#    for k in services.keys    
-#        cxx_service_constants.push("const UINT S_#{services[k][2]} = #{k};")
-#    end
-#    for k in aliases.keys
-#        cxx_alias_constants.push("const UINT A_#{k} = #{aliases[k][2]};")
-#    end    
-#    return cxx_service_constants.join("\n")+"\n\n"+cxx_alias_constants.join("\n")
-#end
+# configurations in C++ should actually be read at run time. But that's a detail
+# We only care about 'native' for C++, so we have simply
+#
+# configurations[cfgid]=DynCfgPair(libstr,symbolstr);
+# configurations can be a List<CfgTuple>
+# class CfgTuple {
+#string lib;
+#string symbol; 
+#}
+def cxx_configurations(cfg)
+    cxx_cfg_tuples=[]
+    if (cfg['System'].has_key?('Configurations') and
+    cfg['System']['Configurations'].has_key?('native') )
+    for cfgid in cfg['System']['Configurations']['native'].keys 
+    cfgpair=cfg['System']['Configurations']['native'][cfgid]           
+      if @@sysc==1
+        config_str=", #{cfgpair[2]}, #{cfgpair[3]}, #{cfgpair[4]}"
+      else
+        config_str=''
+      end
+            cxx_cfg_tuples.push("\t"+'configurations['+"#{cfgid}"+']=DynConfigTuple("'+cfgpair[0]+'","'+cfgpair[1]+'"'+config_str+');')            
+    end
+    end
+    return cxx_cfg_tuples.join("\n") 
+end
 
+if @@sysc==1
+  
+def sysc_timings(cfg)
+  gw_addr = cfg['System']['ServiceInstances'][0]['Addr'].to_i
+    if gw_addr!=0
+        raise "Gateway address MUST be 0!"
+    end
+      
+  cxx_timings_tuples=[]
+    servicetypes={}
+  for service_id_str in cfg['System']['ServiceInstances'].keys
+      service_id =service_id_str.to_i
+      ServiceInstances[service_id]={}
+      noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
+#      if noc_addr<gw_addr
+        for service_name_str in cfg['System']['ServiceInstances'][service_id_str].keys            
+            if service_name_str!='Addr'   
+                entries=cfg['System']['ServiceInstances'][service_id_str][service_name_str]
+                    sctype=entries[0]
+                    scid==entries[1].to_i
+                t_setup=entries[3][0].to_i
+                t_proc=entries[3][1].to_i   
+                opcode=entries[0].to_i
+                if (service_id!=0)                
+                  cxx_timings_tuples.push("\t"+"timings[#{service_id}][#{opcode}]= TimingTuple(#{t_setup},#{t_proc});")    
+                end                        
+            end                
+        end
+#      end
+  end    
+
+  for alias_str in cfg['System']['Aliases'].keys
+      next if alias_str=='NONE'
+      entries=cfg['System']['Aliases'][alias_str]
+      service_name_str=entries[0]
+      service_id_str=entries[1]
+      noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
+      service_id=service_id_str.to_i
+      opcode=entries[2].to_i # FIXME: should this not be combined with scid << FS_SCId ???
+      t_setup=entries[3][0].to_i
+      t_proc=entries[3][1].to_i      
+#      if noc_addr<gw_addr
+        cxx_timings_tuples.push("\t"+"timings[#{service_id}][#{opcode}]= TimingTuple(#{t_setup},#{t_proc});")            
+#      end
+  end
+    if cfg['System'].has_key?('Services')
+      interfaces={}
+        interface_timings={}
+        serviceids={}
+            for servicetype in cfg['System']['Services'].keys
+                interfaces[servicetype]={}
+                methods = cfg['System']['Services'][servicetype]
+                serviceids[servicetype]=methods['ServiceId']
+                for methname in methods.keys
+                    next if methname == 'ServiceId'
+                    entry=methods[methname]
+                    interfaces[servicetype][methname]=entry[0].to_i
+                    interface_timings[servicetype][methname]=entry[1]
+                end
+            end  
+           
+      #FIXME: need to add timings for methods in SystemC as well
+        for st_key in interfaces.keys    
+            scid = serviceids[st_key]
+            scid_field = scid  << FS_SCId
+    
+            for m_key in interface_timings[st_key].keys
+                methid= interfaces[st_key][m_key]
+                opcode=methid+scid_field
+                entries= interface_timings[st_key][m_key]
+                t_setup=entries[0].to_i
+                t_proc=entries[1].to_i     
+                # FIXME: only if noc_addr<gw_addr
+                cxx_timings_tuples.push("\t"+"timings[#{service_id}][#{opcode}]= TimingTuple(#{t_setup},#{t_proc});") 
+            end 
+        end 
+    end
+  return cxx_timings_tuples.join("\n")   
+end
+
+end # of @@sysc
 
 def cxx_constants(cfg)
-    services=cfg['System']['Services']
+    services=cfg['System']['ServiceInstances']
     cxx_service_core_constants=[]
     cxx_service_constants=[]
     cxx_alias_constants=[] 
+    cxx_method_constants=[]
+	service_names={}
     for service_id in services.keys
         for sc_name in services[service_id].keys
             next if sc_name=='Addr'             
-            scid=services[service_id][sc_name][0]
-            cxx_service_core_constants.push("const UINT SC_#{sc_name} = #{scid << FS_SCId};")
+            scid=services[service_id][sc_name][1]
+            scid_field = scid << FS_SCId
+            cxx_service_core_constants.push("const UINT SC_#{sc_name} = #{scid_field};")
             cxx_service_constants.push("const UINT S_#{sc_name} = #{service_id};")
+			service_names[sc_name]=service_id
         end            
     end
+	for control_service in ['LET','IF','APPLY','LAMBDA']
+		if not service_names.has_key?(control_service)
+			cxx_service_constants.push("const UINT S_#{control_service} = 0;")
+		end
+	end
     
     for key in aliases.keys
         next if key=='NONE' or key=='none'        
         service_id = aliases[key][1]        
         scid = aliases[key][0]
-        scid_field = scid  << FS_SCId
-        key_=key.sub(/:/,'_')
-        cxx_alias_constants.push("const UINT A_#{key_} = #{scid_field+aliases[key][2]};")
+        scid_field = 0 # FIXME!!! scid  << FS_SCId
+        key_lc=key.sub(/[:.]/,'_').downcase
+        key_uc=key.sub(/[:.]/,'_').upcase
+        cxx_alias_constants.push("const UINT A_#{key_lc} = #{scid_field+aliases[key][2]};")
+        cxx_alias_constants.push("const UINT A_#{key_uc} = #{scid_field+aliases[key][2]};")
     end
-    return cxx_service_core_constants.join("\n")+"\n\n"+cxx_service_constants.join("\n")+"\n\n"+cxx_alias_constants.join("\n")
+    
+    for st_key in interfaces.keys    
+        scid = servicetypes[st_key]
+        scid_field = 0 # FIXME!!! scid  << FS_SCId
+        st_key_lc=st_key.sub(/[\.:]/,'_').downcase
+        st_key_uc=st_key.sub(/[\.:]/,'_').upcase
+        
+        for m_key in interfaces[st_key].keys
+            m_key_lc=m_key.downcase
+            m_key_uc=m_key.upcase        
+            cxx_method_constants.push("const UINT M_#{st_key}_#{m_key} = #{scid_field+interfaces[st_key][m_key]};")
+            cxx_method_constants.push("const UINT M_#{st_key_uc}_#{m_key_uc} = #{scid_field+interfaces[st_key][m_key]};")
+            cxx_method_constants.push("const UINT M_#{st_key_lc}_#{m_key_lc} = #{scid_field+interfaces[st_key][m_key]};")
+            cxx_method_constants.push("const UINT A_#{st_key_uc}_#{m_key_uc} = #{scid_field+interfaces[st_key][m_key]};")
+            cxx_method_constants.push("const UINT A_#{st_key_lc}_#{m_key_lc} = #{scid_field+interfaces[st_key][m_key]};")
+        end 
+    end 
+    
+    return cxx_service_core_constants.join("\n")+"\n\n"+cxx_service_constants.join("\n")+"\n\n"+cxx_alias_constants.join("\n")+"\n\n"+cxx_method_constants.join("\n")
 end    
     
 cxxh=File.open(cxxh_file,"w")
@@ -213,7 +345,7 @@ cxxh.puts '
 else
 cxxh.puts '
 #include <map>
-#include "SC_sba.h"
+#include "SC_SBA.h"
 '
 end
 cxxh.puts "
@@ -230,17 +362,28 @@ if (@@sysc==0)
 cxxh.puts cxx_constants(cfg)
 end
 cxxh.puts '
-//Not elegant, but static arrays are a lot faster than linked lists!'
+// Not elegant, but static arrays are a lot faster than linked lists!'
 cxxh.puts "const UINT NSERVICES = #{cxx_services(cfg).length()};"
 
 cxxh.puts '
 class Config {
 	public:	
 	Services services;
-
+#ifndef NO_DRI	
+	// FIXME: Configurations for Dynamic Reconfiguration/Loading should
+	// not be statically defined but read from a file or command line
+    Configurations configurations;
+#endif // NO_DRI    
+'
+if @@sysc==1
+  cxxh.puts '
+  Timings timings;
+  '
+end
+cxxh.puts '
 	Config()
 	{
-	unsigned int gw_address=NSERVICES; // must be the LAST address
+	unsigned int gw_address=0; // NSERVICES; // must be 0 from 16/12/2010 on (was the LAST address)
 '
 if @@sysc==0
 cxxh.puts '
@@ -249,6 +392,11 @@ cxxh.puts '
     for (uint i=0;i<MAX_NSERVICES;i++) {
             services[i]=ServicePair(MAX_NSERVICES,&SBA::SCLib::none);
     }
+#ifndef NO_DRI    
+    for (uint i=0;i<MAX_NDYNCONFIGS;i++) {
+            services[i]=DynConfigPair("UNDEFINED_LIBRARY","UNDEFINED_SYMBOL");
+    }    
+#endif // NO_DRI    
 #endif
 
 	services[0]= ServicePair(gw_address,&SBA::SCLib::sba_GATEWAY);
@@ -272,7 +420,15 @@ cxxh.puts '
 cxxh.puts '#ifndef NO_SERVICES'
 cxxh.puts cxx_services(cfg)
 
-cxxh.puts '#endif // NO_SERVICES
+cxxh.puts '#endif // NO_SERVICES'
+
+cxxh.puts '#ifndef NO_DRI'
+cxxh.puts cxx_configurations(cfg)
+cxxh.puts '#endif // NO_DRI'
+if @@sysc==1
+  cxxh.puts sysc_timings(cfg)
+end
+cxxh.puts '
     };    
 	
 };
@@ -292,7 +448,7 @@ sysc_consts.puts '
 #define _SC_SBA_SYSTEM_CONFIGURATION_CONSTS_H_
 
 
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 using namespace std;
 

@@ -14,27 +14,35 @@
 # -----------------------------------------------------------------------------
 
 =begin #inc
+
 #ifndef SYSC
+#include <dlfcn.h>
+#include <fstream>
+#include <sstream>
 #include "Types.h" //skipcc
 #include "Packet.h" //skipcc
 #include "Base/ServiceCore.h" //skipcc
 #include "ServiceCoreLibrary.h" //skiph
 #include "System.h" //skiph
+//#if SEQVM==0
 #include "Tile.h" //skiph
 #include "ServiceCore.h" //skiph
-#include "cs_DCT.h" //skipcc
+//#else
+//#include "TileVM.h" //skiph
+//#include "ServiceCoreVM.h" //skiph
+//#endif
+// example static service 
+//#include "cs_DCT.h" //skipcc
+//#include "LoopService.h" //skipcc
 #endif
 =end #inc 
 
 # This module contains the implementations of all SBA services. 
 # Services starting with 'ls_' are language services
-
 module SBA_SCLib
-
 #skip    
 
 @v=(VERBOSE==1)
-
 def SBA_SCLib.mkSymbol(kind,datatype,ext,quoted,task,subtask,name) 
 	wkind=(kind << FS_Kind) & F_Kind 
 	wdatatype=(datatype << FS_Datatype) & F_Datatype 
@@ -95,6 +103,43 @@ def SBA_SCLib.setName(word,field)
 	return (word & FN_Name) + (field << FS_Name)
 end
 
+def SBA_SCLib.getValue(word) #t Value_t (Word)
+    return (word & F_Value) >> FS_Value
+end
+def SBA_SCLib.setValue(word,field) #t Word (Word;Value_t)
+    return (word & FN_Value) + (field << FS_Value)
+end
+def SBA_SCLib.getNSymbols(word) #t NSymbols_t (Word)
+    return (word & F_NSymbols) >> FS_NSymbols
+end
+def SBA_SCLib.setNSymbols(word,field) #t Word (Word;NSymbols_t)
+    return (word & FN_NSymbols) + (field << FS_NSymbols)
+end
+
+def SBA_SCLib.getInt(words) #t Int (Word_List)   
+    #C++ Int int_result;    
+    if getExt(res_symbol)==1
+        result=words[1]
+        int_result=(result>2**(WORDSZ-1))?(result-2**WORDSZ):result #C++ int_result=(Int)result;        
+    else
+        result=getValue(words[0]) 
+        one=1 #t Word
+        int_result= (result>(one<< (FB_Value-1)))?(result-(one<< FB_Value)):result              
+    end                    
+    result=Integer(int_result) #skip
+    return result
+end    
+    
+def SBA_SCLib.getUInt(words) #t Word (Word_List)   
+    #C++ Word result;    
+    if getExt(words[0])==1
+        result=words[1]
+    else
+        result=getValue(words[0]) 
+    end                    
+    return result
+end 
+
 def SBA_SCLib.getCodeAddress(word) #t CodeAddress
     # extract page form word
     page=(word & F_CodePage)>> FS_Task #t Word
@@ -102,7 +147,7 @@ def SBA_SCLib.getCodeAddress(word) #t CodeAddress
     address=(word & F_CodeAddress) >> FS_Subtask #t Word    
 if VM==1
     service=(word & F_Service)>>FS_Name #t Word
-    code_address=(service << FS_Service)+(page<<FS_CodePage)+address #t Word    
+    code_address=(service << FS_Service)+(page << FS_CodePage)+address #t Word    
 else # VM==0    
     code_address=(page << FS_CodePage)+address #t Word
 end # VM    
@@ -114,7 +159,7 @@ end
 
 def SBA_SCLib.mkHeader(packet_type,prio,redir,length,to,return_to,ack_to,return_as) 
 	wpacket_type=(packet_type << FS_Packet_type) & F_Packet_type 
-	wprio=(prio << FS_Prio) & F_Prio 
+	wprio=(prio << FS_Ctrl) & F_Ctrl 
 	wredir=(redir << FS_Redir) & F_Redir 
 	wlength=(length << FS_Length) & F_Length 
 	wto=(to << FS_To) & F_To 
@@ -134,13 +179,13 @@ def SBA_SCLib.setPacket_type(header,field)
 	modheader.push(header[2]) 
 	return modheader
 end
-def SBA_SCLib.getPrio(header) 
+def SBA_SCLib.getCtrl(header) 
 	w1=header[0] 
-	return (w1 & F_Prio) >> FS_Prio
+	return (w1 & F_Ctrl) >> FS_Ctrl
 end
-def SBA_SCLib.setPrio(header,field) 
+def SBA_SCLib.setCtrl(header,field) 
 	modheader=[]  
-	w0=(header[0] & FN_Prio) + (field << FS_Prio) 
+	w0=(header[0] & FN_Ctrl) + (field << FS_Ctrl) 
 	modheader.push(w0) 
 	modheader.push(header[1]) 
 	modheader.push(header[2]) 
@@ -336,9 +381,9 @@ end
 #        w2=wl[1] 
 #        w3=wl[2] 
 #        if @v
-#        os="#{packettype_l(SBA_SCLib.getPacket_type(wl))}:#{SBA_SCLib.getPrio(wl)}:#{SBA_SCLib.getRedir(wl)}:#{SBA_SCLib.getLength(wl)}:#{num2name(SBA_SCLib.getTo(wl))}:#{num2name(SBA_SCLib.getReturn_to(wl))}\n#{w2}\n#{w3} (#{ppSymbol(w3)})" 
+#        os="#{packettype_l(SBA_SCLib.getPacket_type(wl))}:#{SBA_SCLib.getCtrl(wl)}:#{SBA_SCLib.getRedir(wl)}:#{SBA_SCLib.getLength(wl)}:#{num2name(SBA_SCLib.getTo(wl))}:#{num2name(SBA_SCLib.getReturn_to(wl))}\n#{w2}\n#{w3} (#{ppSymbol(w3)})" 
 #        else
-#        os="#{SBA_SCLib.getPacket_type(wl)}:#{SBA_SCLib.getPrio(wl)}:#{SBA_SCLib.getRedir(wl)}:#{SBA_SCLib.getLength(wl)}:#{num2name(SBA_SCLib.getTo(wl))}:#{SBA_SCLib.getReturn_to(wl)}\n#{w2}\n#{w3} (#{ppSymbol(w3)})" 
+#        os="#{SBA_SCLib.getPacket_type(wl)}:#{SBA_SCLib.getCtrl(wl)}:#{SBA_SCLib.getRedir(wl)}:#{SBA_SCLib.getLength(wl)}:#{num2name(SBA_SCLib.getTo(wl))}:#{SBA_SCLib.getReturn_to(wl)}\n#{w2}\n#{w3} (#{ppSymbol(w3)})" 
 #        end
 #		return os
 #    end
@@ -347,11 +392,11 @@ end
         w3=wl[2] #t Word
 
 #C++	ostringstream outs;
-#C++	outs << (uint)getPacket_type(wl) << ":" << (uint)getPrio(wl) <<":"<< (uint)getRedir(wl) <<":"<<(uint)getLength(wl)<<":"<< (uint)getTo(wl) <<":"<<(uint)getReturn_to(wl) <<"\n"<< (uint)w2<<"\n"<<(uint)w3;
+#C++	outs << (uint)getPacket_type(wl) << ":" << (uint)getCtrl(wl) <<":"<< (uint)getRedir(wl) <<":"<<(uint)getLength(wl)<<":"<< (uint)getTo(wl) <<":"<<(uint)getReturn_to(wl) <<"\n"<< (uint)w2<<"\n"<<(uint)w3;
         if @v
-        os="#{packettype_l(getPacket_type(wl))}:#{getPrio(wl)}:#{getRedir(wl)}:#{getLength(wl)}:#{num2name(getTo(wl)).downcase}:#{num2name(getReturn_to(wl)).downcase}\n#{w2}\n#{ppSymbol(w3)} (#{w3})" #skip
+        os="#{packettype_l(getPacket_type(wl))}:#{getCtrl(wl)}:#{getRedir(wl)}:#{getLength(wl)}:#{num2name(getTo(wl)).downcase}:#{num2name(getReturn_to(wl)).downcase}\n#{w2}\n#{ppSymbol(w3)} (#{w3})" #skip
         else 
-        os="#{getPacket_type(wl)}:#{getPrio(wl)}:#{getRedir(wl)}:#{getLength(wl)}:#{getTo(wl)}:#{getReturn_to(wl)}\n#{w2}\n#{w3}" #skip
+        os="#{getPacket_type(wl)}:#{getCtrl(wl)}:#{getRedir(wl)}:#{getLength(wl)}:#{getTo(wl)}:#{getReturn_to(wl)}\n#{w2}\n#{w3}" #skip
         end 
         #C++	string os=outs.str();
 		return os
@@ -376,12 +421,63 @@ end
     def SBA_SCLib.pretty(arg)
         return "#{arg}"
     end
+
 #endskip
 
+
+if WORDSZ==64    
+    # Helper functions for FP ALU
+    def word2dbl(result) #t double (Word)
+        dbl=w #skip
+=begin #C++        
+        u_int64_t* result_p=&result;
+        void* tmpd=(void*)result_p;
+        double* tmp_dbl_p = (double*) tmpd;
+        double dbl_result=*tmp_dbl_p;
+=end #C++        
+        return dbl_result;
+    end
+        
+    def dbl2word(dbl) #t Word (double)
+        w=dbl #skip
+=begin #C++         
+        double* dbl_p=&dbl;
+        void* v_p=(void*)dbl_p;
+        Word* w_p=(Word*)v_p;
+        Word w= *w_p;
+=end #C++ 
+        return w;        
+    end
+else # WORDSZ==32   
+     def word2flt( result) #t float (Word)
+        flt_result=result #skip 
+=begin #C++        
+        u_int32_t* result_p=&result;
+        void* tmpf=(void*)result_p;
+        float* tmp_flt_p = (float*) tmpf;
+        float flt_result=*tmp_flt_p;
+=end #C++        
+        return flt_result;
+     end    
+
+    def flt2word( flt) #t Word (float)
+        w=flt #skip
+=begin #C++        
+        float* flt_p=&flt;
+        void* v_p=(void*)flt_p;
+        Word* w_p=(Word*)v_p;
+        Word w= *w_p;
+=end #C++        
+        return w;
+    end
+end # WORDSZ    
+
+    
+    
 #ifndef NO_SERVICES
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Helper functions for IO
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     def SBA_SCLib.string2symbol(str) #t Word_List (string)
     # pad str with null bytes
         null=[0].pack("c") #skip
@@ -451,37 +547,15 @@ end # WORDSZ
     end
 
     def SBA_SCLib.sym2int(sym) #t Int (Word_List)
-        header=sym.shift #skip
-        raise "Integer Ext length must be 1!" unless getSubtask(header)==1 #skip
-        result=sym.shift #C++ Word result=sym.front();sym.pop_front();
-if WORDSZ==64
-        int_result=result>2**63?result-2**64:result #C++ int64_t int_result=(int64_t)result;
-else # WORDSZ==32
-        int_result=(result>2**31)?result-2**32:result #C++ int32_t int_result=(int32_t)result;
-end # WORDSZ                
-        result=Integer(int_result) #skip
-        return result #s/res/int_res/
+        return getInt(sym)
     end
     
     def SBA_SCLib.sym2uint(sym) #t Word (Word_List)
-        header=sym.shift #skip 
-        raise "Integer Ext length must be 1!" unless getSubtask(header)==1 #skip
-        result=sym.shift #C++ Word result=sym.front();sym.pop_front();
-        result=Integer(int_result) #skip
-        return result 
+        return getUInt(sym)
     end
     
     def SBA_SCLib.sym2bool(sym) #t bool (Word_List)
-        header=sym.shift #skip
-        raise "Integer Ext length must be 1!" unless getSubtask(header)==1 #skip
-        result=sym.shift #C++ Word result=sym.front();sym.pop_front();
-    if WORDSZ==64
-        int_result=result>2**63?result-2**64:result #C++ int64_t int_result=(int64_t)result;
-    else # WORDSZ==32
-        int_result=(result>2**31)?result-2**32:result #C++ int32_t int_result=(int32_t)result;
-    end # WORDSZ                
-        result=Integer(int_result) #skip
-        return (result!=0) #s/res/int_res/
+        return getUInt(sym)==1
     end
                     
     def SBA_SCLib.sym2flt(sym) #t float (Word_List)
@@ -507,23 +581,23 @@ end # WORDSZ
 
 
 #ifndef NO_SERVICES    
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #skip
     def SBA_SCLib.display(sba_tile,parent,addresses)
         print "#{parent.service} CORE (#{parent.current_subtask}): \n"
         result=''
         for address in addresses
-            if SYM==0
-                result+=">>>#{sba_tile.data_store.get(address)}\n"             
-            else # SYM==1
+#            if SYM==0
+#                result+=">>>#{sba_tile.data_store.get(address)}\n"             
+#            else # SYM==1
                 result+=">>>#{sba_tile.data_store.mget(address).inspect}\n"          
-            end # SYM   
+#            end # SYM   
         end    
         puts result
         return [1] # result
     end # of display
     #endskip
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Helper for ALU
     def SBA_SCLib.div(m,n) #t Int (Int;Int)
         q=0 #t Int
@@ -554,29 +628,17 @@ end # WORDSZ
         return q*sn*sm
     end
     
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # To make the ALU type-aware (int or float), we need to get the types of the arguments.
     # So we need the labels of the arguments
+    # But this is a silly approach: we should simply have an FP ALU separately!
     
     def SBA_SCLib.ls_ALU(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
-
 #iv        
         puts "ALU CORE: processing subtask #{parent.current_subtask}"
 #ev
-
-                        
         #C++ Word_List result_list;
-if FP==1
-        return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
-end # FP
-        fp=0 #t Int
-        for address in addresses #t MemAddresses
-            if getDatatype(sba_tile.service_manager.symbol_table[address]) != T_i # of course we could use a bitmask
-                fp=1
-                break
-            end
-        end
         operation=parent.opcode #t Uint
 
 # now if result is an extended Symbol, and assuming we us a single word for numbers,
@@ -586,76 +648,53 @@ end # FP
 #iv        
     puts "ALU (#{parent.service}) CORE: #{addresses.length} addresses"
 #ev     
-    if addresses.length==0 #skip
-      exit(0) #skip
-    end  #skip
+#    if addresses.length==0 #skip
+#      exit(0) #skip
+#    end  #skip
 #    puts addresses.inspect #skip
 	address=addresses[0] #t MemAddress
- 	result=sba_tile.data_store.mget(address)[1] #t Word
- 	if not result.is_a?(Integer) #skip
- 	    puts "NIL: #{result.class}" #skip
- 	    exit(0) #skip
- 	end #skip
-    res_symbol=sba_tile.data_store.mget(address)[0] #t Word
-    
-
-#C++ result_list.push_back(res_symbol);
-
-# But only if extended quoted symbols are handled correctly 
-            if (FP==1 and getDatatype(res_symbol)==T_i) or FP==0
-if WORDSZ==64
-                int_result=result>2**63?result-2**64:result #C++ Int int_result=(Int)result;
-else # WORDSZ==32
-                        int_result=(result>2**31)?result-2**32:result #C++ Int int_result=(Int)result;
-end # WORDSZ                
+ 	res_symbol=sba_tile.data_store.mget(address)[0] #t Word
+#C++ Word result; 	
+#C++ Int int_result; 	
+ 	if getExt(res_symbol)==1
+        result=sba_tile.data_store.mget(address)[1]
+        int_result=(result>2**(WORDSZ-1))?(result-2**WORDSZ):result #C++ int_result=(Int)result;        
+    else
+        result=getValue(res_symbol) # FIXME: this assumes the ALU is WORDSZ only, i.e. number of words in ext symbol==1
+        one=1 #t Word
+        int_result= (result>(one<< (FB_Value-1)))?(result-(one<< FB_Value)):result              
+    end                    
                 result=Integer(int_result) #skip
 #iv
                 puts "ALU CORE: arg 1: Found int #{result} (#{T_i}) @ #{address}"   
 #ev                
-            else # FP==1   
-            if WORDSZ==64
-                flt_result=[result].pack("Q").unpack("G")[0]
-            else # WORDSZ==32
-                flt_result=[result].pack("N").unpack("g")[0] 
-            end # WORDSZ
-                result=flt_result
-                puts "ALU CORE: Found double #{result} (#{getDatatype(res_symbol)}<>#{T_i})" if @v  #skip
-            end # FP      
-
         if operation==A_not
             result=1-result
         else
             ii=0; #t int
             for address in addresses #t MemAddresses
-#                label=arglabels[ii]
                 ii+=1
                 if ii>1
-if FP==1                
-                    tres_symbol=sba_tile.data_store.mget(address)[0] #t Word
-end # FP
-                    tres=sba_tile.data_store.mget(address)[1] #t Word
-
-                    if (FP==1 and (tres_symbol & F_Datatype)>>FS_Datatype==T_i) or FP==0 # FP==0
-                        int_tres=(tres>2**(WORDSZ-1))?(tres-2**WORDSZ):tres #C++ Int int_tres=(Int)tres;
-                        tres=Integer(int_tres) #skip            
+                tres_symbol=sba_tile.data_store.mget(address)[0] #t Word
+                #C++ Word tres;
+                #C++ Int int_tres;   
+                if getExt(tres_symbol)==1
+                    tres=sba_tile.data_store.mget(address)[1]
+                    int_tres=(tres>2**(WORDSZ-1))?(tres-2**WORDSZ):tres #C++ int_tres=(Int)tres;                    
+                else
+                    tres=getValue(tres_symbol)
+                    one=1 #t Word
+                    int_tres= (tres>(one<<(FB_Value-1)))?(tres-(one<< FB_Value)):tres  
+                end    
+                
+                tres=Integer(int_tres) #skip            
 #iv
                         puts "ALU CORE: arg #{ii}: Found int #{tres} (#{T_i}) @ #{address}"   
 #ev                        
-                    else # FP==1       
-                    if WORDSZ==64
-                        flt_tres=[tres].pack("Q").unpack("G")[0]
-                    else # WORDSZ==32
-                        flt_tres=[tres].pack("N").unpack("g")[0]
-                    end # WORDSZ
-                        tres=flt_tres
-                        puts "ALU CORE: Found double #{tres}" if @v #skip
-                    end # FP
-
                 case operation
                 when A_plus
                     puts "ALU CORE operation: +" if @v #skip
                     result=result+tres #C++ int_result+=int_tres;                    
-#                    puts "PLUS RES: #{result}"
                 when A_minus
                     puts "ALU CORE operation: -" if @v #skip
                     result=result-tres #C++ int_result-=int_tres; 
@@ -683,46 +722,154 @@ end # FP
             end
             end
         end
-            if (FP==1 and getDatatype(return_as)== T_i) or FP==0 # FP==0
                 puts "ALU CORE RESULT (signed int): #{result}" if @v #skip      
                 result=Integer((result<0)?(2**WORDSZ+result):result) #C++ result=(Uint)int_result;                
-            else # FP==1
-                #iv
-                puts "ALU CORE RESULT (double): #{result}"  if @v #skip      
-                #ev
-if WORDSZ==64               
-                 uint64_result=[result].pack("G").unpack("Q")[0]
-                 result=uint64_result
-else # WORDSZ==32
-                uint32_result=[result].pack("g").unpack("N")[0] #WV: untested!
-                result=uint32_result
-end # WORDSZ                
-            end # FP
         #iv    
         puts "ALU CORE RESULT: (uint#{WORDSZ}) #{result}" 
         puts "ALU (#{parent.service}) CORE (#{parent.current_subtask}):  result: #{result}"
         #ev
- 
-        result_list=[res_symbol,result]  #C++ result_list.push_back(result);
+        one=1 #t Word
+        if result>((one<< FB_Value)-1)
+            res_symbol=setExt(res_symbol,1) 
+            res_symbol=setNSymbols(res_symbol,1)
+            result_list=[res_symbol,result]  #C++ result_list.push_back(res_symbol);result_list.push_back(result);
+        else
+            res_symbol=setExt(res_symbol,0)
+            res_symbol=setValue(res_symbol,result)
+            result_list=[res_symbol]  #C++ result_list.push_back(res_symbol);            
+        end    
         return result_list
     end # of ALU
+# ----------------------------------------------------------------------------------------------------
+# Five years to see the light :-( 
+# Here's the FP ALU -- Ruby only
+            
+def SBA_SCLib.ls_FP_ALU(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    #core
+
+#iv        
+    puts "FP ALU CORE: processing subtask #{parent.current_subtask}"
+#ev
+                    
+    #C++ Word_List result_list;
+
+    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
+    operation=parent.opcode #t Uint
+
+# now if result is an extended Symbol, and assuming we us a single word for numbers,
+# we could just take the next element:
+
+    # if @v #skip
+#iv        
+    puts "FP ALU (#{parent.service}) CORE: #{addresses.length} addresses"
+#ev     
+address=addresses[0] #t MemAddress
+result=sba_tile.data_store.mget(address)[0] #t Word
+if getExt(result)==1
+    result=sba_tile.data_store.mget(address)[1]
+end    
+res_symbol=sba_tile.data_store.mget(address)[0] #t Word    
+
+#C++ result_list.push_back(res_symbol);
+
+if WORDSZ==64                      
+    #C++ double flt_result=word2dbl(result); //0;
+    flt_result=[result].pack("Q").unpack("G")[0] #skip
+else # WORDSZ==32
+    #C++ float flt_result=word2flt(result);//0;
+    flt_result=[result].pack("N").unpack("g")[0] #skip 
+end # WORDSZ
+    result=flt_result #skip
+    puts "FP ALU CORE: Found double #{result} (#{getDatatype(res_symbol)}<>#{T_i})" if @v  #skip
+
+    if operation==A_not
+        result=1-result
+    else
+        ii=0; #t int
+        for address in addresses #t MemAddresses
+            ii+=1
+            if ii>1
+                tres_symbol=sba_tile.data_store.mget(address)[0] #t Word
+                tres=sba_tile.data_store.mget(address)[1] #t Word
+
+                if WORDSZ==64
+                    flt_tres=[tres].pack("Q").unpack("G")[0] #C++ double flt_tres=word2dbl(tres);
+                else # WORDSZ==32
+                    flt_tres=[tres].pack("N").unpack("g")[0] #C++ float flt_tres=word2flt(tres);
+                end # WORDSZ
+                    tres=flt_tres #skip
+                    puts "FP ALU CORE: Found double #{tres}" if @v #skip
+                    
+            case operation
+            when A_plus
+                puts "FP ALU CORE operation: +" if @v #skip
+                result=result+tres #C++ flt_result+=flt_tres;                    
+            when A_minus
+                puts "FP ALU CORE operation: -" if @v #skip
+                result=result-tres #C++ flt_result-=flt_tres; 
+            when A_times  
+                puts "FP ALU CORE operation: *" if @v #skip 
+                result=result*tres #C++ flt_result*=flt_tres;
+            when A_over
+                puts "FP ALU CORE operation: /" if @v #skip
+                result=result/tres #C++ flt_result=flt_result/flt_tres;
+                # result=result/tres #/
+            when A_lt
+                puts "FP ALU CORE operation: <" if @v #skip
+                result=(result<tres)?1:0 #C++ flt_result=(flt_result<flt_tres)?1:0;
+            when A_gt
+                puts "FP ALU CORE operation: >" if @v #skip
+                result=(result>tres)?1:0 #C++ flt_result=(flt_result>flt_tres)?1:0;
+            when A_eq
+                puts "FP ALU CORE operation: ==" if @v #skip
+                result=(result==tres)?1:0 #C++ flt_result=(flt_result==flt_tres)?1:0;
+                #C++ break;}
+            else #C++ default:
+                raise "Unknown FP ALU CORE service: #{operation}" 
+                #C++   exit(0);
+            end #;
+        end
+        end
+    end
+            #iv
+            puts "FP ALU CORE RESULT (double): #{result}"  if @v #skip      
+            #ev
+#skip            
+if WORDSZ==64               
+             uint64_result=[result].pack("G").unpack("Q")[0]
+             result=uint64_result #C++ result=dbl2word(flt_result);
+             
+else # WORDSZ==32
+            uint32_result=[result].pack("g").unpack("N")[0] #WV: untested!
+            result=uint32_result #C++ result=flt2word(flt_result);
+end # WORDSZ
+#endskip                
+    #iv    
+    puts "FP ALU CORE RESULT: (uint#{WORDSZ}) #{result}" 
+    puts "FP ALU (#{parent.service}) CORE (#{parent.current_subtask}):  result: #{result}"
+    #ev
+
+    result_list=[res_symbol,result]  #C++ result_list.push_back(result);
     
-    #---------------------------------------------------------------------------    
+    return result_list    
+end # of FP_ALU    
+        
+    # --------------------------------------------------------------------------    
     # This is a simple proof-of-concept example of a service that does not return in "zero time". The service takes count_upto
     # "clock cycles" and returns the sum of all counts
     # "clock cycles" are really parse cycles, i.e. the status will toggle between CS_ready and CS_busy
-    # With concurrent tasks this might behave weirdly...
-    # 
+    # With concurrent tasks this might behave weirdly...    
     # This is a way to emulate concurrency: the core is called at every parse cycle and returns immediately, holding its status to CS_busy
+    # WV29112010: it does consume time all right but it is not multitasking. For that I guess I'll meed "CS_managed" and "STS_blocked"
     def SBA_SCLib.ls_COUNTER(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
-#        service=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
-#        operation=(service & F_Name) >> FS_Name #t uint
-
         address=addresses[0] #t MemAddress
-        count_upto=sba_tile.data_store.mget(address)[1] #t Word
-        res_symbol=sba_tile.data_store.mget(address)[0] #t Word
+        address1=addresses[1] #t MemAddress
+        count_upto=getUInt( sba_tile.data_store.mget(address) ) #t Word
+        inst=getUInt( sba_tile.data_store.mget(address1) ) #t Word
+        puts "INST:#{inst}"
+        res_symbol=EXTSYM #C++ const Word res_symbol = EXTSYM;
         #C++ result_list.push_back(res_symbol);
         if parent.state_register[0]<count_upto
             parent.state_register[0]+=1            
@@ -734,22 +881,20 @@ end # WORDSZ
         return result_list
     end # of COUNTER
     
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # COUNTDOWN is an example of the use of the state register
     # state register 0 containts the actual state: 0 before initialisation, 1 during countdown
     # state register 1 stores the actual counter when in state 0 and decrements it when in state 1
     # Although this looks like a persistent task, the task does not "spend time" like a thread would.   
+    # All it does is store some state which is used on the next invocation.
     def SBA_SCLib.ls_COUNTDOWN(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         #C++ Word_List result_list;
-#        service=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
-#        operation=(service & F_Name) >> FS_Name #t uint
         puts "COUNTDOWN called: #{parent.state_register[1]}" #skip
         address=addresses[0] #t MemAddress
         count_downfrom=sba_tile.data_store.mget(address)[1] #t Word
-        res_symbol=3707764737 #C++ const Word res_symbol = 0xDD000001UL;
+        res_symbol=EXTSYM #C++ const Word res_symbol = EXTSYM;
         #C++ result_list.push_back(res_symbol);
-        # res_symbol sba_tile.data_store.mget(address)[0] #t Word
         if parent.state_register[0]==0
             parent.state_register[1]=count_downfrom            
             parent.state_register[0]=1
@@ -764,13 +909,12 @@ end # WORDSZ
         puts "COUNTDOWN returns #{result_list.inspect}" #skip
         return result_list
     end # of COUNTDOWN
-
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # FIB is a helper to compute the Fibonacci series, similar to COUNTDOWN
     def SBA_SCLib.ls_FIB(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
         #core
         # The symbol for a 32-bit signed int is a constant
-        res_symbol=3707764737  #C++ const Word res_symbol = 0xDD000001UL;        
+        res_symbol=EXTSYM  #C++ const Word res_symbol = EXTSYM;        
         #C++ Word_List result_list;
         #C++ result_list.push_back(res_symbol);
         puts "FIB called: #{parent.state_register.inspect}" #skip
@@ -795,7 +939,7 @@ end # WORDSZ
         result_list=[res_symbol,numval]  #C++ result_list.push_back(numval);
         puts "FIB returns #{result_list.inspect}" #skip
         return result_list
-    end # of COUNTDOWN
+    end # of FIB
             
     # This is one step further: the service core launches a thread and monitors a state register. The thread writes 2 to the state reg
     # when it's done. As long as the reg is 1, core status stays CS_busy
@@ -863,7 +1007,7 @@ end # WORDSZ
         #core
 #        puts "DELAY CORE #{parent.tid} called: #{parent.state_register[0]}"
         # The symbol for a 32-bit signed int is a constant
-        res_symbol=3707764737  #C++ const Word res_symbol = 0xDD000001UL;        
+        res_symbol=EXTSYM  #C++ const Word res_symbol = EXTSYM;        
         #C++ Word_List result_list;
         #C++ result_list.push_back(res_symbol);        
         delay_address=addresses[0] #t MemAddress
@@ -920,7 +1064,7 @@ end # WORDSZ
             parent.state_register[0]==1
             input_data=[] #C++ Word_List input_data;
             for address in addresses #t MemAddresses
-                input_data.push(sba_tile.data_store.mget(address)[1]) #s/push/push_back/
+                input_data.push(sba_tile.data_store.mget(address)[1])
             end
 
 ### Here we need to insert the code to communicate with the HW core via IPIF FIFO and status register ###            
@@ -940,27 +1084,325 @@ end # WORDSZ
         result_list=[res_symbol,res_data]  #C++ result_list.push_back(res_data);
         return result_list
     end # of HWTHREAD 
+    # --------------------------------------------------------------------------
+    # This is an object for use inside ls_SELF_INTERRUPTING_TASK
+    # This is the "new way" for multicore Gannet
+    # Simply use an object with methods, and generate a wrapper "service function" at compile time
+    # See also the "API" in ServiceCore.rb
+    # My main issue is that "suspend()" is not so clear a name, as it does not imply a new iteration
+    # The "proper" name is "repost"; maybe "restart" is good? Or "relaunch" or "respawn"?
+#skip    
+    class LoopService
+        attr_accessor :lcur,:lval
+        def initialize (_p,_lstart,_lstop,_lval)
+            @lstart=_lstart
+            @lstop=_lstop
+            @lcur=_lstart
+            @lval=_lval
+            @sys=_p
+        end
+        def loop()           
+                @lval+=@lcur
+                @lcur+=1
+            if !done()
+                @sys.iterate()
+            end
+        end         
+        def current()            
+            puts "LOOP VALUE: #{@lval}"
+            if !done()
+                return @sys.iterate(@lval)
+            else
+                return @lval   
+            end
+            
+        end
+        def done()
+            return (@lcur>=@lstop)
+        end
+    end
 
-    #---------------------------------------------------------------------------
+    def SBA_SCLib.ls_SELF_INTERRUPTING_TASK(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+        #core
+         
+        operation=parent.opcode #t uint    
+        result_list=[] #t Word_List 
+        res_symbol=EXTSYM  #C++ const Word res_symbol = EXTSYM;
+        res_data=0 #t Word
+        lstart=0 #t Word
+        lstop=9 #t Word
+        
+        # Instead of parent.init we could also have an init method for the service
+        # in the Gannet-C code this might be the service constructor, so INITIALIZE or NEW is good too
+        # so A_INIT  would be called once, resulting in creation of the object
+        # In fact, a Gannet-C service is an interface, so we could use the SC_ name as the initialize method
+        # So what we would have is 
+        # when SC_LOOPSERVICE 
+        #     service=LoopService.new(parent,lstart,lstop,res_data)
+        #C++ LoopService* service_ptr;
+       
+        if parent.init()
+            # create service object           
+            service=LoopService.new(parent,lstart,lstop,res_data) #C++ service_ptr = new LoopService(parent_ptr,lstart,lstop,res_data);
+            parent.store(service) #s/service/service_ptr/
+        else
+            # load service object
+            service=parent.load() #C++ service_ptr = (LoopService*)parent.load();
+        end
+        #C++ LoopService& service= *service_ptr;
+        case operation 
+        when SC_ITERATOR
+            puts "ITERATOR" #skip
+        when A_ITERATOR_LOOP
+            puts "LOOP COUNTER: #{service.lcur}" #skip
+            service.loop()
+        when A_ITERATOR_VALUE
+            res_data=service.current()
+        else #C++ break; } default:
+            raise "Unknown service: #{operation}"  #skip
+            #C++   exit(0);
+        end #;
+        
+        if !service.done()     
+            # store service object. I wonder if I need to do this only once?
+            # Also, maybe we can merge suspend and store
+            
+#            parent.suspend()
+            return result_list 
+        else
+            puts "RESULT: #{res_data}"
+            result_list=[res_symbol,res_data]  #C++ result_list.push_back(res_data);
+            #C++ delete(service_ptr);
+            return result_list
+        end
+    end # of SELF_INTERRUPTING_TASK
+
+    # --------------------------------------------------------------------------
+    # ImgBlock is a 4x128-Word Word_List masquerading as a 128x128 matrix of bits
+    class ImgBlock
+        def initialize(_imgblock,_bsz)
+            @bsz=_bsz
+            @block=_imgblock
+        end
+        def write(x,y,b)
+            # in which word is this?
+            word = ( ( x - x % WORDSZ ) / WORDSZ ) + y * ( @bsz / WORDSZ )
+            bitpos = x % WORDSZ
+            @block[word] = (@block[word] & (F_Symbol-(1<<bitpos)))+(b<<bitpos)        
+        end
+        
+        def read(x,y)
+            word = ( ( x - x % WORDSZ ) / WORDSZ ) + y * ( @bsz / WORDSZ )
+            bitpos = x % WORDSZ
+            return (@block[word]>>bitpos)&0x1         
+        end
+        # these methods return a list of @bsz/WORDSZ words
+        def row(r)
+            rw=[]
+            for w in r*(@bsz/WORDSZ) .. (r+1)*(@bsz/WORDSZ)-1
+                rw.push(@block[w])
+            end
+            return rw
+        end
+        
+        def col(c)
+            cl=[]
+            w=0
+            for r in 0..@bsz-1
+                bit=read(r,c)
+                rs=r%WORDSZ
+                w+=bit<<rs
+                if rs==WORDSZ-1
+                    cl.push(w)
+                    w=0
+                end
+            end
+            return cl
+        end
+    end    
+    
+class ConwayLife
+#    attr_accessor 
+    def initialize ()
+        @new_imgblock = ImgBlock.new([],_bsz)
+        @crow=1
+        @bsz=_bsz
+    end
+    def init(_imgblock,_bsz)
+        @imgblock = ImgBlock.new(_imgblock,_bsz)
+    end
+#    def calc_core()           
+#        for ccol in 1..@bsz-2
+#            # calculate new values for crow and ccol
+#        end
+#        @crow+=1
+#        if @crow<@bsz-2
+#            @sys.iterate()
+#        end
+#    end
+    # To calculate the core values we don't need neighbouring edges
+    def calc_core()
+        for crow in 1..@bsz-2
+            for ccol in 1..@bsz-2
+                life_rules_core(crow,ccol)                 
+            end
+        end
+    end    
+    # FIXME: for the 
+    def calc_edges(tlc,trow,trc,rcol,brc,brow,blc,lcol)        
+       for crow in 1..@bsz-2
+           # left edge
+           life_rules(crow,0)  
+           # right edge
+           life_rules(crow,@bsz-1)
+       end       
+       for ccol in 0..@bsz-1
+           # top row
+           life_rules(0,col)
+           # bottom row
+           life_rules(@bsz-1,col)
+       end 
+    end
+    
+    # Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+    # Any live cell with two or three live neighbours lives on to the next generation.
+    # Any live cell with more than three live neighbours dies, as if by overcrowding.
+    # Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction
+    def life_rules_core(x,y)
+        if n_neighbours_core(x,y)<2 or n_neighbours_core(x,y) >3
+            @new_imgblock.write(x,y,0)
+        elsif n_neighbours_core(x,y)==3
+            @new_imgblock.write(x,y,1)
+        end
+    end 
+    
+    def n_neighbours_core(x,y)
+        n=0;
+        for i in x-1..x+1
+            for j in y-1 .. y+1
+                if i!=x and j!=y and @imgblock.read(i,j)==1
+                    n+=1
+                end
+            end
+        end
+        return n
+    end   
+             
+    def brc()
+        return [@imgblock.read(@bsz-1,@bsz-1)]
+    end
+    
+    def brow()
+        return @imgblock.row(@bsz-1)
+    end
+    
+    def blc()
+        return [@imgblock.read(@bsz-1,0)]
+    end
+        
+    def lcol()
+        return @imgblock.col(0)
+#        lc=[]
+#        for r in 0..@bsz-1
+#            lc[r]=  @imgblock[r][0]
+#        end
+#        return lc
+    end
+    
+    def tlc()
+        return [@imgblock.read(0,0)]
+    end
+    
+    def trow()
+        return @imgblock.row(0)
+    end
+        
+    def trc()
+        return [@imgblock.read(0,@bsz-1)]
+    end
+        
+    def rcol()
+        return @imgblock.col(@bsz-1)
+#        rc=[]
+#        for r in 0..@bsz-1
+#            rc[r]=  @imgblock[r][@bsz-1]
+#        end
+#        return rc        
+    end
+    def block()
+        return @new_imgblock
+    end
+    def done()
+        return (@crow>=@bsz-1)
+    end
+end
+
+def SBA_SCLib.cs_CONWAY_LIFE(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    #core
+     
+    operation=parent.opcode #t uint    
+    #C++ Word_List result_list;
+    res_symbol=EXTSYM  #C++ const Word res_symbol = EXTSYM;
+    res_data=0 #t Word
+
+    bloksize=128
+    # Instead of parent.init we could also have an init method for the service
+    # in the Gannet-C code this might be the service constructor, so INITIALIZE or NEW is good too
+    # so A_INIT  would be called once, resulting in creation of the object
+    # In fact, a Gannet-C service is an interface, so we could use the SC_ name as the initialize method
+    # So what we would have is 
+    # when SC_LOOPSERVICE 
+    #     service=LoopService.new(parent,lstart,lstop,res_data)
+    if parent.init()
+        # create service object           
+        service=ConwayLife.new(parent,bloksize) #C++ LoopService* service = new LoopService(parent,lstart,lstop,res_data); 
+        parent.store(service)            
+    else
+        # load service object
+        service=parent.load()
+    end
+    
+    case operation 
+    when A_ITERATOR_LOOP
+        puts "LOOP COUNTER: #{service.lcur}"
+        service.loop()
+    when A_ITERATOR_VALUE
+        res_data=service.current()
+    else #C++ default:
+        raise "Unknown service: #{operation}" 
+        #C++   exit(0);
+    end #;
+    
+    if !service.done()     
+        # store service object. I wonder if I need to do this only once?
+        # Also, maybe we can merge suspend and store
+        
+#            parent.suspend()
+        return []
+    else
+        puts "RESULT: #{res_data}"
+        result_list=[res_symbol,res_data]  #C++ result_list.push_back(res_data);
+        #C++ delete(service);
+        return result_list
+    end
+end # of cs_CONWAY_LIFE
+#endskip
+
+# --------------------------------------------------------------------------    
     
     #--
     # We need at least following "abstract" services:
-    #---------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     #++
     
-    # The BEGIN core takes in all arguments, checks for Error and returns the last result or Error
-    # WV:Do we need an Error Kind?
+    # The BEGIN core takes in all arguments returns the last result 
+# I want to support sequencing in BEGIN. Maybe I could create a SEQ service for this very purpose
+# A non-scoping seq block would be SEQ, an non-scoping par block would be BEGIN
     def SBA_SCLib.ls_BEGIN(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/ 
         #core
-        result='Error' #C++ Word_List result;
+        result=[] #C++ Word_List result;
         for address in addresses #t MemAddresses
-                result=sba_tile.data_store.mget(address)
-            #skip
-            if result=='Error'
-                parent.core_return_type=P_error
-                return result
-            end
-            #endskip
+            result=sba_tile.data_store.mget(address)
         end
         #iv
         puts "#{parent.service} CORE: Passing on #{result}" #C++ cout << parent.service<< " CORE: Passing on result\n";
@@ -968,7 +1410,27 @@ end # WORDSZ
         return result
     end # of BEGIN
     
-    #---------------------------------------------------------------------------
+# OLD: The BEGIN core takes in all arguments, checks for Error and returns the last result or Error
+# WV:Do we need an Error Kind?
+def SBA_SCLib.ls_BEGIN_OLD(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/ 
+    #core
+    result='Error' #C++ Word_List result;
+    for address in addresses #t MemAddresses
+            result=sba_tile.data_store.mget(address)
+        #skip
+        if result=='Error'
+            parent.core_return_type=P_error
+            return result
+        end
+        #endskip
+    end
+    #iv
+    puts "#{parent.service} CORE: Passing on #{result}" #C++ cout << parent.service<< " CORE: Passing on result\n";
+    #ev
+    return result
+end # of BEGIN_OLD
+    
+    # --------------------------------------------------------------------------
     # the actual data store service core
     # WV: For now, we use a global hash to store the DATA packets, and put them in the DATA store every time the service receives a (DATA ...) subtask. 
     # What we really should do is wait for the DATA packets to arrive and store them; if a (DATA ...) subtask would arrive before the packet is there, this subtask would have a 0 type ('empty') until the packet arrives. On the other hand, any DATA packet arriving at the gateway will automtically be sent to the DATA store. So do we really need (DATA ...)?
@@ -979,11 +1441,11 @@ end # WORDSZ
         status=1 #t Word # for OK
         #C++ Word_List status_list;
         #C++ status_list.push_back(status);
-    raise "ls_DATA broken!"
-     
+    raise "ls_DATA broken!"     
     end # of DATA
-    #---------------------------------------------------------------------------
-    def SBA_SCLib.ls_IF(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    
+    # --------------------------------------------------------------------------
+    def SBA_SCLib.ls_IF(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
     parent.ack_ok=1
     if sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask)==1
@@ -992,6 +1454,7 @@ end # WORDSZ
         # So I'll use the waiting_for_ack flag to decide not to send any result packet, by setting the core status to "managed"
 #        raise "Got ACK"
         puts "IF CORE: got ACK" if @v #skip
+        
         parent.ack_ok=1 # we're not redirecting so we can ack
         parent.core_status=CS_managed
         sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_processed)
@@ -1013,7 +1476,7 @@ end # WORDSZ
             #ev
             condval='Error' #t Word #s/=.Error.//
             condaddr=addresses[0] #t MemAddress
-                condval=sba_tile.data_store.mget(condaddr)[1] # quoted numbers!
+                condval=sba_tile.data_store.mget(condaddr)[0]&1 # quoted numbers!                
             if condval>0
                 condval=1
             else
@@ -1049,15 +1512,10 @@ end # WORDSZ
     Since we now don't unquote on store, refs are always quoted. We rely on the label to tell us what is stored
     
 =end            
-#                if  getQuoted(result)>0
-#                    # If it's a quoted expression =>  Just return it
-#                    parent.core_return_type=P_data    
-#                else # result.Quoted==0
                     if getKind(result) == K_S or getKind(result) == K_U
                         # If it's an expression => Error
                         raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
                     elsif getKind(result) == K_L or getKind(result) == K_D
-#                        raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
                         # If it's a variable or data => request & redirect result
                         # i.e. create a request packet
                         parent.core_return_type= P_request                               
@@ -1068,10 +1526,8 @@ end # WORDSZ
                         # If it's a quoted expression =>  Just return it
                         parent.core_return_type=P_data                                
                     elsif getKind(result) == K_R   
-
-                        puts "IF CORE REDIR/wait for ACK"  if @v #skip
+#                        puts "IF CORE REDIR"  if @v #skip
                         # CORE decides to redirect
-#                        sba_tile.service_manager.subtask_list.redir(parent.current_subtask,1)
                         # Now what? I thought the IF core _always_ redirects. ack_to is the label for the ACK
                         # So it contains the name of the IF service and the address of the argument, i.e valaddress
                         # See parse_subtask_packet, it's the same code
@@ -1080,9 +1536,9 @@ end # WORDSZ
                         # as there is nothing to clean up anyway
                         send_ack_to=0 #t Word
                         if operation==A_RETURN or operation==SC_IF
+                            puts "IF CORE wait for ACK"  if @v #skip
                             send_ack_to=setName(label,S_IF) 
                             send_ack_to=setSubtask(send_ack_to,valaddress)
-#                        sba_tile.service_manager.subtask_list.ack_to(parent.current_subtask,send_ack_to)  
                             parent.ack_ok=0 # If a core redirects, it doesn't send an ACK
                         
                             # Now fool the subtask:
@@ -1099,7 +1555,6 @@ end # WORDSZ
                             #ev                            
                         else
                             sba_tile.service_manager.subtask_list.redir(parent.current_subtask,0)
-#                            sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_processed)
                             # WV 15042009: STS_processed leads to a race condition between activate and clean-up
                             sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_inactive)                            
                         #iv
@@ -1108,7 +1563,7 @@ end # WORDSZ
                         end
                         parent.core_status=CS_managed
                         packet_type=P_reference #t Packet_Type
-                        prio=0 #t Prio_t
+                        prio=0 #t Ctrl_t
                         payload_length=1 #t Length_t
                         to=getName(result) #t To_t
                         return_to=sba_tile.service_manager.subtask_list.return_to(parent.current_subtask) #t Return_to_t
@@ -1133,8 +1588,13 @@ end # WORDSZ
                         else
                         #iv
                             puts "IF CORE: LOCAL CALL"
-                        #ev                            
+                        #ev 
+                            if SEQVM==0                           
                             sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                            else # SEQVM==1
+                            sba_tile.service_manager.activate_subtask(ref_packet)  
+                            end # SEQVM
+                            
                         end
                         
 
@@ -1179,7 +1639,7 @@ end # WORDSZ
     end # of ls_IF
 
 
-    #------------------------------------------------------------------------------    
+    # -----------------------------------------------------------------------------    
 
 =begin
 The IF in the ServiceManager (S_IF) can only take quoted values. It can take K_R (not K_C), K_D and K_B
@@ -1191,11 +1651,13 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         #core 
         operation=parent.opcode #t Word
         valaddress=0 #t MemAddress 
-        if operation==A_RETURN 
+        if operation==A_S_RETURN 
+          puts "S_RETURN" #skip
             valaddress=addresses[0]
         else # must be IF
+            puts "S_IF" #skip
             condaddr=addresses[0] #t MemAddress
-            condval=sba_tile.data_store.mget(condaddr)[1] #t Word
+            condval=sba_tile.data_store.mget(condaddr)[0]&1 #t Word
             if condval!=0
                 valaddress=addresses[1]
             else
@@ -1214,25 +1676,40 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
             # If it's a quoted expression =>  Just return it
             parent.core_return_type=P_data                                
         elsif getKind(result) == K_R   
+          puts "S_IF/S_RETURN: Found reference #{result}, #{ppSymbol(result)}" #skip
+          sba_tile.service_manager.subtask_list.to(parent.current_subtask,getName(result))
             parent.core_return_type= P_reference
         end          
         
         return result_list
         
     end # of ls_S_IF        
-    #------------------------------------------------------------------------------    
+    # -----------------------------------------------------------------------------    
 
     def SBA_SCLib.ls_RAND(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
+        
 #        operation=parent.opcode #t Word
 #C++    Word_List result_list;        
         address0=addresses[0] #t MemAddress
-        min_val=sba_tile.data_store.mget(address0)[1] #t Word
+        #FIXME: if min_Val or max_val fits in 16 bits, should be unextended!
+        min_val=0 #t Word
+        
+        if (getExt(sba_tile.data_store.mget(address0)[0])==1)            
+            min_val=sba_tile.data_store.mget(address0)[1]
+        else
+            min_val=getValue(sba_tile.data_store.mget(address0)[0])
+        end
         address1=addresses[1] #t MemAddress
-        max_val=sba_tile.data_store.mget(address1)[1] #t Word
-        res_symbol=3707764737 #C++ const Word res_symbol = 0xDD000001UL;
+        max_val=0 #t Word
+        if (getExt(sba_tile.data_store.mget(address1)[0])==1)            
+            max_val=sba_tile.data_store.mget(address1)[1]
+        else
+            max_val=getValue(sba_tile.data_store.mget(address1)[0])
+        end
+        res_symbol=EXTSYM #C++ const Word res_symbol = EXTSYM;
         #C++ result_list.push_back(res_symbol);
-        #C++ srandom(parent.state_register[0]);        
+        #C++ srandom(parent.state_register[0]);      
         rnd_val = rand(max_val) #C++ Word rnd_val = random();
         res_val=min_val+rnd_val #C++ Word res_val=min_val + max_val + (rnd_val % max_val);  
         result_list=[res_symbol,res_val]  #C++ result_list.push_back(res_val);
@@ -1243,9 +1720,9 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         return result_list
         
     end # of ls_RAND     
-    #------------------------------------------------------------------------------      
+    # -----------------------------------------------------------------------------      
 
-    #------------------------------------------------------------------------------    
+    # -----------------------------------------------------------------------------    
 
     def SBA_SCLib.ls_RND_MATRIX(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
@@ -1255,42 +1732,386 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         max_val=255 #t Word
         for i in 0..63 #t int
             res_val=min_val+rand(max_val) #C++ Word res_val=min_val+(random() % max_val);
-            result_list.push(res_val)  #C++ result_list.push_back(res_val);
-#iv            
-            puts "RAND MATRIX CORE RESULT"
-            puts "#{ppPayload(result_list)}" #skip
-#ev             
+            result_list.push(res_val)  #C++ result_list.push_back(res_val);           
         end
+      #iv            
+                  puts "RAND MATRIX CORE RESULT"
+                  puts "#{ppPayload(result_list)}" #skip
+      #ev          
         return result_list
         
     end # of ls_RND_MATRIX     
-    #------------------------------------------------------------------------------   
+    # -----------------------------------------------------------------------------   
 
-    #------------------------------------------------------------------------------    
+    # -----------------------------------------------------------------------------    
 
     def SBA_SCLib.ls_PROC_MATRIX(sba_tile,parent,addresses)#t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
+        #iv
+      puts "CORE PROC_MATRIX"
+      #ev 
         result_list=[] #C++ Word_List result_list;
 #        operation=parent.opcode #t Uint
         first=true #t bool
         for address in addresses #t MemAddresses
             matrix=sba_tile.data_store.mget(address) #t Word_List
+          puts "ADDRESS: #{address}", matrix.inspect #skip          
             if first            
                 for elt in matrix #t Word_List      
                     result_list.push(elt)  #C++ result_list.push_back(elt);
-                    puts "PROC returns #{elt}" #skip                    
+                                        
                     end
                 first=false
             end
         end    
+        
+        if @v #skip
+#        puts "CORE PROC_MATRIX RESULT #{result_list.inspect}" #skip
+        #iv
+            puts "CORE PROC_MATRIX RETURN RESULT size #{result_list.size}" #skip
+        #ev        
+        end #skip
         return result_list
     end # of ls_PROC_MATRIX     
-    #------------------------------------------------------------------------------          
+    # -----------------------------------------------------------------------------          
+    
+# What we want is a service that will serve NxN blocks for every call.
+# So we must have the image stored in a memory location that doesn't get cleared;
+# The state registers can contain the X and Y values of start of the block to be served
+# the block size can actually be an argument to the call; as could be the image name?
+# Or will we map image names to numbers in a Data section in the YAML file? That is easy.
+#
+# So, on a call to the IMGBLOCK service, we first check the state register[0]: if it is 0, means no
+# image; 1 means an image has been loaded; 2 means done.
+
+  def SBA_SCLib.cs_IMG_IN(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+  #core
+      result_list=[] #C++ Word_List result_list;
+      opcode = parent.opcode #t Service
+      #C++ Word_List raw_img_data;
+if opcode==SC_IMG or opcode==A_IMG_IN or opcode==M_IMG_IN
+       # (img.in blockdim)
+  # the range DATA_OF .. DATA_OF+NREGS is for registers, no clean-up  
+      img_address=DATA_OF #t MemAddress
+      
+      nrows=0 #t Word 
+      ncols=0 #t Word 
+      blockdim=0 #t Word
+    if parent.state_register[0]==2
+        parent.core_status=CS_done_eos
+#ifdef SYSC            
+#C++          OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": CORE IMG IN set core status to EOS"<<endl;            
+#endif // SYSC
+        parent.state_register[0]=0
+        
+    else
+      if parent.state_register[0]==0
+          # get the blocksize from the argument
+          address = addresses[0] #t MemAddress
+          blockdim = getValue(sba_tile.data_store.mget(address)[0]) 
+          # store the blockdim
+          parent.state_register[5]=blockdim    
+          # open the file
+          
+#skip
+          raw_img_file=sba_tile.sba_system.task_data
+          raw_img_data=[]
+          data_file=File.open(raw_img_file,"r")
+          
+          nrows=data_file.gets.hex
+          ncols=data_file.gets.hex
+          data_file.each_line { |pixval|
+              raw_img_data.push(pixval.hex);
+          }          
+#endskip 
+                 
+=begin #C++    
+#ifndef SYSC          
+    string raw_img_file=sba_system.task_data;
+#else           
+    string raw_img_file=SC_SBA::data_file;
+#endif                    
+    std::ifstream data_file(raw_img_file.c_str()); 
+
+    if (data_file.bad()) {
+        std::cerr << "Error: Could not open "<< raw_img_file <<"\n";
+        exit (8);
+    }
+    data_file >> hex;
+    data_file >> nrows;
+    data_file >> ncols;
+=end #C++    
+        parent.state_register[1]=nrows;
+        parent.state_register[2]=ncols;
+=begin #C++    
+    Word pixval;
+        Word_List raw_img_data;
+    while(  data_file >> pixval ) {
+        raw_img_data.push_back(pixval);
+    }
+    data_file.close(); # I guess
+=end #C++    
+      # store the image outside the function. I guess the easiest way is to load the image into a Word_List,
+      # basically move the image from its current address to an address that will never be cleared,
+      # i.e. one of the registers
+          sba_tile.data_store.mput(img_address,raw_img_data)
+          
+          parent.state_register[0]=1;
+          parent.state_register[3]=0 
+          parent.state_register[4]=0         
+      end    
+      
+      if (parent.state_register[0]==1) 
+          nrows=parent.state_register[1]
+          ncols=parent.state_register[2]
+          blockdim=parent.state_register[5]
+          
+          raw_img_data=sba_tile.data_store.mget(img_address)
+          # load the complete image from memory into a matrix
+          # based on row and col we could actually do this selectively; but why bother?
+#skip          
+          img=[] 
+          cc=ncols 
+          row=[] 
+          for pixval in raw_img_data       
+              cc-=1
+              row.push(pixval) 
+              if cc==0
+                  img.push(row)
+                  row=[] 
+                  cc=ncols
+              end
+          end
+#endskip
+=begin #C++          
+          vector< vector< Word > > img(nrows,vector< Word >(ncols,0));
+          Word_List::iterator iter=raw_img_data.begin();
+          
+          for (uint row=0;row<nrows;row++) {
+            for (uint col=0;col<ncols;col++) {
+            if(iter!=raw_img_data.end()) {          
+                Word pixval=*iter;
+                img[row][col]=pixval;
+                iter++;
+              } else {
+                img[row][col]=0;
+          }
+          }
+          } 
+=end #C++                              
+          
+          
+          # Then extract the NxN matrix and put it into a Word_List, and return
+          crow=parent.state_register[3] #t Word 
+          ccol=parent.state_register[4] #t Word 
+          # for debugging
+#ifdef SYSC          
+#C++ OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": CORE IMG IN" << " row:"<<crow<<";col:"<<ccol<<endl;            
+#endif //SYSC          
+          coords=(crow << 16 ) + ccol #t Word
+          result_list.push(coords)
+          for rr in crow..crow+blockdim-1 #t uint
+              for cc in ccol..ccol+blockdim-1 #t uint
+              # get the col elts, put into results_list
+                  result_list.push(img[rr][cc])
+              end
+          end
+          ccol+=blockdim
+          if ccol>ncols-blockdim # just because I'm too lazy to do the padding
+              ccol=0
+              crow+=blockdim
+              if crow>nrows-blockdim
+                  crow=0
+                  parent.state_register[0]=2                  
+                  puts "PROCESSED IMAGE" if @v #skip
+              end
+          end
+          parent.state_register[3]=crow
+          parent.state_register[4]=ccol
+      end
+    end
+elsif opcode==A_IMG_SIZE or opcode==M_IMG_SIZE
+  # (img.size)
+  # there is no reason to return this as a Symbol;
+  # OTOH nrows and ncols will never be more than 16 bits anyway
+  nrows=parent.state_register[1] #t uint
+  ncols=parent.state_register[2] #t uint
+  blockdim=parent.state_register[5] #t uint
+# TODO: ncolssym=mkSymbol(K_B,T_i,)
+# TODO: nrowssym
+  result_list.push(blockdim)
+  result_list.push(nrows)
+  result_list.push(ncols)
+  puts "IMG-SIZE CORE: RETURN RESULT #{result_list.inspect}" if @v #skip
+else
+  raise "cs_IMG_IN CORE: unsupported opcode #{opcode} (SC_IMG: #{SC_IMG}; A_IMG_SIZE: #{A_IMG_SIZE} "
+end
+#iv
+      puts "IMG-IN CORE: RETURN RESULT size #{result_list.size}"
+#ev       
+      return result_list
+  end # of cs_IMG_IN    
+# ---------------------------------------------------------------------------------------------------------
+# A service to reconstruct the image from the blocks it receives. It takes as argument the BLOCKSZ. 
+# How does this service now the number of rows and columns in the original image? 
+# The IMG_IN service must provide this information on request.
+# So it is best to first collect all the blocks and then get the nrows and ncols and reconstruct the image 
+# (img.out (img.size) )  
+    def SBA_SCLib.cs_IMG_OUT(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+        #core
+        result_list=[] #C++ Word_List result_list;
+        opcode = parent.opcode #t Service
+        # the range DATA_OF .. DATA_OF+NREGS is for registers, no clean-up
+        img_address=DATA_OF #t MemAddress
+        if opcode==SC_PROCIMG or opcode==M_PROCIMG_IN
+            # get the block
+#iv
+            if @v #skip           
+            puts "#{parent.service} CORE PROCIMG: ADD BLOCK"
+            end #skip
+#ev            
+            address = addresses[0] #t MemAddress
+            block = sba_tile.data_store.mget(address) #t Word_List
+            # The lines below are ony for SYSC debugging
+            if block.size()>1
+            coords=block.shift() #C++ Word coords=block.front();block.pop_front();
+            crow=(coords>>16)&0xFF #t Word
+            ccol=coords&0xFF #t Word
+#ifdef SYSC            
+#C++          OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": CORE IMG OUT" << " row:"<<crow<<";col:"<<ccol<<endl;            
+#endif // SYSC
+            else
+#ifdef SYSC            
+#C++          OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": CORE IMG OUT empty packet:"<<block.size()<<endl;            
+#endif // SYSC
+            end
+            sba_tile.data_store.mpush(img_address, block)
+#            img=sba_tile.data_store.mget(img_address) #t Word_List
+#            for pixel in block #t Word_List
+#                img.push(pixel)                
+#            end
+#            puts "IMG ADDRESS: #{img_address} #{img.size()}"
+#            sba_tile.data_store.mput(img_address, img) # malloc error here in OS X 10.6
+            # purely for debugging, thereis no good reason for this!
+            result_list=[7188] #skip        
+        elsif opcode==A_PROCIMG_DUMP or opcode==M_PROCIMG_DUMP 
+#iv
+            if @v #skip           
+            puts "#{parent.service} CORE PROCIMG: DUMP"
+            end #skip
+#ev            
+            # (img.size) returns (blockdim, nrows,ncols) 
+            img_sz_address = addresses[0] #t MemAddress
+            # note these are raw numbers, not Symbols!
+            blockdim = sba_tile.data_store.mget(img_sz_address)[0] #t Word
+            nrows = sba_tile.data_store.mget(img_sz_address)[1] #t Word 
+            ncols = sba_tile.data_store.mget(img_sz_address)[2] #t Word                        
+#            nrows = nrows & 0xFFFF
+#            ncols = ncols & 0xFFFF
+            nblocks_row=(nrows - (nrows % blockdim))/blockdim #t Word
+            nblocks_col=(ncols - (ncols % blockdim))/blockdim #t Word
+            # for now. Of course we really must reconstruct the image
+            result_list.push(nblocks_row)
+            result_list.push(nblocks_col)
+            # Reconstructing means transform the matrix into a raw image file
+            # the raw image file is a trivial row-by-row format
+            # the "img" list contains all the blocks in row-by-row order
+            img=sba_tile.data_store.mget(img_address) #t Word_List
+            npixblock=blockdim*blockdim #t uint
+            npiximg=npixblock*img.length #t uint
+            imgsz=ncols*nrows #t uint
+#iv
+if @v #skip
+            puts ncols, nrows, blockdim #C++ cout <<ncols<<"\n"<< nrows<<"\n"<< blockdim<<"\n";
+            puts "NBLOCKS: #{npiximg/npixblock}" 
+end #skip
+#ev
+
+#skip            
+            rgbimage=[]
+            # Fill the image with black     
+            for row in 0 .. nrows-1
+                rgbimage[row]=[] 
+                    for col in 0..ncols-1
+                        rgbimage[row][col]="#{col} #{nrows-1-row} 0 0 0"
+                    end
+            end
+#endskip
+                        
+=begin #C++                       
+           vector< vector<string> > rgbimage;
+           for (unsigned int row=0;row<nrows;row++) {
+                vector<string> tmpv;
+                for (unsigned int col=0;col<ncols;col++) {
+                    std::ostringstream outs; 
+                    outs<<" "<<col<<" "<<(nrows-1-row)<<" 0 0 0\n";
+                    tmpv.push_back(outs.str());
+                }
+                rgbimage.push_back(tmpv);
+            }
+=end #C++                        
+#ifndef SYSC            
+            raw_img_file=sba_tile.sba_system.task_data #C++ string raw_img_file = sba_system.task_data;raw_img_file+=".rgb";
+#else             
+            #C++ string raw_img_file=SC_SBA::data_file;raw_img_file+=".rgb";
+#endif            
+            rgbimage_file=File.open(raw_img_file+".rgb","w") #C++ std::ofstream rgbimage_file (raw_img_file.c_str());
+            npix =(npiximg<imgsz)?npiximg:imgsz #t uint
+            for i in 0..npix-1 #t uint               
+               blockn=(i- (i%npixblock))/npixblock #t uint
+               # row and col inside a block
+               bcol=(i%npixblock)%blockdim #t uint
+               brow=((i%npixblock)-bcol)/blockdim #t uint
+               
+               # x and y coord of the nth block
+               xb=blockn % (ncols/blockdim) #t uint
+               yb=(blockn-xb)/(ncols/blockdim) #t uint
+#               puts "#{bcol} #{brow} #{xb} #{yb}"
+               x=xb*blockdim+bcol #t uint
+               y=yb*blockdim+brow #t uint
+               
+               w=img[i] #t uint
+                b=w&255 #t uint
+                g=(w>>8)&255 #t uint
+                r=(w>>16)&255 #t uint
+                puts "#{x} #{y} #{r} #{g} #{b}" if @v  #skip
+                rgbimage[y][x] = "#{x} #{nrows-1-y} #{r} #{g} #{b}" #skip
+                #iv
+                #C++ cout<< " "<<x<<" "<<(nrows-1-y)<<" "<<r<<" "<<g<<" "<<b<<"\n";
+                #ev
+                #C++ std::ostringstream outs; outs<< " "<<x<<" "<<(nrows-1-y)<<" "<<r<<" "<<g<<" "<<b<<"\n";
+                #C++ rgbimage[y][x]=outs.str();                            
+            end    
+#skip            
+            for row in rgbimage
+                for pix in row
+                    rgbimage_file.puts(pix)              
+                end
+            end                    
+#endskip
+=begin #C++
+            
+            for (vector< vector<string> >::iterator iter=rgbimage.begin();iter!=rgbimage.end();iter++) {
+                vector<string> tmpv=*iter;
+                for ( vector<string>::iterator iter2=tmpv.begin();iter2!=tmpv.end();iter2++) {
+                    string pix=*iter2;
+                    rgbimage_file << pix;
+                }
+            }
+            
+=end #C++
+            rgbimage_file.close()
+        elsif opcode==M_PROCIMG_DRAW
+            # code for drawing with SDL goes here
+        end
+        return result_list
+    end # of cs_IMG_OUT    
+# ---------------------------------------------------------------------------------------------------------
+
     # With LET aliased to ASSIGN, in principle we could register all calls to ASSIGN'ed variables.
     # Then LET could multicast to those services only the list of variables to clean up.
     # Direct addressing is very risky, if not impossible, for this: the variable will be stored at different addresses
-    # for every service involved. But ASSIGN _knows_ those addresses!
-    # 
+    # for every service involved. But ASSIGN _knows_ those addresses!     
  
     def SBA_SCLib.ls_LET(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
@@ -1322,7 +2143,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                 last=(argct==0)
                 label=sba_tile.service_manager.symbol_table[address] #t Word     
             #iv
-                print "LET (#{parent.service}) CORE: ", "LABEL:", label,"\n"             
+                print "LET (#{parent.service}) CORE: ", "LABEL:", label," last?",last,"\n"             
             #ev
                 
                 if getQuoted(label)==1
@@ -1350,19 +2171,21 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                     return_as=var_label #t Word
                     ack_to=0 #t Word
                     packet_type=P_reference #t Packet_Type
-                    prio=0 #t Prio_t
+                    prio=0 #t Ctrl_t
                     redir=0 #t Redir_t
                     reslist=[] #t Word_List
-                    reslist.push(numval) #s/push/push_back/
+                    reslist.push(numval)
                     payload_length=1 #t Length_t
 =begin
 So what happens if it's a tail call?
 - redirect
 - but exit, i.e. should jump past the return
 =end
-#                    use_redir=false #t bool
-                    use_redir=true #t bool
-                    
+#C++                bool use_redir=false;
+
+
+                    use_redir=true
+
                     if (last and use_redir)      
                         puts "LET CORE: last arg quoted, REDIR/wait for ACK" if @v #skip
                         # if the last argument is quoted, redirect instead of trying to sequence
@@ -1383,9 +2206,16 @@ So what happens if it's a tail call?
                         ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
                         puts ppPacket(ref_packet) if @v #skip
                         if to!=S_LET
+                          #sysc           OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": 3 LET CORE sends packet To:"<<to<<"\n"; 
+                          # To:"<<to<<"; Return-to:"<<return_to<<";Ctrl:"<<ctrl<<endl;
+
                             sba_tile.transceiver.tx_fifo.push(ref_packet)
                         else
+                            if SEQVM==0
                             sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                            else # SEQVM==1
+                            sba_tile.service_manager.activate_subtask(ref_packet)  
+                            end # SEQVM
                         end
                         puts "Packet will go to: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)} as type #{parent.core_return_type}" if @v #skip
                         puts "Code address: #{getSubtask(label)}" if @v #skip
@@ -1401,7 +2231,11 @@ So what happens if it's a tail call?
                         if to!=S_LET
                             sba_tile.transceiver.tx_fifo.push(ref_packet)
                         else
+                            if SEQVM==0
                             sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                            else # SEQVM==1
+                            sba_tile.service_manager.activate_subtask(ref_packet)  
+                            end # SEQVM                            
                         end
                     end # of if last
                     if  service!=A_LETTC                    
@@ -1466,7 +2300,7 @@ So what happens if it's a tail call?
 #                            if getName(word) == var_name and getSubtask(word)==var_address
 #                                has_label=true    
 #                            else
-#                                nlookup.push(word) #s/push/push_back/
+#                                nlookup.push(word)
 #                            end
 #                        end                
                         
@@ -1504,7 +2338,7 @@ So what happens if it's a tail call?
                     try_array=sba_tile.data_store.mget(address) #t Word_List
                     print "LET (#{parent.service}) CORE: #{address}\t#{ppPayload(try_array)}\n"
 #ev
-                    value_list.push(sba_tile.data_store.mget(address))  #s/push/push_back/
+                    value_list.push(sba_tile.data_store.mget(address)) 
             end  
             var=value_list[0] #t Word_List # first symbol is the variable declaration
             # 1. Create an address_label from the first word of function             
@@ -1554,7 +2388,7 @@ So what happens if it's a tail call?
 #iv
                     puts "ASSIGN: STS=#{sba_tile.service_manager.subtask_list.status(parent.current_subtask)}"
 #ev                    
-#                    lookup.push(word) #s/push/push_back/
+#                    lookup.push(word)
 #                    sba_tile.data_store.mput(sba_tile.service_manager.service_core_ram+1,lookup)
 #                    puts "#{getName(word)}: #{word}"
                     sba_tile.lookup_table.write(getName(word),word)
@@ -1562,9 +2396,13 @@ So what happens if it's a tail call?
                     var_value=sba_tile.data_store.mget(data_address) #t Word_List
 #iv
                     puts "ASSIGN: storing",ppPayload(var_value), "@ #{var_address}"
-#ev                    
+#ev                                        
                     sba_tile.data_store.mput(var_address,var_value)
-                    result=word
+                    if var_value[0]==NIL
+                        result=ZERO
+                    else
+                        result=ONE
+                    end    
 #iv                                
                 else
                     # Some trouble: we're overwriting a presumably immutable variable!!                    
@@ -1606,7 +2444,12 @@ So what happens if it's a tail call?
                     newval_address=addresses[1] #t MemAddress
                     newval= sba_tile.data_store.mget(newval_address) #t Word_List
                     sba_tile.data_store.mput(var_address,newval)
-                    result_list=newval
+                    if var_value[0]==NIL
+                        result=ZERO
+                    else
+                        result=ONE
+                    end                        
+                    result_list=[result] #C++ result_list.push_back(result); 
                 else
                     # ASSIGN has not yet returned. 
                     sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_pending)
@@ -1725,7 +2568,7 @@ I think we should read symbols from the LET code from the back until we reach th
                     list_length+=1
                     list+=value_l #C++ foreach(List_Store,value_l) {Word w=*iter;list.push_back(w);}
                 end
-    #FIXME            list.push(list_length) #s/push/push_back/
+    #FIXME            list.push(list_length)
                 # write the list to the list_address. 
                 sba_tile.data_store.mput(list_address,list) 
                 # create the list reference: Kind(3):offset(13):address(16)
@@ -1769,7 +2612,7 @@ I think we should read symbols from the LET code from the back until we reach th
                         if getExt(elt_value)>0
                             for i in 1..getSubtask(elt_value)
                                 list_offset+=1
-                                elt_value_as_list.push(list[list_offset]) #s/push/push_back/
+                                elt_value_as_list.push(list[list_offset])
                             end
                         end
                         return elt_value_as_list
@@ -1860,9 +2703,158 @@ I think we should read symbols from the LET code from the back until we reach th
             return [result] #C++  Word_List result_list; result_list.push_back(result); return result_list;
         end # of not SC_LET
     end # of ls_LET        
+# -----------------------------------------------------------------------------    
+    # SEQ is like a LET but it does not provide scope, all it does is sequence the arguments. It's like BEGIN with seq support.
+def SBA_SCLib.ls_SEQ(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    #core 
+    service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
     
-    
-    #------------------------------------------------------------------------------
+    puts parent.current_subtask if @v #skip
+    service=getName(service_word) #t Name_t
+    parent.core_return_type=P_data
+#iv
+    ppservice=service #C++ int ppservice=(int)service;
+    print "SEQ (#{parent.service}) CORE: #{parent.current_subtask}: (#{ppservice}<>#{SC_SEQ}\n" 
+
+    print "SEQ (#{parent.service}) CORE: ", "TO: ", sba_tile.service_manager.subtask_list.to(parent.current_subtask),"\n"            
+    print "SEQ (#{parent.service}) CORE: ", "RETURN TO: ", sba_tile.service_manager.subtask_list.return_to(parent.current_subtask),"\n"
+    print "SEQ (#{parent.service}) CORE: ", "RETURN AS: ", sba_tile.service_manager.subtask_list.return_as(parent.current_subtask),"\n"
+    print "SEQ (#{parent.service}) CORE: ", "CALLED AS: ", sba_tile.service_manager.subtask_list.called_as(parent.current_subtask),"\n"
+#ev            
+        last=false #t bool
+        nargs=parent.n_args #t uint        
+        argct=nargs #t uint
+        for address in addresses #t MemAddresses       
+            argct-=1
+            last=(argct==0)
+            label=sba_tile.service_manager.symbol_table[address] #t Word     
+        #iv
+            print "SEQ (#{parent.service}) CORE: ", "LABEL:", label," last?",last,"\n"             
+        #ev
+            
+            if getQuoted(label)==1
+                label=setQuoted(label,0) # Next time it's a proper value, not a quoted symbol
+                numval=sba_tile.data_store.mget(address)[0] #t Word
+                print "Found Q: ",numval," at ",label,"\n" if @v #skip
+                # -reset the datastatus:
+                label=setStatus(label,DS_requested)
+                # for the new status calculation
+                sba_tile.service_manager.subtask_list.incr_nargs_absent(parent.current_subtask)
+                sba_tile.service_manager.symbol_table[address]=label
+                if getKind(numval)!=K_R                  
+                    raise "Only R's allowed inside SEQ, no bare L's. Use RETURN." if @v #skip
+                end
+                # - reset the task status to STS_blocked
+                #iv
+                    puts "SEQ (#{parent.service}) CORE: BLOCKED #{parent.current_subtask}"             
+                #ev                    
+                sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
+                # -create a ref packet and send it off
+                to=getName(numval) #t To_t
+                return_to=S_SEQ #t Return_to_t
+                var_label = setSubtask(label,address) #t Word
+                var_label = setName(var_label,S_SEQ)
+                return_as=var_label #t Word
+                ack_to=0 #t Word
+                packet_type=P_reference #t Packet_Type
+                prio=0 #t Ctrl_t
+                redir=0 #t Redir_t
+                reslist=[] #t Word_List
+                reslist.push(numval)
+                payload_length=1 #t Length_t
+# #C++                bool use_redir=false;
+                use_redir=true #t bool
+
+                if (last and use_redir)      
+                    puts "SEQ CORE: last arg quoted, REDIR/wait for ACK" if @v #skip
+                    # if the last argument is quoted, redirect instead of trying to sequence
+                    # so the return packet will be an ACK
+                    # CORE decides to redirect
+                    parent.core_status=CS_managed
+                    send_ack_to=setName(label,S_LET) #t Word
+                    send_ack_to=setSubtask(send_ack_to,address)
+                    parent.ack_ok=0 # If a core redirects, it doesn't send an ACK
+                    # set "waiting for ACK" flag
+                    if service!=A_SEQTC                        
+                        sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask,1)
+                    end
+                    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask)                       
+                    return_to=sba_tile.service_manager.subtask_list.return_to(parent.current_subtask)
+                    ref_packet_header= mkHeader(packet_type,prio,1,payload_length,to,return_to,send_ack_to,return_as)
+                    ref_packet_payload=reslist #t Word_List 
+                    ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
+                    puts ppPacket(ref_packet) if @v #skip
+                    if to!=S_SEQ
+                      #sysc           OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": 3 SEQ CORE sends packet To:"<<to<<"\n"; 
+                        sba_tile.transceiver.tx_fifo.push(ref_packet)
+                    else
+                        if SEQVM==0
+                        sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                        else # SEQVM==1
+                        sba_tile.service_manager.activate_subtask(ref_packet)  
+                        end # SEQVM
+                    end
+                    puts "Packet will go to: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)} as type #{parent.core_return_type}" if @v #skip
+                    puts "Code address: #{getSubtask(label)}" if @v #skip
+                else
+                    puts "NOT LAST arg, sequencing" if @v #skip
+                    # -set the core status to CS_managed
+                    parent.core_status=CS_managed                    
+                    # if redirection is not supported, the value of the last arg should return in the end
+                    ref_packet_header= mkHeader(packet_type,prio,redir,payload_length,to,return_to,ack_to,return_as)
+                    ref_packet_payload=reslist #t Word_List 
+                    ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
+                    puts ppPacket(ref_packet) if @v #skip
+                    if to!=S_SEQ
+                        sba_tile.transceiver.tx_fifo.push(ref_packet)
+                    else
+                        if SEQVM==0
+                        sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                        else # SEQVM==1
+                        sba_tile.service_manager.activate_subtask(ref_packet)  
+                        end # SEQVM                            
+                    end
+                end # of if last
+                if  service!=A_SEQTC                    
+                    return reslist # will be ignored anyway
+                else 
+                    break
+                end    
+            end # of if quoted
+        end # of for
+                
+        # If none of the arguments is quoted, process the last argument
+        # So here we restore the subtask record from the internal state
+        # and we return the value for the last argument
+        # This means there is no redirection!
+        labeladdr=addresses[nargs-1] #t MemAddress
+        result=sba_tile.data_store.mget(labeladdr) #t Word_List
+        parent.core_return_type=P_data
+        sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_processing)
+        if sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask)==1
+            # OK, we received an ACK, time to clean up
+            puts "SEQ CORE: got ACK" if @v #skip
+#iv
+            puts "SEQ CORE: ACK REDIR: #{sba_tile.service_manager.subtask_list.redir(parent.current_subtask)}"
+#ev                
+            # The problem is that the core must return something. But no other service is expecting a packet. So that's useless.
+            # So I'll use the waiting_for_ack flag to decide not to send any result packet, by setting the core status to "managed"
+            parent.ack_ok=1 # we're not redirecting so we can ack
+            parent.core_status=CS_managed
+            sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_processed)
+            sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask,0)        
+        end
+        puts "SEQ (#{parent.service}) CORE: Passing on #{result}" if @v  #skip
+        return result
+#iv            
+        print  ") => "      
+        print ppSymbol(result),"\n"
+#ev            
+        parent.core_return_type=P_data              
+        sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_cleanup)
+        return [result] #C++  Word_List result_list; result_list.push_back(result); return result_list;
+end # of ls_SEQ       
+    # -----------------------------------------------------------------------------
     def SBA_SCLib.ls_LAMBDA(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
         #core 
 #iv
@@ -1872,17 +2864,17 @@ I think we should read symbols from the LET code from the back until we reach th
         value_list=[] #t Word_List
         for address in addresses #t MemAddresses
                 tval=sba_tile.data_store.mget(address)[0] #t Word
-                value_list.push(tval) #s/push/push_back/
+                value_list.push(tval)
         end
         for value in value_list #t Word_List
-            result.push(value) #s/push/push_back/
+            result.push(value)
         end
 #iv
         puts "\nLAMBDA CORE (#{parent.current_subtask}): result:",ppPayload(result)
 #ev
         return result
     end # of LAMBDA
-    #------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
 
 # skip
 
@@ -1932,7 +2924,11 @@ recursive calls and multiple calls...
             print "APPLY CORE (#{parent.current_subtask}): \n"
 #ev        
             use_redir=true
+            if SEQVM==0            
             use_unique=true
+            else # SEQVM==1
+              use_unique=false  
+            end # SEQVM
         elsif service==A_APPLYTC
         #iv
             puts "APPLY TAILCALL" 
@@ -2006,7 +3002,7 @@ recursive calls and multiple calls...
                             #iv
                                 puts "ARG: #{ppSymbol(itemw)}"
                             #ev
-                                lambda_function_args.push(itemw) #s/push/push_back/
+                                lambda_function_args.push(itemw)
                             elsif getKind(itemw)==K_R
                             #iv
                                     puts "REF: #{ppSymbol(itemw)}" 
@@ -2189,7 +3185,7 @@ No, we must do it like in IF or LET
 # So we have to create the header:
 #           Packet_Type => P_code
 #           Length      => appl_function_ext.length
-#           Prio        => 0
+#           Ctrl        => 0
 #           To          => set
 #           Return_to   => 0 (DC)
 #           Ack_to     => 0 (leave redirection for later)
@@ -2230,7 +3226,7 @@ No, we must do it like in IF or LET
                         sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask,1)
                         parent.core_status=CS_managed
                         packet_type=P_reference #t Packet_Type
-                        prio=0 #t Prio_t
+                        prio=0 #t Ctrl_t
                         payload_length=1 #t Length_t
                         result_list=[result] #C++ Word_List result_list;result_list.push_back(result);
                         to=getName(result) #t Name_t
@@ -2247,7 +3243,11 @@ No, we must do it like in IF or LET
                         if to!=S_APPLY
                             sba_tile.transceiver.tx_fifo.push(ref_packet)
                         else
+                          if SEQVM==0
                             sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                          else # SEQVM==1
+                            sba_tile.service_manager.activate_subtask(ref_packet)
+                          end # SEQVM
                         end
                         result_symbol=setSubtask(result_symbol,1) # WV17082008: is this meaningful? Should I use Name?
             end            
@@ -2424,7 +3424,7 @@ There is some overhead but typically the ACK will be sent while the core is work
         end
         
     end # of ls_LOOP
-    #------------------------------------------------------------------------------   
+    # -----------------------------------------------------------------------------   
 =begin
  How shall we handle the (fifo ...) service?
  Basically, the label for a fifo should not be cleared on return of the data
@@ -2476,43 +3476,43 @@ There is some overhead but typically the ACK will be sent while the core is work
         value_list=[] #t Word_List
         # get the variable name ('f1') and the task reference ('r_task')
         for address in addresses
-            if SYM==0
-                print "#{parent.service} CORE: #{address}\t#{sba_tile.data_store.get(address)}\n"
-                value_list.push(sba_tile.data_store.get(address))                 
-            else # SYM==1
+#            if SYM==0
+#                print "#{parent.service} CORE: #{address}\t#{sba_tile.data_store.get(address)}\n"
+#                value_list.push(sba_tile.data_store.get(address))                 
+#            else # SYM==1
                 try_array=sba_tile.data_store.mget(address)
                 print "#{parent.service} CORE: #{address}\t#{pretty(try_array)}\n"
                 value_list.push(sba_tile.data_store.mget(address)) 
-            end # SYM
+#            end # SYM
         end  
         var=value_list[0] # first symbol is the variabe declaration
         task_ref=value_list[1] # second symbol is the function reference
         create_value=value_list[2] # return value of CREATE 
         
-        if SYM==0
-            if var.is_a?(Array)
-                var_name=var.shift # the function or variable name  
-                print "#{parent.service} CORE: WARNING: var_name is an Array! #{var.inspect}\n"   
-            else
-                var_name=var
-            end                      
-        else # SYM==1             
+#        if SYM==0
+#            if var.is_a?(Array)
+#                var_name=var.shift # the function or variable name  
+#                print "#{parent.service} CORE: WARNING: var_name is an Array! #{var.inspect}\n"   
+#            else
+#                var_name=var
+#            end                      
+#        else # SYM==1             
             var_name=var[0]
-        end # SYM
+#        end # SYM
         result=var_name #t uint64            
         
-        if SYM==0
-            print result,"\n"
-        else # SYM==1
+#        if SYM==0
+#            print result,"\n"
+#        else # SYM==1
             print SBA_Symbol.new(result),"\n"
-        end # SYM
+#        end # SYM
         parent.core_return_type=P_data	            
         # Skip clean-up
         sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_cleanup)
         
         return result
-    end # of FIFO
-    #------------------------------------------------------------------------------    
+    end # of FIFO_NOGOOD
+    # -----------------------------------------------------------------------------    
  
 =begin
     FIFO is the service that provides BUFFER, STREAM, GET, PEEK, EOS
@@ -2555,7 +3555,7 @@ There is some overhead but typically the ACK will be sent while the core is work
         # we then want to dispatch the task ref and reset the memory location's status so it waits for the data (the LET trick)
         # but we can of course already push the address onto the Word_List in @service_core_ram+stream_id
         stream_id_address=addresses[0]
-     	stream_id_word=sba_tile.data_store.mget(stream_id_address)[1] #t Word
+     	stream_id_word=getValue(sba_tile.data_store.mget(stream_id_address)[0]) #t Word
 if WORDSZ==64
                 #C++ int64_t stream_id=(int64_t)stream_id_word;
 else # WORDSZ==32
@@ -2599,7 +3599,8 @@ end # WORDSZ
         port_address=addresses[0] #t MemAddress
         port_symbol=sba_tile.data_store.mget(port_address) #t Word_List
         builtin_symbol=port_symbol[0] #t Word
-        port = port_symbol[1]  #t Word
+        # "255 filehandles is enough for everyone!" 
+        port = port_symbol[0] & 255  #t Word
         eof=[builtin_symbol,0] #C++ Word_List eof; eof.push_back(builtin_symbol); eof.push_back((Word)(0));      
         pass=[builtin_symbol,1] #C++ Word_List pass; pass.push_back(builtin_symbol); pass.push_back((Word)(1));
 if WORDSZ==64
@@ -2609,12 +3610,12 @@ else # WORDSZ==32
 end # WORDSZ 
 #C++    Word_List fail; fail.push_back(builtin_symbol); fail.push_back(min1);
 #C++    FILE* fd;
-        if service==A_FOPEN
+        if service==A_IO_OPEN
             filename_address=addresses[1] #t MemAddress
             filename_bytes=sba_tile.data_store.mget(filename_address) #t Word_List
             filename=sym2str(filename_bytes) #t string
 #iv
-            puts "CORE FOPEN: FILENAME: #{filename}"
+            puts "CORE FOPEN: HANDLE: #{port} FILENAME: #{filename}"
 #ev            
             
             if addresses.length==3
@@ -2626,7 +3627,7 @@ end # WORDSZ
             end
             parent.lookup_table.write(port,fd) #C++ parent.lookup_table.write(port,(Uint64)fd);
             return port_symbol
-        elsif service==A_FCLOSE
+        elsif service==A_IO_CLOSE
             if parent.lookup_table.count(port)
             	fd=parent.lookup_table.read(port) #C++ fd=(FILE*)(parent.lookup_table.read(port));
             	fd.close() #C++ fclose(fd);
@@ -2634,12 +3635,14 @@ end # WORDSZ
             else
             	return fail
             end        
-        elsif service==A_IOREAD 
-            nbytes_address=addresses[1] #t MemAddress
-            nbytes=sba_tile.data_store.mget(nbytes_address)[1] #t Word
-            if nbytes!=0 
-                raise "CORE IOREAD: reading chunks of #{nbytes} bytes is not yet implemented" #s/raise/std::cerr << /
-            end 
+        elsif service==A_IO_READ or service==A_IO_READLINE 
+            if addresses.length == 2
+                nbytes_address=addresses[1] #t MemAddress
+                nbytes=getValue(sba_tile.data_store.mget(nbytes_address)[0]) #t Word
+                if nbytes!=0 
+                    raise "CORE IOREAD: reading chunks of #{nbytes} bytes is not yet implemented" #s/raise/std::cerr << /
+                end 
+            end
             #C++ char* nil=NULL;
             inp = nil #C++ char inp[255]; // the 255 is very ad-hoc
             if (not parent.lookup_table.count(port))
@@ -2647,6 +3650,7 @@ end # WORDSZ
                 inp = readline #C++ fgets(inp,255,stdin);
             else
                 fd = parent.lookup_table.read(port) #C++ fd=(FILE*)(parent.lookup_table.read(port));
+#                puts fd.inspect
                 if not fd.eof #s/fd.eof/feof(fd)/             
                     inp = fd.readline #C++ fgets(inp,255,fd);
                 end
@@ -2658,16 +3662,12 @@ end # WORDSZ
                 puts inp_sym.inspect #skip
                 return inp_sym
             else
-if WORDSZ==64
-                emptyK_B = mkSymbol(K_B,T_i,1,1,0,0,0) #t Word
-else # WORDSZ==32
-                emptyK_B =3422552064 #C++ Word emptyK_B =0xCC000000UL;                                  
-end # WORDSZ
+                emptyK_B = NIL #t Word 
                 emptysymbol = [emptyK_B]  #C++ Word_List emptysymbol;emptysymbol.push_back(emptyK_B);
                 return emptysymbol
             end
                 # or maybe we need a conditional outside the function
-        elsif service==A_IOWRITE
+        elsif service==A_IO_WRITE
             data_address=addresses[1]  #t MemAddress       
             data_symbol = sba_tile.data_store.mget(data_address) #t Word_List
             #C++ string data;            
@@ -2687,11 +3687,11 @@ end # WORDSZ
                         #C++ fprintf(fd,"%s",data.c_str());
                     elsif  datatype==T_i
                         data=sym2int(data_symbol) #t Int           
-                        #C++ fprintf(fd,"%d",data);
+                        #C++ fprintf(fd,"%d",(int)data);
                     elsif  datatype==T_f
                         data=sym2flt(data_symbol) #t Float            
                         #C++ fprintf(fd,"%f",data);
-                    elsif  datatype==(T_b&1) and kind==K_Q 
+                    elsif  datatype==(T_i) and getUInt(data_symbol)<2 and kind==K_Q 
                         data=sym2bool(data_symbol) #t bool           
                         #C++ fprintf(fd,"%u",data);
                     else
@@ -2701,7 +3701,15 @@ end # WORDSZ
                      return pass
                  end
              end
-        elsif service==A_DISPLAY
+        elsif service==A_IO_EOF
+            #C++ Word_List res;
+            if fd.eof #s/fd.eof/feof(fd)/
+                res = [ONE] #C++ res.push_back(ONE); 
+            else
+                res = [ZERO] #C++ res.push_back(ZERO);
+            end
+            return res
+        elsif service==A_IO_DISPLAY
         # just because DISPLAY is logically an IO function     
             result="" #skip
             for address in addresses #t MemAddresses
@@ -2741,7 +3749,7 @@ end # WORDSZ
     
         puts "DCT (#{parent.service}) CORE: #{addresses.length} addresses" if @v #skip
         address=addresses[0] #t MemAddress
-        nruns=sba_tile.data_store.mget(address)[1] #t Word
+        nruns=getValue(sba_tile.data_store.mget(address)[0]) #t Word
         res_symbol=sba_tile.data_store.mget(address)[0] #t Word
             
     #C++ result_list.push_back(res_symbol);
@@ -2756,9 +3764,881 @@ end # WORDSZ
             return result_list
             
         end
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# These are the services for dynamic reconfiguration
+# It is currently a dummy in the sense that it returns a string in Ruby, a pointer in C++, not the actual binary data
+# Obviously this is C/C++ specific, Ruby does this totally differently.
+             
+def SBA_SCLib.ds_CONFIG(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    #core
+    #iv
+    service = parent.service #t  Service
+    puts "#{service} DYNAMIC SERVICE CONFIG SERVER CORE" if @v #skip
+ #ev
+  configuration_address=addresses[0] #t MemAddress
+  configuration_id=getValue(sba_tile.data_store.mget(configuration_address)[0]) #t Word
 
-#---------------------------------------------------------------------------
+  # TODO: For different types of reconf substrates (uP, MORA, FPGA, ...); we ignore this for now
+#  substrate_type_address=addresses[0] #t MemAddress
+#  substrate_type=getValue(sba_tile.data_store.mget(substrate_type_address)[0]) #t Word
 
+=begin #C++      
+    Word_List result_list;
+
+    // first check if there is a handle to close
+    // get the service id of the caller
+#ifndef SYSC  
+    Return_to_t return_to=sba_tile.service_manager.subtask_list.return_to(parent.current_subtask);
+#else
+    Return_to_t return_to=parent.subtask_list.return_to(parent.current_subtask);
+#endif     
+    Word return_to_w=(Word)return_to;
+    if (parent.lookup_table.count(return_to_w)!=0) {
+        Word handle_w=parent.lookup_table.read(return_to_w);
+        void* handle=(void*)handle_w;
+#ifndef SYSC
+//        int retval=dlclose(handle);
+//        if (retval!=0) {
+//          cerr << "Error on dlclose() for "<<handle_w<<" :"<<dlerror()<<"\n";
+//        }
+#endif  
+    }
+      // open the library
+#ifndef SYSC
+      string lib=sba_system.configurations[configuration_id].lib; 
+      string configsym=sba_system.configurations[configuration_id].symbol;
+#else    
+    string lib=parent.cfg.configurations(configuration_id).lib; 
+    string configsym=parent.cfg.configurations(configuration_id).symbol;
+#endif // SYSC    
+#ifndef SYSC                 
+      void* handle = dlopen(lib.c_str(), RTLD_LAZY);
+#else
+void* handle = NULL;
+#endif    
+    const Word res_symbol = EXTSYM;  
+    result_list.push_back(res_symbol);
+#ifndef SYSC       
+     if (!handle) {
+         cerr << "Cannot open library: " << dlerror() << '\n';
+         result_list.push_back((Word)1);
+         return result_list;
+     }
+#endif  
+    // for 32-bits host  
+    //Word handle_uint_cast = (Word)handle;
+    // HACK for 64-bits host
+    Uint64 handle_uint_cast = (Uint64)handle;
+#ifdef VERBOSE
+  cout << "Handle for "<<lib<<"::"<<configsym<<": "<<handle_uint_cast<<endl;
+#endif // VERBOSE
+
+  parent.lookup_table.write(return_to_w,handle_uint_cast); // OK? is Sint64 
+    // now do dlsym
+  #ifdef VERBOSE
+    cout << "Symbol:"<<configsym<< endl;
+  #endif // VERBOSE
+#ifndef SYSC   
+    void* fp=dlsym(handle,configsym.c_str());
+#else
+    void* fp=NULL;
+#endif    
+    //uint fp_uint_cast = (uint)fp;
+    // HACK! we need host detection 
+    Uint64 fp_uint64_cast = (Uint64)fp;
+#ifdef VERBOSE
+    cout << "Pointer cast: " << fp_uint64_cast << endl;
+#endif
+    Uint64 fp_uint64_cast_l = fp_uint64_cast & 0xFFFFFFFF;
+    Uint64 fp_uint64_cast_h = (fp_uint64_cast>>32) & 0xFFFFFFFF;
+    Word fp_uint_cast_l = (Word)fp_uint64_cast_l;
+    Word fp_uint_cast_h = (Word)fp_uint64_cast_h;
+//    result_list.push_back(fp_uint_cast);
+//    result_list.push_back(handle_uint_cast);
+  
+    result_list.push_back(fp_uint_cast_l);
+    result_list.push_back(fp_uint_cast_h);
+  
+#ifdef SYSC  
+  result_list.push_back((Word)configuration_id);
+  uint config_sz=parent.cfg.configurations(configuration_id).configsz;
+  for (Word w=0;w<config_sz;w++) {
+    result_list.push_back(w);
+  }
+
+#endif // SYSC   
+=end #C++
+
+# In Ruby, open a file, read contents into a string;
+# return that string
+# We assume a configuration table in the YAML file maps unique numbers to the filenames
+
+#skip
+    lib=sba_tile.sba_system.configurations['ruby'][configuration_id][0] #t string
+    configsym=sba_tile.sba_system.configurations['ruby'][configuration_id][1] #t string
+     
+    libh=File.open(lib,"r") 
+    configsrc = ""
+#    libh.each_byte {|byte|
+#        configsrc += "#{byte}"
+    libh.each_line { |line|
+        configsrc += line        
+    }     
+  puts "#{service} DYNAMIC SERVICE CONFIG SERVER CORE: configuration #{configsym} from library #{lib}"
+    res_symbol = 0xDD_0002_02
+    # DD means 13|13 i.e. 1101 |11|01 i.e. a Quoted Extended Built-in with 2 ; Name field is 2 but should be 0
+    result_list=[res_symbol,configsym,configsrc]      
+#TODO: combine the bytes into Words and create a Word_List of them, more realistic
+#endskip
+    
+# for SystemC, we want to create a packet with a realistic load
+# based on MORA cores for the dynamic services.
+# We can simply add the size of the packet in the YAML file for now.
+# Once we have the actual MORA SystemC model we can do proper configurations.
+# For testing, we assume that 
+#   - the config time at ds_CONFIG is 20 cycles
+#   - the config size is 15x96bits or 45 Words
+#   - the config time at ds_DYNAMIC is 45 cycles, i.e. the packet size; maybe add 5 cycles offset
+#   - the run time at ds_DYNAMIC is 15 cycles per byte, with maybe 5 cycles offset                
+                    
+
+    puts "#{service} DYNAMIC SERVICE CONFIG SERVER CORE: RESULT #{configsrc}" if @v #skip
+    return result_list
+end # of CONFIG
+# --------------------------------------------------------------------------
+# For full flexibility with streaming services that can reconfigure themselves
+# recursively, we need a mechanism that will defer the actual reconfiguration
+# until a streaming call returns.
+# The idea is that the .run of the streaming call will take the caller's 
+# config reference off the stack, get the config data and configure the core
+# In fact, every .run call will do this, but only recursive calls will fill the stack,
+# so an empty stack will not result in configuration
+# FIXME! the defered calls to configure need a stack! otherwise RETURN_AS gets overwritten!
+# encode an 8-position stack in a Word: 3 bits per position
+# xxx|xxx|xxx|xxx|xxx|xxx|xxx|xxx||xxx
+# sp=w&7
+# pop() = (w>>(3+sp*3))&7; w=w&0xfffffffc+(sp+1)
+# push(v)= ((v&7)<<(3+sp*3)) + (w>>(3+(sp+1)*3))<<(3+(sp+1)*3) + (sp-1)
+# Neat enough. However, the stack won't do, we'll have to simply use the lookup table
+# and store the word based on the current_subtask.
+def SBA_SCLib.ds_DYNAMIC(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    #core
+    opcode = parent.opcode #t  Service
+    
+    #iv
+    service = parent.service #t  Service
+    puts "#{service} DYNAMIC SERVICE #{service} CORE: OPCODE #{opcode}" 
+    #ev
+    #C++ Word_List result_list;MemAddress configuration_id_address; MemAddress configuration_address;
+    if opcode==A_S_RECONF 
+      print "#{service} DYNAMIC SERIVCE #{service} CORE: CONFIGURING #{opcode} as " #skip
+        configuration_id_address=addresses[0] 
+        configuration_id = getValue(sba_tile.data_store.mget(configuration_id_address)[0]) #t Word
+        current_configuration_id=parent.state_register[2] #t Word
+        if configuration_id!=current_configuration_id
+        configuration_address=addresses[1] 
+        # So what's stored in the second Symbol?
+        # if the call is deferred, it's a quoted K_R, else it's a quoted ext K_B
+            configsym_w=sba_tile.data_store.mget(configuration_address)[1] #t Word
+            configsrc_w=sba_tile.data_store.mget(configuration_address)[2] #t Word
+            puts configsym_w #skip
+#ifdef SYSC
+        #C++ Word configuration_id=sba_tile.data_store.mget(configuration_address)[3];
+        #C++ parent.state_register[4]=configuration_id;
+#endif                
+            # for Ruby, we store the strings in the lookup table
+            #FIXME: this is rather broken, esp. for SystemC. 
+            # what we need is to emulate the configuration time. The configuration data
+            # will disappear from the data store as it is used to configure the core
+            parent.lookup_table.write(configsym_w, configsrc_w) #skip     
+            # Store the function pointer in the state register 0
+            parent.state_register[0]=configsym_w
+            parent.state_register[1]=configsrc_w 
+            parent.state_register[2]=configuration_id
+        end
+            #FIXME: add 64-bit code
+#C++      const Word res_symbol = 0xD5000001UL;         
+            result_list=[0xD5000001] #C++  result_list.push_back(res_symbol);
+    # ------------------------------
+    # Run the configured core    
+    elsif opcode==A_S_RUN or opcode==A_S_CONFRUN
+        if opcode==A_S_CONFRUN
+            # (s1.confrun '(config '2 '1) ...)
+            # A minor problem is that we don't want to reconfigure unless the
+            # configuration has actually changed; but confrun does not have that information,
+            # not unless we use the 1st arg to store the configuration code.
+            # we must configure the core first
+            # to do so, we must first check if the config task was deferred
+            puts addresses.inspect #skip
+            #WV30112009: There is an issue with the addresses: they don't get cleaned up if we use shift;
+            # however, if they get cleaned up then on EOS we get an error as the core tries to access them
+            # It's clearly a result of the 2-stage function of the core. Some race condition
+            # I think the problem is that the subtask is already scheduled so it's not skipped
+            
+            configuration_id_address=addresses[0]  
+            configuration_address=addresses[1]  
+            configuration_id = getValue(sba_tile.data_store.mget(configuration_id_address)[0]) #t Word
+            current_configuration_id=parent.state_register[2] #t Word
+            puts "#{service} DYNAMIC SERVICE #{service} CORE: #{current_configuration_id}<>#{configuration_id}" #skip
+            if configuration_id!=current_configuration_id                                       
+                # So what's stored in the second Symbol?
+                # if the call is deferred, it's a quoted K_R, else it's a quoted ext K_B
+                ref_symbol=sba_tile.data_store.mget(configuration_address)[0] #t Word            
+                label=sba_tile.service_manager.symbol_table[configuration_address] #t Word              
+                if getQuoted(label)==1 and getKind(ref_symbol)==K_R
+                    puts "#{service} DYNAMIC SERVICE #{service} CORE: GET CONFIG" #skip
+                    # Now fool the subtask:
+                    # set status of argument to "requested"
+                    sba_tile.service_manager.symbol_table[configuration_address]=setStatus(label,DS_requested)                        
+                    # set status of subtask to "blocked"                       
+                    sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
+                    puts "13 subtask #{parent.current_subtask} status is now STS_blocked" #skip
+                    # for new status calculation
+                    sba_tile.service_manager.subtask_list.incr_nargs_absent(parent.current_subtask)
+                    # now we must send of a reference packet
+                    # ideally the Service Manager should do this
+                    # (s1.run (config '1 '1) (stream 'b1))
+                    # so to becomes config; return_to is the service itself; type is reference; payload is the symbol
+                    to=sba_tile.service_manager.subtask_list.to(parent.current_subtask) #t To_t
+                    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
+                    puts "TO: #{to}" #skip
+                    puts "RETURN_AS: #{ppSymbol(return_as)}" #skip
+                    # we can put to in the Name field of return_as, as the actual service is the current one
+                    return_as_to=setName(return_as,to) #t Word
+                    puts "RETURN_AS_TO: #{ppSymbol(return_as_to)}" #skip
+                    # we must set the mode to M_normal, so we must save the mode somewhere
+                    mode=sba_tile.service_manager.subtask_list.mode(parent.current_subtask) #t Mode_t
+                    return_as_to_mode=setKind(return_as_to,mode) #t Word
+                    # now we put this in a state register
+                    parent.lookup_table.write(parent.current_subtask,return_as_to_mode)
+                    sba_tile.service_manager.subtask_list.to(parent.current_subtask,S_CONFIG)
+                    sba_tile.service_manager.subtask_list.return_to(parent.current_subtask,parent.service)
+                    sba_tile.service_manager.subtask_list.mode(parent.current_subtask,M_normal)
+                    var_label = setSubtask(label,configuration_address) #t Word
+                    var_label = setName(var_label,parent.service)                
+                    sba_tile.service_manager.subtask_list.return_as(parent.current_subtask,var_label)
+                    parent.core_return_type= P_reference
+                    ref_symbol=setQuoted(ref_symbol,0)
+                    return [ref_symbol] #C++ result_list.push_back(ref_symbol); return result_list;
+                else
+                    puts "#{service} DYNAMIC SERVICE #{service} CORE: CONFIGURE" #skip
+                # this means the config call has returned, we can simply configure the core
+                    configsym_w=sba_tile.data_store.mget(configuration_address)[1] #t Word
+                    configsrc_w=sba_tile.data_store.mget(configuration_address)[2] #t Word
+                    puts configsym_w #skip
+                    #ifdef SYSC
+                    #C++ Word configuration_id=sba_tile.data_store.mget(configuration_address)[3];
+                    #C++ parent.state_register[4]=configuration_id;
+                    #endif                
+                    # for Ruby, we store the strings in the lookup table
+                    #FIXME: this is rather broken, esp. for SystemC. 
+                    # what we need is to emulate the configuration time. The configuration data
+                    # will disappear from the data store as it is used to configure the core
+                    parent.lookup_table.write(configsym_w, configsrc_w) #skip     
+                    # Store the function pointer in the state register 0
+                    parent.state_register[0]=configsym_w
+                    parent.state_register[1]=configsrc_w
+    #                return_as_to_mode=parent.state_register[3] #t Word
+                    return_as_to_mode=parent.lookup_table.read(parent.current_subtask) #t Word
+                    mode=getKind(return_as_to_mode) #t Mode_t
+                    to=getName(return_as_to_mode) #t To_t
+                    return_as_to=setName(return_as_to_mode,parent.service) #t Word
+                    return_as=setKind(return_as_to,K_R) #t Word
+                    sba_tile.service_manager.subtask_list.to(parent.current_subtask,to)
+                    sba_tile.service_manager.subtask_list.return_as(parent.current_subtask,return_as)
+                    sba_tile.service_manager.subtask_list.mode(parent.current_subtask,mode)  
+                    parent.state_register[2]=configuration_id   
+                    puts "RETURN_AS: #{ppSymbol(return_as)}" #skip                             
+                end    
+            end            
+        end    
+      
+        configsym_w=parent.state_register[0] #t Word
+puts "#{service} DYNAMIC SERVICE #{service} CORE: RUNNING #{opcode} as #{configsym_w}" #skip
+=begin #C++       
+  Word configsym_w_h=parent.state_register[1];
+  Uint64 configsym_l = (Uint64)configsym_w;
+  Uint64 configsym_h = (Uint64)configsym_w_h;
+  Uint64 configsym =   configsym_l + (configsym_h<<32);   
+#ifdef VERBOSE       
+  cout << "Pointer reconstruction: " << configsym << endl;
+#endif       
+#ifndef SYSC        
+  Memory& store_ref=sba_tile.data_store;
+  DynFuncPointer fp=(DynFuncPointer)configsym;        
+#else
+//  port_SC_Memory_if <MemAddress, Data>& store_ref=parent.data_store;
+//  SC_DynFuncPointer fp=(SC_DynFuncPointer)configsym;        
+#endif                                                        
+ 
+#ifdef VERBOSE       
+  cout << parent.service<< "CORE: CALLING dynamic service for subtask "<< parent.current_subtask <<"\n";
+#endif          
+
+if (opcode==A_S_CONFRUN) {
+  configuration_id_address=addresses.front();addresses.pop_front();
+  configuration_address=addresses.front();addresses.pop_front();
+}
+#ifndef SYSC
+result_list=(*fp)(parent_ptr,(void*)(&store_ref),addresses);
+#else // SYSC
+//const Word res_symbol = 0xD500002AUL; // 42 
+//  result_list.push_back(res_symbol);
+result_list=sba_tile.data_store.mget(addresses[0]);
+#endif
+if (opcode==A_S_CONFRUN) {
+addresses.push_front(configuration_address);
+addresses.push_front(configuration_id_address);
+}
+      
+#ifdef VERBOSE         
+  cout << "CALLED dynamic service\n";  
+#endif            
+        
+#ifdef SYSC
+  Word configuration_id=parent.state_register[4];   
+//  uint argsz = 64; //  TODO
+    uint argsz=0;
+    for(MemAddresses::iterator iter_=addresses.begin();iter_!=addresses.end();iter_++) {
+        MemAddress address=*iter_;
+        argsz+=sba_tile.data_store.size(address);
+    }
+  uint t_setup=parent.cfg.configurations(configuration_id).t_setup;
+  uint t_proc_value = parent.cfg.configurations(configuration_id).t_proc_value;
+  uint t_core = t_setup + t_proc_value*argsz;
+#ifdef SC_VERBOSE            
+    OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << parent.service << "    DYNAMIC CORE "<< configuration_id<<": waiting "<<t_core<<" ns\n";            
+#endif // SC_VERBOSE
+
+  wait(t_core*_CLK_P, _CLK_U);            
+#endif // SYSC        
+=end #C++
+                
+#skip
+      # Ruby version
+      fstr=parent.lookup_table.read(configsym_w)   
+if opcode==A_S_CONFRUN
+      a0=addresses.shift
+      a1=addresses.shift
+end
+      fcall=fstr+configsym_w+"(sba_tile,parent,addresses)"
+    puts "<DYN CALL>",fcall,"</DYN CALL>" if @v #skip   
+    result_list= eval(fcall)
+if opcode==A_S_CONFRUN 
+    addresses.unshift(a1)
+    addresses.unshift(a0)
+end
+#endskip
+    # this is necessary as the built-in IF/RETURN set it to P_reference
+    parent.core_return_type= P_data
+#iv         
+    puts "DYNAMIC SERVICE #{service} CORE RESULT size: #{result_list.size}" 
+#ev    
+    else
+        raise "Opcode #{opcode} not supported for ds_DYNAMIC #{A_S_CONFRUN}" 
+    end
+    
+    return result_list
+end # of ds_DYNAMIC
+
+# This is a core that yields the CPU to the Service Manager after every iteration of a loop
+# (yield '42) will perform 42 iterations
+# now assume that this is working on block of data, then we want the result to be stored somewhere
+# and not lose it between iterations!!!
+def SBA_SCLib.ds_YIELD(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&)  #s/parent/parent_ptr/
+    #core
+    opcode = parent.opcode #t  Service
+    
+    #iv
+    service = parent.service #t  Service
+    puts "#{service} YIELDING SERVICE #{service} CORE: OPCODE #{opcode}" 
+    #ev
+    #C++ Word_List result_list;MemAddress configuration_id_address; MemAddress configuration_address;
+    
+    
+    # parent.state_register[0]: state
+    # parent.state_register[1]: niters
+    
+    # parent.core_status=CS_done
+      # get the niters from the argument
+      niters_address = addresses[0] #t MemAddress
+      niters = getValue(sba_tile.data_store.mget(niters_address)[0]) #t uint
+      i=parent.state_register[0] #t uint
+      while (i!=niters)
+          # do work
+          # store the result of the work in a non-cleanup place
+          # this is tricky
+                    
+          # increment niters
+          niters+=1
+          # now yield
+          # store niters in a register
+          parent.state_register[0]=niters 
+          # now set the subtask to STS_pending 
+          # set the core status to CS_managed
+          # return an empty list
+          return result_list
+      end     
+    
+    return result_list
+end # of ds_YIELD
+
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------     
+#         
+#    Perl 5 - Specific Services
+#
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------     
+# To make the ALU type-aware (int or float), we need to get the types of the arguments.
+# So we need the labels of the arguments
+# But this is a silly approach: we should simply have an FP ALU separately!
+
+def SBA_SCLib.pl_ALU(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+    #core
+#iv        
+    puts "ALU CORE: processing subtask #{parent.current_subtask}"
+#ev
+    #C++ Word_List result_list;
+    operation=parent.opcode #t Uint
+
+# now if result is an extended Symbol, and assuming we us a single word for numbers,
+# we could just take the next element:
+
+    # if @v #skip
+#iv        
+puts "ALU (#{parent.service}) CORE: #{addresses.length} addresses"
+#ev     
+#    if addresses.length==0 #skip
+#      exit(0) #skip
+#    end  #skip
+#    puts addresses.inspect #skip
+address=addresses[0] #t MemAddress
+res_symbol=sba_tile.data_store.mget(address)[0] #t Word
+#C++ Word result;   
+#C++ Int int_result;    
+if getExt(res_symbol)==1
+    result=sba_tile.data_store.mget(address)[1]
+    int_result=(result>2**(WORDSZ-1))?(result-2**WORDSZ):result #C++ int_result=(Int)result;        
+else
+    result=getValue(res_symbol) # FIXME: this assumes the ALU is WORDSZ only, i.e. number of words in ext symbol==1
+    one=1 #t Word
+    int_result= (result>(one<< (FB_Value-1)))?(result-(one<< FB_Value)):result              
+end                    
+            result=Integer(int_result) #skip
+#iv
+            puts "ALU CORE: arg 1: Found int #{result} (#{T_i}) @ #{address}"   
+#ev                
+    if operation==M_ALU_not
+        result=1-result
+    else
+        ii=0; #t int
+        for address in addresses #t MemAddresses
+            ii+=1
+            if ii>1
+            tres_symbol=sba_tile.data_store.mget(address)[0] #t Word
+            #C++ Word tres;
+            #C++ Int int_tres;   
+            if getExt(tres_symbol)==1
+                tres=sba_tile.data_store.mget(address)[1]
+                int_tres=(tres>2**(WORDSZ-1))?(tres-2**WORDSZ):tres #C++ int_tres=(Int)tres;                    
+            else
+                tres=getValue(tres_symbol)
+                one=1 #t Word
+                int_tres= (tres>(one<<(FB_Value-1)))?(tres-(one<< FB_Value)):tres  
+            end    
+            
+            tres=Integer(int_tres) #skip            
+#iv
+                    puts "ALU CORE: arg #{ii}: Found int #{tres} (#{T_i}) @ #{address}"   
+#ev                        
+            case operation
+            when M_ALU_plus
+                puts "ALU CORE operation: +" if @v #skip
+                result=result+tres #C++ int_result+=int_tres;                    
+            when M_ALU_minus
+                puts "ALU CORE operation: -" if @v #skip
+                result=result-tres #C++ int_result-=int_tres; 
+            when M_ALU_times  
+                puts "ALU CORE operation: *" if @v #skip 
+                result=result*tres #C++ int_result*=int_tres;
+            when M_ALU_over
+                puts "ALU CORE operation: /" if @v #skip
+                result=SBA_SCLib.div(result,tres) #C++ int_result=div(int_result,int_tres);
+                # result=result/tres #/
+            when M_ALU_lt
+                puts "ALU CORE operation: <" if @v #skip
+                result=(result<tres)?1:0 #C++ int_result=(int_result<int_tres)?1:0;
+            when M_ALU_gt
+                puts "ALU CORE operation: >" if @v #skip
+                result=(result>tres)?1:0 #C++ int_result=(int_result>int_tres)?1:0;
+            when M_ALU_eq
+                puts "ALU CORE operation: ==" if @v #skip
+                result=(result==tres)?1:0 #C++ int_result=(int_result==int_tres)?1:0;
+                #C++ break;}
+            else #C++ default:
+                raise "Unknown ALU CORE service: #{operation}" 
+                #C++   exit(0);
+            end #;
+        end
+        end
+    end
+            puts "ALU CORE RESULT (signed int): #{result}" if @v #skip      
+            result=Integer((result<0)?(2**WORDSZ+result):result) #C++ result=(Uint)int_result;                
+    #iv    
+    puts "ALU CORE RESULT: (uint#{WORDSZ}) #{result}" 
+    puts "ALU (#{parent.service}) CORE (#{parent.current_subtask}):  result: #{result}"
+    #ev
+    one=1 #t Word
+    if result>((one<< FB_Value)-1)
+        res_symbol=setExt(res_symbol,1) 
+        res_symbol=setNSymbols(res_symbol,1)
+        result_list=[res_symbol,result]  #C++ result_list.push_back(res_symbol);result_list.push_back(result);
+    else
+        res_symbol=setExt(res_symbol,0)
+        res_symbol=setValue(res_symbol,result)
+        result_list=[res_symbol]  #C++ result_list.push_back(res_symbol);            
+    end    
+    return result_list
+end # of ALU
+# ----------------------------------------------------------------------------------------------------
+ 
+# Perl FPU -- Ruby only
+        
+def SBA_SCLib.pl_FPU(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+#core
+
+#iv        
+puts "FP ALU CORE: processing subtask #{parent.current_subtask}"
+#ev
+                
+#C++ Word_List result_list;
+
+return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
+operation=parent.opcode #t Uint
+
+# now if result is an extended Symbol, and assuming we us a single word for numbers,
+# we could just take the next element:
+
+# if @v #skip
+#iv        
+puts "FP ALU (#{parent.service}) CORE: #{addresses.length} addresses"
+#ev     
+address=addresses[0] #t MemAddress
+# FIXME: for 64-bit, a float is stored in the Name field, a double is extended
+result=sba_tile.data_store.mget(address)[0] #t Word
+if getExt(result)==1
+result=sba_tile.data_store.mget(address)[1]
+end    
+res_symbol=sba_tile.data_store.mget(address)[0] #t Word    
+
+#C++ result_list.push_back(res_symbol);
+
+if WORDSZ==64                      
+    #C++ double flt_result=word2dbl(result); 
+    flt_result=[result].pack("Q").unpack("G")[0] #skip
+else # WORDSZ==32
+    #C++ float flt_result=word2flt(result);
+    flt_result=[result].pack("N").unpack("g")[0] #skip 
+end # WORDSZ
+    result=flt_result #skip
+    puts "FP ALU CORE: Found double #{result} (#{getDatatype(res_symbol)}<>#{T_i})" if @v  #skip
+
+if operation==M_FPU_not
+    result=1-result
+else
+    ii=0; #t int
+    for address in addresses #t MemAddresses
+        ii+=1
+        if ii>1
+            tres_symbol=sba_tile.data_store.mget(address)[0] #t Word
+            tres=sba_tile.data_store.mget(address)[1] #t Word
+
+            if WORDSZ==64
+                flt_tres=[tres].pack("Q").unpack("G")[0] #C++ double flt_tres=word2dbl(tres);
+            else # WORDSZ==32
+                flt_tres=[tres].pack("N").unpack("g")[0] #C++ float flt_tres=word2flt(tres);
+            end # WORDSZ
+                tres=flt_tres #skip
+                puts "FP ALU CORE: Found double #{tres}" if @v #skip
+                
+        case operation
+        when M_FPU_plus
+            puts "FP ALU CORE operation: +" if @v #skip
+            result=result+tres #C++ flt_result+=flt_tres;                    
+        when M_FPU_minus
+            puts "FP ALU CORE operation: -" if @v #skip
+            result=result-tres #C++ flt_result-=flt_tres; 
+        when M_FPU_times  
+            puts "FP ALU CORE operation: *" if @v #skip 
+            result=result*tres #C++ flt_result*=flt_tres;
+        when M_FPU_over
+            puts "FP ALU CORE operation: /" if @v #skip
+            result=result/tres #C++ flt_result=flt_result/flt_tres;
+            # result=result/tres #/
+        when M_FPU_lt
+            puts "FP ALU CORE operation: <" if @v #skip
+            result=(result<tres)?1:0 #C++ flt_result=(flt_result<flt_tres)?1:0;
+        when M_FPU_gt
+            puts "FP ALU CORE operation: >" if @v #skip
+            result=(result>tres)?1:0 #C++ flt_result=(flt_result>flt_tres)?1:0;
+        when M_FPU_eq
+            puts "FP ALU CORE operation: ==" if @v #skip
+            result=(result==tres)?1:0 #C++ flt_result=(flt_result==flt_tres)?1:0;
+            #C++ break;}
+        else #C++ default:
+            raise "Unknown FP ALU CORE service: #{operation}" 
+            #C++   exit(0);
+        end #;
+    end
+    end
+end
+        #iv
+        puts "FP ALU CORE RESULT (double): #{result}"  if @v #skip      
+        #ev
+#skip            
+if WORDSZ==64               
+         uint64_result=[result].pack("G").unpack("Q")[0]
+         result=uint64_result #C++ result=dbl2word(flt_result);
+         
+else # WORDSZ==32
+        uint32_result=[result].pack("g").unpack("N")[0] #WV: untested!
+        result=uint32_result #C++ result=flt2word(flt_result);
+end # WORDSZ
+#endskip                
+#iv    
+puts "FP ALU CORE RESULT: (uint#{WORDSZ}) #{result}" 
+puts "FP ALU (#{parent.service}) CORE (#{parent.current_subtask}):  result: #{result}"
+#ev
+
+result_list=[res_symbol,result]  #C++ result_list.push_back(result);
+
+return result_list    
+end # of FP_ALU    
+    
+# --------------------------------------------------------------------------
+
+=begin
+The Perl Array service:
+Array.new creates a new array and returns the reference to it
+In C++, this is 
+
+    List< Word_List >* ap = new List< Word_List >();
+    and then casting to Word
+
+In Ruby, we have
+
+    def new
+        return []
+    end
+
+    def at(aref,idx)
+        return aref[idx]
+    end
+
+    def push(aref,v)
+        aref.push(v)
+    end
+    def pop(aref)
+        return aref.pop
+    end
+
+Fundamental questions are:
+- what is the format of the actual array?
+Internally, it is List< Word_List >
+For transfering between services, e.g. as the return value of Array.get,
+it must be a Word_List as this is the only type we can return. 
+
+The problem translates to: if I assign by value, how do I copy the array?
+I guess the best solution is that we have a "copy constructor"
+which takes a reference. So instead of get/set we have only copy. 
+
+A minor problem is updating an element. I guess we simply have an update method,
+let's call that one set? 
+
+- what is the format of the array reference? It must have a Word that contains 
+the service instance ID, so that LET can trigger a clean-up by sending a delete() call
+or maybe even by sending a MM packet that results in a call to delete, this is better I think
+So what is the Kind of this symbol? Ref?
+=end
+    
+def SBA_SCLib.pl_Array(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+#core
+    #iv        
+    puts "Perl Array CORE: processing subtask #{parent.current_subtask}"
+    #ev
+                    
+    #C++ Word_List result_list;
+    
+#    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
+    method=parent.opcode #t Uint
+    
+    # now if result is an extended Symbol, and assuming we us a single word for numbers,
+    # we could just take the next element:
+    
+    # if @v #skip
+    #iv        
+    puts "Perl Array (#{parent.service}) CORE: #{addresses.length} addresses"
+    #ev
+    #C++ Word apw; void* apv; List< Word_List >* ap;
+    if method==M_Array_new
+            aref = []
+    elsif  method==M_Array_destroy
+        #C++ MemAddress apw_address=addresses[0];
+        #C++ Word apw=sba_tile.data_store.mget(apw_address)[1];
+        #C++ void* apv=(void*)apw;
+        #C++ List< Word_List >* ap= (List< Word_List >*) apv;
+        #C++ delete ap; 
+    else 
+        aref_address=addresses[0] #t MemAddress
+        apw=sba_tile.data_store.mget(aref_address)[1] #t Word
+        aref=apw #skip
+        #C++ void* apv=(void*)apw;
+        #C++ List< Word_List >* ap= (List< Word_List >*) apv;
+        #C++ List< Word_List >& aref= *ap;
+        case method
+            when M_Array_at
+                idx_address=addresses[1] #t MemAddress
+                idx=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
+                result_list = aref[idx] #t Word_List&  
+            when M_Array_size
+                alength = aref.length #t uint
+                result_list.push(EXTSYM)
+                result_list.push(alength) 
+            when M_Array_push
+                val_address=addresses[1]
+                val=sba_tile.data_store.mget(val_address)[1];
+                aref.push(val)
+            when M_Array_pop
+                result_list = aref.pop() 
+            when M_Array_shift
+                result_list = aref.shift() 
+            when M_Array_unshift
+                val_address=addresses[1]
+                val=sba_tile.data_store.mget(val_address)[1];
+                aref.unshift(val)
+            when M_Array_set
+                idx_address=addresses[1] #t MemAddress
+                idx=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
+                val_address=addresses[2] #t MemAddress
+                value_list=sba_tile.data_store.mget(val_address) #t Word_List
+                aref[idx]=value_list
+            when M_Array_copy
+                # "Copy constructor"
+                acref_address=addresses[0] #t MemAddress
+                acpw=sba_tile.data_store.mget(acref_address)[1] #t Word
+                acref=acpw #skip
+                aref=acref.dup #skip
+                arefsym = 0x7188 # FIXME 
+                result_list.push(arefsym)
+                result_list.push(aref)                             
+            when M_Array_fromRange
+                # "Constructor from Range"                  
+                rref_address=addresses[0] #t MemAddress
+                rpw=sba_tile.data_store.mget(acref_address)[1] #t Word
+                rref=rpw #skip
+                aref=rref.dup #skip
+                arefsym = 0x7188 # FIXME 
+                result_list.push(arefsym)
+                result_list.push(aref)                             
+                #C++ break;}
+            else #C++ default:
+                raise "Unknown Perl Array CORE service: #{method}" 
+                #C++   exit(0);
+        end #;    
+    end
+    return result_list
+end # of pl_Array
+
+def SBA_SCLib.pl_Hash(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*;MemAddresses&) #s/parent/parent_ptr/
+#core
+    #iv        
+    puts "Perl Hash CORE: processing subtask #{parent.current_subtask}"
+    #ev
+                    
+    #C++ Word_List result_list;
+    
+#    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
+    method=parent.opcode #t Uint
+    
+    # now if result is an extended Symbol, and assuming we us a single word for numbers,
+    # we could just take the next element:
+    
+    # if @v #skip
+    #iv        
+    puts "Perl Hash (#{parent.service}) CORE: #{addresses.length} addresses"
+    #ev
+    #C++ Word hpw; void* hpv; map< String, Word_List >* hp;
+    if method==M_Hash_new
+        href = []
+        hrefsym = 0x7188 # FIXME 
+        result_list.push(hrefsym)
+        result_list.push(href)             
+    elsif  method==M_Hash_destroy
+        #C++ MemAddress hpw_address=addresses[0];
+        #C++ Word hpw=sba_tile.data_store.mget(hpw_address)[1];
+        #C++ void* hpv=(void*)hpw;
+        #C++ map< String, Word_List >* hp= (map< String, Word_List >*) hpv;
+        #C++ delete ap; 
+    else 
+        href_address=addresses[0] #t MemAddress
+        hpw=sba_tile.data_store.mget(href_address)[1] #t Word
+        href=hpw #skip
+        #C++ void* hpv=(void*)hpw;
+        #C++ map< String, Word_List >* hp= (map< String, Word_List >*) hpv;
+        #C++ map< String, Word_List >& href= *hp;
+        case method
+            when M_Hash_lookup
+                key_address=addresses[1] #t MemAddress
+                key=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
+                result_list = href[idx] #t Word_List&  
+            when M_Hash_insert
+                alength = aref.length #t uint
+                result_list.push(EXTSYM)
+                result_list.push(alength) 
+            when M_Hash_delete
+            when M_Hash_exists
+            when M_Hash_size
+            when M_Hash_keys 
+            when M_Hash_values
+            when M_Hash_set
+                idx_address=addresses[1] #t MemAddress
+                idx=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
+                val_address=addresses[2] #t MemAddress
+                value_list=sba_tile.data_store.mget(val_address) #t Word_List
+                aref[idx]=value_list
+            when M_Hash_copy
+                # "Copy constructor"
+                acref_address=addresses[0] #t MemAddress
+                acpw=sba_tile.data_store.mget(acref_address)[1] #t Word
+                acref=acpw #skip
+                aref=acref.dup #skip
+                arefsym = 0x7188 # FIXME 
+                result_list.push(arefsym)
+                result_list.push(aref)                             
+            when M_Hash_fromList
+                # "Constructor from Range"                  
+                rref_address=addresses[0] #t MemAddress
+                rpw=sba_tile.data_store.mget(acref_address)[1] #t Word
+                rref=rpw #skip
+                aref=rref.dup #skip
+                arefsym = 0x7188 # FIXME 
+                result_list.push(arefsym)
+                result_list.push(aref)
+            when M_Hash_toList
+                #C++ break;}
+            else #C++ default:
+                raise "Unknown Perl Hash CORE service: #{method}" 
+                #C++   exit(0);
+        end #;    
+    end
+    return result_list
+end # of pl_Hash
+
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------     
+#         
 # this is a dummy for unused services
 def SBA_SCLib.none(sba_tile,parent,addresses) #t Result (na;Base::ServiceCore*;MemAddresses&)
     return 0 #C++ Result res; res.push_back((Word)0); return res;

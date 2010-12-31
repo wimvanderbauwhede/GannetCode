@@ -1,0 +1,10 @@
+At first I assumed I don't need to treat references separately, because
+
+$aref = [...]
+$href = {...} 
+
+is transformed into 
+
+MkAssign 
+
+GCTemplObj $ MkTemplObj [] ["Hash"] [TArgT GCAny]

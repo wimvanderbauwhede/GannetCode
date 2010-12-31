@@ -27,7 +27,7 @@ main = do
                     else
                         do prettyGannetCFromFile infile
                 input <- readFile infile
-                putStrLn "\n" 
+                putStrLn "\n\n" 
                 let
                     tree 
                        | elem Perl opts = parseGannetPerl input
@@ -39,10 +39,10 @@ main = do
                 let 
                     mctxt = getTypeInfo tree
                     mtree = inferTypes tree mctxt
-                    ctctree = inferCtc mtree mctxt					
+--                    ctctree = inferCtc mtree mctxt					
                 putStrLn $ "\nTypeMapper:\n"++ (show mctxt)
-                putStrLn $ "\n\nType Inference:\n"++ (show mtree)
-                putStrLn $ "\n\nCTC Inference:\n"++ (unlines $ map show ((\(MkProg el)->el) ctctree))  -- (show ctctree)	
+                putStrLn $ "\n\nType Inference:\n"++ (unlines $ map show ((\(MkProg el)->el) mtree))
+--                putStrLn $ "\n\nCTC Inference:\n"++ (unlines $ map show ((\(MkProg el)->el) ctctree))  -- (show ctctree)	
                 putStrLn $ evalState (emit mtree) mctxt
 
 data Flag 

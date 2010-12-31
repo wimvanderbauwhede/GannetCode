@@ -1,6 +1,7 @@
 -- | State information required for compilation
 module GannetC.State.Context ( 
 	Context(..), 
+	currentScope,
 	enclosingScope,
 	emptyContext,
 	emptyM
@@ -32,13 +33,17 @@ data Context = MkContext {
 						configinsts::ConfigInstMap,
 						handlecount::Integer,
 						handles::HandleMap,
-						count::Integer
+						count::Integer,
+						stowedargs::StowedArgsMap						
 						}						
 -- rather than a field in the Context, use a special accessor
-enclosingScope ctxt = head (tail (scopestack ctxt))
+--enclosingScope ctxt = head (tail (scopestack ctxt))
+enclosingScope ctxt = if length (scopestack ctxt) > 1 then head (tail (scopestack ctxt)) else 0
+currentScope ctxt = if length (scopestack ctxt) > 0 then head (scopestack ctxt) else 0
+
 -- | Initial values for Context 
 emptyContext :: Context
-emptyContext = (MkContext 0 [0] emptyScope False "_" emptyS emptyTI False "_" [] emptyTD 1 emptyC 1 emptyH 0) 
+emptyContext = MkContext 0 [0] emptyScope False "_" emptyS emptyTI False "_" [] emptyTD 1 emptyC 1 emptyH 0 emptySAM 
 --emptyContext = (MkContext 0 [0] "_" ["GATEWAY"] 0 []  0 emptyScope False "_" emptyS emptyTI False "_" [] emptyTD 1 emptyC) 
 
 instance Show Context where
@@ -82,3 +87,7 @@ emptyC = Hash.empty
 type HandleMap = Hash.Map String Integer 
 emptyH :: HandleMap
 emptyH = Hash.empty
+
+type StowedArgsMap = Hash.Map Integer [ArgTup]
+emptySAM :: StowedArgsMap
+emptySAM = Hash.empty
