@@ -1,4 +1,4 @@
-package IO;
+package Say;
 use Gannet::Service;
 @ISA = ("Gannet::Service");
 sub new {
