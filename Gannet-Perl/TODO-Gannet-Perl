@@ -1,0 +1,39 @@
+TODO for Gannet-Perl 22/12/2010
+
+A very long TODO list ...
+
+Compiler
+--------
+* PerlParser.hs
+    - fix opupdate expressions
+    - add support for file handles of the form my $FH and <$FH>
+* TypeMapper.hs
+    - perform type inference to at least distinguish between float, int and string
+    - continue work on determining compile-time computable constructs. Means a lot of extra plumbing
+* Emitter.hs
+    - emit correct calls to ALU, FPU or String based on the types
+    - emit "null" assignments for variable declarations
+    - use CTC evaluation. Very difficult
+* Generate the Perl.SBA.yml file entries for the Perl objects
+* Generate the configuration info to be read by the VM (i.e. the mapping of opcodes to methods for the Perl object wrappers)
+
+* Perl allows variable assignments inside function arguments. This complicates scoping somewhat: e.g.
+
+while ( defined( my $line=<$FH> ) ) {...} should put $line in the scope of the while block.
+
+That means I can't simply stow arguments as in a function definition or for-loop, instead for every assignment
+I must determine if it needs to be stowed or not ...
+
+* Numerify filehandles
+
+Runtime
+-------
+* ServiceCoreLibrary.rb
+    - add all Perl-specific Services
+    - make them translatable to C++
+    - add support in ls_LET for sending MM packets to clean up Array, Hash etc
+* ServiceManager.rb
+    - add support for MM packets, i.e. to deallocate memory
+* Embed Perl
+* Add support to read the configurations for the Perl objects from file
+

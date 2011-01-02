@@ -1,0 +1,12 @@
+#!/usr/bin/perl 
+use Getopt::Std;
+my %opts=();
+getopts( 'hvpsY:', \%opts );
+
+if ($opts{'h'}) {
+    system("./bin/GannetPerl -h");
+}
+
+die unless @ARGV;
+my $gcfile=shift @ARGV;
+system("./bin/GannetPerl $gcfile");

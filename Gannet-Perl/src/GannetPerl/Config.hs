@@ -1,0 +1,9 @@
+module GannetPerl.Config where
+
+c_WORDSZ = 32
+c_HAS_FLOAT = True
+c_N_BUFS_PER_SERVICE = 8
+c_MAX_N_ARGS_FUNC = 7
+c_MAX_N_ARGS_SERVICE = 8
+c_MUTABLE_LEXICALS = True
+c_BUFFER_HAS_PUT = True

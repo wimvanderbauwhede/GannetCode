@@ -1,0 +1,85 @@
+Perl Scalars, Arrays, Hashes
+----------------------------
+
+We use objects to represent Arrays and Hashes, but not for Scalars.
+We have singleton service instances Array and Hash.
+What the Array object does is essentially:
+
+	deque< deque< Word > > * ap = new deque< deque< Word > >;
+	void* vap = (void*) ap;
+	Word wap = (Word) vap;
+	return wap;
+
+What I haven't worked out is how to delete the object when the variable to which it is bound goes out of scope.
+An "easy" way would be to have (Array.delete a) at the end of the let-block; but that is only possible if the return value of the let-block does not need the array. So instead, we need to schedule them for deletion, using these calls. We could for example have (schedule '(Array.delete a) ...) 
+ 
+Or maybe, can I simply call delete on the pointer, i.e. cast it back from wap to ap and do this:
+
+	Word wap;
+	void* vap = (void*)wap;
+	deque< deque< Word > > * ap = (deque< deque< Word > > *) vap;
+	delete(ap);
+
+That will only work if the let-block and the Array share memory. Otherwise, the pointers must be localised, so we must return them as a symbol that contains the service instance id.
+That means that deallocation will be a call to Array.delete after all.
+
+Anyway, with this implementation, consider the following:
+
+	my $a=1;
+	my $b=[1];
+	my @c=(1);
+
+$a: scalars are the primitives: (assign 'a '1)
+$b: (assign 'b (array.new '1))
+@c: (assign 'c (array.new '1))
+
+The difference between $b and @c is purely the type:
+
+	my @d=(@c, @c) 
+
+should flatten, so
+
+	(assign 'd (array.new (array.get c) (array.get c))
+
+But
+	 my @e=[$b,$b] 
+	 
+should create a hierarchic array:
+
+	(assign 'e (array.new b b))
+
+In general, @x should always be (array.get x)
+
+Apart from that, we also need 
+
+	(array.set x (array.get y)) 
+
+to express 
+
+	@x=@y;
+
+And of course push, pop etc
+
+(assign 'v ...) stores whatever ... returns as a Word_List
+array.get should probably return a list of symbols, i.e. a list of Word_List.
+But that means that
+(assign 'v (array.get w)) would not work. Which is logical: that would be $v=@w, which should be
+(assign 'v (array.length w))
+----------------
+
+Same goes for hashes, I guess. The only special thing is my %h = @a, which I guess simply
+means that hash.set can take an array argument; which means in its turn that
+the hash.get should return an array, i.e. the external representation of the hash is an array, which is a List< Word_List >
+
+----------------
+An interesting point is that, with localised pointers, we can have multiple instances of Array and Hash, in an implicit way:
+When the compiler encounters 
+
+	my @a=(...);
+
+it will create an Assign node for a, of type Array<Any>. What we need to add is an identifier for the Array instance.
+We could add this to the type: Array<id, Any>or Array<Any>[id]. This does not quite make sense, but what we want is that the call is translated into
+	
+	(assign 'a (array[id].new ...))
+
+So it means we have an implicit static array of Array instances and we pick one of the instances. We can do this in round-robin, at random, or with some smart attempt at balancing the loads.

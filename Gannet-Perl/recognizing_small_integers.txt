@@ -1,0 +1,23 @@
+How to recognize "small" integers in a context-free way?
+
+- constants
+- arithmetic (an logical) operations on constants 
+- built-in functions:
+    
+    Unconditional, return int for int args
+    int::  small num -> small int
+    abs:: small num -> small unsigned num 
+    max::small num -> small num -> small num
+    min::small num -> small num -> small num
+    
+    Unconditional, don't return int for int args
+    sin::small unsigned num -> small unsigned num
+    cos::small unsigned num -> small unsigned num
+    atan2::small num -> small num -> small num    
+    sqrt::small unsigned num -> small unsigned num
+    
+    "Conditional", don't return int for int args
+    log::small num -> small num IFF arg is positive
+    exp::small num -> small num IFF arg is negative
+
+So only the first 4 can reliably return small ints

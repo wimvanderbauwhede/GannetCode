@@ -3,7 +3,7 @@ use Gannet; # Mainly to provide buffer/stream support. Must be present. Call it 
 # Somehow we must have the class interface ...
 use Gannet::Say qw( say ); # this line is parsed to determine all valid methods for a service. Maps to serviceDecl
 # The line below should map to an instance declaration. 
-my $io = new Say(1,2,3);
+my $s1 = new Say(1,2,3);
 # However, the next lines are also instantiations
 my $n_insts=32;
 #my @ios = map { new Say($_) } (1..$n_insts);

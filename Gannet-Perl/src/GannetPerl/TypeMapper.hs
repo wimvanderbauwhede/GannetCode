@@ -1,15 +1,15 @@
 {-# LANGUAGE Rank2Types #-}
 
-module GannetC.TypeMapper (
+module GannetPerl.TypeMapper (
     getTypeInfo,
     inferTypes,
     inferCtc
 ) where
 
-import GannetC.AST
-import GannetC.Emitter (emit)
-import GannetC.State.Context
-import GannetC.State.Scope
+import GannetPerl.AST
+import GannetPerl.Emitter (emit)
+import GannetPerl.State.Context
+import GannetPerl.State.Scope
 
 import qualified Data.Map as Hash
 import Control.Monad.State
@@ -72,6 +72,8 @@ getTypeInfoIn x = do
 	let
 		nctxt = case x of
 				BindE (BAssign a) -> inAssign x ctxt
+				BindE (BUpdate a) -> inUpdate x ctxt
+				BindE (BOpUpdate a) -> inUpdate x ctxt
 				DeclE (DVarDecl vd) -> inAssign x ctxt
 				BindE (BFunDef f) -> inFunDef f ctxt
 				PureE (PLambdaDef f) -> inLambdaDef f ctxt
@@ -79,6 +81,7 @@ getTypeInfoIn x = do
 				PureE (PForeach f) -> inForeach f ctxt
 				PureE (PWhile f) -> inWhile f ctxt
 				DeclE (DInstDecl i) -> inInstDecl i ctxt
+				PureE (PServiceCall sc) -> inServiceCall sc ctxt
 				PureE (PLet l) -> inLet ctxt
 				DeclE (DConfigDecl cd) -> inConfigDecl cd ctxt
 				DeclE (DServiceDecl sd) -> inServiceDecl sd ctxt
@@ -102,34 +105,59 @@ getTypeInfoOut x = do
 
 -- Get types from declarations
 
-addDecl:: String -> GCType -> Context -> Context
-addDecl n t ctxt =
+addDecl:: String -> (GPType,[Expr]) -> Context -> Context
+addDecl n (t,el) ctxt =
 	let		
 		current = currentscope ctxt
 		enclosing = enclosingScope ctxt
 		inlambda = 0
 		ntypeinfo = Hash.insert n (t,current) (typeinfo ctxt)
-		nscope = appendScope n t current enclosing inlambda (scope ctxt)
+		nscope = appendScope n (t,el) current enclosing inlambda (scope ctxt)
 		nctxt=ctxt{typeinfo=ntypeinfo,scope=nscope}
 	in
 		nctxt			
 
-addDeclCE :: String -> GCType -> Context -> Integer -> Integer -> Context
-addDeclCE n t ctxt current enclosing =
+addDeclCE :: String -> (GPType,[Expr]) -> Context -> Integer -> Integer -> Context
+addDeclCE n (t,el) ctxt current enclosing =
 	let		
 		inlambda = 0
 		ntypeinfo = Hash.insert n (t,current) (typeinfo ctxt)
-		nscope = appendScope n t current enclosing inlambda (scope ctxt)
+		nscope = appendScope n (t,el) current enclosing inlambda (scope ctxt)
 		nctxt=if n=="" 
-				then error $ "current:"++(show current)++";enclosing:"++(show enclosing)++";type:"++(show t)
+				then error $ "current:"++(show current)++";enclosing:"++(show enclosing)++";type:"++(show t)++";node:"++(show el)
 				else ctxt{typeinfo=ntypeinfo,scope=nscope}
 	in
 		nctxt		
 
 inAssign :: Expr -> Context -> Context
-inAssign (BindE (BAssign a)) ctxt = addDecl (a_name a) (a_type a) ctxt
-inAssign (DeclE (DVarDecl vd)) ctxt = addDecl (vd_name vd) (vd_type vd) ctxt
+inAssign (BindE (BAssign a)) ctxt = addDecl (a_name a) (a_type a,[a_rhs a]) ctxt
+inAssign (DeclE (DVarDecl vd)) ctxt = addDecl (vd_name vd) (vd_type vd,[]) ctxt
 
+-- the only difference between Update and OpUpdate is that based on the operator, I could determine the type
+-- but as $a+=1 is the same as $a=$a+1, there is not really extry information there
+-- also, all operators will have been mapped to ALU etc? Or not yet? Maybe not
+-- TODO: at should become at' based on the type of the RHS
+inUpdate (BindE (BUpdate (MkUpdate an arhs@(PureE (POpCall oc)) at ))) ctxt = addDecl an (at,arhs:exprs) ctxt
+	where
+		current = currentScope ctxt
+		scopetable = scope ctxt
+		niters = 100
+		exprs = getExprsFromScope an current scopetable niters
+inUpdate (BindE (BOpUpdate (MkOpUpdate an opn arhs at ))) ctxt = addDecl an (at,arhs:exprs) ctxt
+	where
+		current = currentScope ctxt
+		scopetable = scope ctxt
+		niters = 100
+		exprs = getExprsFromScope an current scopetable niters
+inUpdate (BindE (BUpdate (MkUpdate an arhs at ))) ctxt = addDecl an (at,arhs:exprs) ctxt
+	where
+		current = currentScope ctxt
+		scopetable = scope ctxt
+		niters = 100
+		exprs = getExprsFromScope an current scopetable niters
+
+getTypeFromOpExpr op t1 t2 = GPAny -- TODO
+	
 --inFunDef f ctxt =
 --	let
 --		fname = fd_name f
@@ -137,7 +165,7 @@ inAssign (DeclE (DVarDecl vd)) ctxt = addDecl (vd_name vd) (vd_type vd) ctxt
 --		argtypes = case (fd_argstypes f) of
 --			[Void] -> [] 
 --			ts -> map (\(Arg x)->(at_type x)) ts 
---		ftype = GCFunc $ MkFunc rettype argtypes
+--		ftype = GPFunc $ MkFunc rettype argtypes
 --		nctxt=addDecl fname ftype ctxt		
 --	in
 --		nctxt
@@ -150,10 +178,10 @@ inFunDef f ctxt =
 		argstypes = case (fd_argstypes f) of
 			[Void] -> [] 
 			ts -> map (\(Arg x)->x) ts 
-		ftype = GCFunc $ MkFunc rettype (map at_type argstypes)
+		ftype = GPFunc $ MkFunc rettype (map at_type argstypes)
 		current = currentScope ctxt
 		enclosing = enclosingScope ctxt		
-		nnctxt=addDeclCE fname ftype nctxt current enclosing
+		nnctxt=addDeclCE fname (ftype,[fd_body f]) nctxt current enclosing
 	in
 		stowArgsCtxt argstypes nnctxt
 		
@@ -205,7 +233,7 @@ stowArgsCtxt args ctxt
 					nctxt = ctxt{stowedargs=nstowedargs}	
 				in
 					nctxt
-
+-- unused ???
 addArgsCtxt :: [ArgTup]-> Context -> Context
 addArgsCtxt args ctxt 
 	| length args == 0 = ctxt
@@ -216,21 +244,39 @@ addArgsCtxt args ctxt
 					largtype = at_type larg
 					current = currentScope ctxt
 					enclosing = enclosingScope ctxt						
-					nctxt = addDeclCE largname largtype ctxt current enclosing	
+					nctxt = addDeclCE largname (largtype,[]) ctxt current enclosing	-- FIXME!!!
 				in
 					addArgsCtxt rargs nctxt		
-		
--- FIXME for Gannet-Perl: handles and handlecount should be updated
--- for every IO.open; and instead of id_name it must be the filehandle name v_name
--- So the update is to be done in ServiceCall 		
 
--- InstDecl can be Service or Configuration
+{-		
+FIXME for Gannet-Perl: handles and handlecount should be updated
+for every IO.open; and instead of id_name it must be the filehandle name v_name
+So the update is to be done in ServiceCall
+But instead of using the handles to store the filehandles, it is better I think
+to store them in the scope table, as a node:
+
+addDecl fhn (fhType,[PureE ( PNumber (NInt fhc))]) ctxt
+
+
+-}
+ 		          		
+inServiceCall sc@(MkServiceCall "IO" "open" _ _) ctxt =
+	let		 
+		fhname = ( \(PureE (PVar (MkVar fhn fht))) -> fhn ) (head (sc_args sc))
+		nhandlecount=(handlecount ctxt) +1
+		nctxt = addDecl fhname (fhType,[PureE ( PNumber (NInt nhandlecount))]) ctxt					
+	in
+		nctxt{handlecount=nhandlecount}
+			
+inServiceCall _ ctxt = ctxt
+
+-- InstDecl can be Service or Configuration -- unused in Perl
 inInstDecl i ctxt = 
 	let
 		instname = id_name i
 		cfgname = case (id_type i) of
-					GCObj (MkObj _ [cfgn,cfgm]) -> cfgn -- FIXME: later, namespaces can be nested, so this is not generic
-					GCObj (MkObj _ [servicen]) -> servicen
+					GPObj (MkObj _ [cfgn,cfgm]) -> cfgn -- FIXME: later, namespaces can be nested, so this is not generic
+					GPObj (MkObj _ [servicen]) -> servicen
 					otherwise -> ""
 		nctxt = if cfgname `elem` (configs ctxt) 
 			then -- it's a configuration instance
@@ -248,7 +294,7 @@ inInstDecl i ctxt =
 					in
 						ctxt{handlecount=nhandlecount,handles=nhandles}					
 	in
-		addDecl instname (id_type i) nctxt
+		addDecl instname (id_type i,[]) nctxt
 						
 -- Scope handling
 -- Lambda is not handled at the moment
@@ -308,9 +354,9 @@ inTypeDef td ctxt =
 		nctxt=ctxt{typedefs=ntypedefs}
 	in
 		nctxt		
--- we assume that a typedef in a Configuration has an GCObj or GCTemplObj type 
-addConfigNS (GCObj (MkObj tq qt)) cfgns = GCObj $ MkObj tq (cfgns:qt)
-addConfigNS (GCTemplObj (MkTemplObj tq qt ats)) cfgns = GCTemplObj $ MkTemplObj tq (cfgns:qt) ats
+-- we assume that a typedef in a Configuration has an GPObj or GPTemplObj type 
+addConfigNS (GPObj (MkObj tq qt)) cfgns = GPObj $ MkObj tq (cfgns:qt)
+addConfigNS (GPTemplObj (MkTemplObj tq qt ats)) cfgns = GPTemplObj $ MkTemplObj tq (cfgns:qt) ats
 addConfigNS obj cfgns = obj
 
 {-
@@ -351,7 +397,7 @@ inferUpdate ue ctxt =
 		current = currentscope ctxt
 		scopetable = scope ctxt
 		-- look up the var name in the scope table
-		ntype = getGCTypefromScope name current scopetable niters		
+		ntype = getGPTypefromScope name current scopetable niters		
 	in	
 		BindE $ BUpdate $ MkUpdate (u_name ue) (u_rhs ue) ntype
 		
@@ -363,15 +409,15 @@ inferVar v ctxt =
 		current = currentscope ctxt
 		scopetable = scope ctxt
 		-- look up the var name in the scope table
-		ntype = getGCTypefromScope name current scopetable niters	
+		ntype = getGPTypefromScope name current scopetable niters	
 	in	
 		PureE $ PVar $ MkVar (v_name v) ntype
 		
---inferNothing x = PureE $ PVar $ MkVar "NOTHING" GCYada		
+--inferNothing x = PureE $ PVar $ MkVar "NOTHING" GPYada		
 	 
 inferFunAppl fa ctxt =	PureE $ PFunAppl fa 
 
---inferServiceCall sc ctxt = PureE $ PVar $ MkVar "SERVICE_CALL" GCYada
+--inferServiceCall sc ctxt = PureE $ PVar $ MkVar "SERVICE_CALL" GPYada
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -446,8 +492,8 @@ inferCtcOut x' = do
 					scopet = scope ctxt 
 					vscope = getScope vname cscope scopet			
 					ctc = getCtc arhs
-					nvtype = GCTypeCtc vtype ctc
-					nscopet = appendScope vname nvtype cscope (enclosingScope ctxt) 0 scopet -- TODO: to be correct, inlambda should be extracted from the old record
+					nvtype = GPTypeCtc vtype ctc
+					nscopet = appendScope vname (nvtype,[arhs]) cscope (enclosingScope ctxt) 0 scopet -- TODO: to be correct, inlambda should be extracted from the old record
 				in
 					ctxt{scope=nscopet}
 			_ -> ctxt			
@@ -480,7 +526,7 @@ inferCtcOut x' = do
 							cscope = currentscope ctxt
 							scopet = scope ctxt 
 							vscope = getScope vname cscope scopet			
-							vtype = getGCTypefromScope vname cscope scopet 500 -- ad hoc!							
+							vtype = getGPTypefromScope vname cscope scopet 500 -- ad hoc!							
 							ctc = getCtcFromType vtype
 						in
 							[setCtc x' ctc]
@@ -490,7 +536,7 @@ inferCtcOut x' = do
 	put nctxt				
 	return (setCtc x' ctc)
 	
-getCtcFromType (GCTypeCtc gtype ctc) =ctc
+getCtcFromType (GPTypeCtc gtype ctc) =ctc
 getCtcFromType _ = False -- FIXME
 
 getCtc (PureECtc x ctc) = ctc

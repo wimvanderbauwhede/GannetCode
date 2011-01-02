@@ -1,0 +1,14 @@
+Gannet-Perl API
+
+As a practical way to return data from Perl to Gannet and vice-versa, we could do this:
+
+Gannet::pack(@result)
+
+will convert the result into a Gannet Word_List that is actually a list of Gannet Symbols
+If you want to pass a scalar or a hash, they must be converted to arrays first
+@result must not be hierarchical, in other words it can only contain int, float or string
+
+The question is: how do I know what is inside @result?
+e.g. say @result=(11,"22",33.3) then this should result in a list of 3 symbols with the correct type
+So how can I know the type of an element in a list? Basically, Perl doesn't care. So maybe it is better to assume everyting is a string, and we actually have a list of String symbols.
+So we treat every value as a string and convert it into a list of unsigned in, see compiler

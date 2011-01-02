@@ -10,14 +10,14 @@ update operators (+=, *= etc) not yet supported
 
 --}
 
-module GannetC.PerlParser (
+module GannetPerl.Parser (
 	prettyGannetPerlFromFile,
 	parseGannetPerl
 ) where
 
-import GannetC.AST
-import GannetC.PerlServices
-import qualified GannetC.GannetParsec as GP
+import GannetPerl.AST
+import GannetPerl.PerlServices
+import qualified GannetPerl.GannetParsec as GP
 
 import Control.Monad (liftM)
 
@@ -70,13 +70,13 @@ parseGannetPerl input =  case parse program "" input of
 -- we do not allow empty programs
 program :: Parser Program
 --program = whiteSpace >> semiSepEnd1 expr >>= \exprs -> return $ MkProg exprs
-program = whiteSpace >> semiOrBlockSepEndBy1 expr >>= \exprs -> return $ MkProg [PureE $ PLet $ MkLet [] (perlPrelude++(processPureExprs exprs)) GCAny]
+program = whiteSpace >> semiOrBlockSepEndBy1 expr >>= \exprs -> return $ MkProg [PureE $ PLet $ MkLet [] (perlPrelude++(processPureExprs exprs)) GPAny]
 --program = many1 expr >>= \exprs -> return $ MkProg exprs
 perlPrelude = 
 	let
-		ds = DeclE (DVarDecl (MkVarDecl "_" scalarTypeAny)) 
-		da = DeclE (DVarDecl (MkVarDecl "_" arrayTypeAny)) 
-		dh = DeclE (DVarDecl (MkVarDecl "_" hashTypeAny))
+		ds = DeclE (DVarDecl (MkVarDecl "$_" scalarTypeAny)) 
+		da = DeclE (DVarDecl (MkVarDecl "@_" arrayTypeAny)) 
+		dh = DeclE (DVarDecl (MkVarDecl "%_" hashTypeAny))
 	in
 		[ds,da,dh]	
 --------------------------------------------------------------------------------
@@ -148,13 +148,13 @@ funAppl = do
 				fname <- identifier
 				args <- parens (commaSep pureExpr)
 				return $ if fname/="shift" -- TODO: make generic!
-							then PFunAppl (MkFunAppl fname (map PureE args) GCAny)
-							else PServiceCall (MkServiceCall "Array" fname (map PureE args) GCAny) 
+							then PFunAppl (MkFunAppl fname (map PureE args) GPAny)
+							else PServiceCall (MkServiceCall "Array" fname (map PureE args) GPAny) 
 
 bareCommand = printFHArgs <|>bareCommandArgs <|>  bareCommandNoArgs   				
 bareCommandNoArgs = do
 				cname <- identifier 
-				return $ commandAppl cname [PureE (PVar (MkVar "_" arrayTypeAny))]			
+				return $ commandAppl cname [PureE (PVar (MkVar "@_" arrayTypeAny))]			
 -- FIXME
 bareCommandArgs = do
 				cname <- identifier
@@ -212,15 +212,15 @@ by a reverse lookup of the object
 	
 -}												
 commandAppl cname args
-	| perlService cname/="" = PServiceCall (MkServiceCall (perlService cname) cname args GCAny)
-	| otherwise = PFunAppl (MkFunAppl cname args  GCAny) 
+	| perlService cname/="" = PServiceCall (MkServiceCall (perlService cname) cname args GPAny)
+	| otherwise = PFunAppl (MkFunAppl cname args  GPAny) 
 		  												
 serviceCall = do
 				inst <- identifier
 				arrow
 				meth <- identifier
 				args <- parens (commaSep pureExpr)
-				return $ PServiceCall (MkServiceCall inst meth (map PureE args) GCAny) 
+				return $ PServiceCall (MkServiceCall inst meth (map PureE args) GPAny) 
 -- $a[e1][e2]... -> (Array.at (Array.at a e1) e2)				
 arrayIndex = do
 			(vartype,varname) <- varIdentifierPairAny	
@@ -230,26 +230,26 @@ arrayIndex = do
 			return inst				
 
 parseArray var idxs 
-	| length idxs>1 = foldl (\a ie -> (PServiceCall (MkServiceCall "Array" "at" [PureE a, PureE ie] GCAny))) var idxs
-	| otherwise = 	PServiceCall (MkServiceCall "Array" "at" [PureE var, PureE (head idxs)] GCAny)					
+	| length idxs>1 = foldl (\a ie -> (PServiceCall (MkServiceCall "Array" "at" [PureE a, PureE ie] GPAny))) var idxs
+	| otherwise = 	PServiceCall (MkServiceCall "Array" "at" [PureE var, PureE (head idxs)] GPAny)					
 
 
 arrow = symbol "->"
 
 arefConst = do
 	elts <- brackets (commaSepEnd pureExpr)
-	return $ PServiceCall (MkServiceCall "Array" "new" (map PureE elts) GCAny)
+	return $ PServiceCall (MkServiceCall "Array" "new" (map PureE elts) GPAny)
 
 hrefConst = do
 	elts <- braces (commaSepEnd pairExpr)
-	return $ PServiceCall (MkServiceCall "Hash" "new" (map PureE elts) GCAny)
+	return $ PServiceCall (MkServiceCall "Hash" "new" (map PureE elts) GPAny)
 
 pair = symbol "=>"
 pairExpr = do
 			k <- keyExpr
 			pair
 			v <- pureExpr
-			return $ PPair (MkPair (PureE k) (PureE v) GCAny)
+			return $ PPair (MkPair (PureE k) (PureE v) GPAny)
 
 keyExpr = stringExpr <|> numberExpr <|> varExpr
         
@@ -260,7 +260,7 @@ letExpr = do
 			let
 				exprs'' = processPureExprs exprs
 				exprs' = processSeq exprs'' []			
-			return $ MkLet bt exprs' GCAny
+			return $ MkLet bt exprs' GPAny
 			
 processSeq el el' 
     | length el==0 = el'
@@ -272,7 +272,7 @@ processSeq el el'
                     let
                        (exprs,xs') = findNoSeq xs
                     in
-                       (PureE (PBegin (MkBegin ["seq"] exprs GCAny)),xs')
+                       (PureE (PBegin (MkBegin ["seq"] exprs GPAny)),xs')
                 else (x,xs)
         in
             processSeq xs' (el'++[x'])            
@@ -287,11 +287,11 @@ isSeq _ = False
 
 beginExpr = do
 			exprs <- parens (commaSep1 expr)
-			return $ MkBegin [] exprs GCAny		
+			return $ MkBegin [] exprs GPAny		
 
 processPureExprs el = map bindRegex el                        
 bindRegex x = case x of 
-	(PureE (PRegex _)) ->  BindE (BUpdate (MkUpdate "_" x (scalarType regexType)))
+	(PureE (PRegex _)) ->  BindE (BUpdate (MkUpdate "$_" x (scalarType regexType)))
 	_ -> x
 lambdaDef = do
 			reserved "sub"
@@ -299,9 +299,9 @@ lambdaDef = do
 			let
 				exprs = l_body fbody
 				args 
-					| hasArgs exprs = [ Arg (MkArgTup arrayTypeAny "_" ) ]
+					| hasArgs exprs = [ Arg (MkArgTup arrayTypeAny "@_" ) ]
 					| otherwise = []
-			return $ MkLambdaDef GCAny args (PureE (PLet fbody)) 						        
+			return $ MkLambdaDef GPAny args (PureE (PLet fbody)) 						        
 
 {-
 I just realised this is silly: simply use an array as the lambda arg 
@@ -331,22 +331,22 @@ getArgs exprs =
 -- Still, what is most likely, appart from assign? update, opupdate, servicecall, funappl
 
 -- shift, shift(@_), pop, pop(@_) 
-isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PServiceCall (MkServiceCall "Array" "shift" [PureE (PVar (MkVar "_" arrayType))] _)))))) = True
-isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PFunAppl (MkFunAppl "shift" [PureE (PVar (MkVar "_" arrayType))] GCAny)) )))) = True
+isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PServiceCall (MkServiceCall "Array" "shift" [PureE (PVar (MkVar "@_" arrayType))] _)))))) = True
+isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PFunAppl (MkFunAppl "shift" [PureE (PVar (MkVar "_" arrayType))] GPAny)) )))) = True
 -- to support pop we need a temp stack of the pop'ed values. 
-isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PServiceCall (MkServiceCall "Array" "pop" [PureE (PVar (MkVar "_" arrayType))] _)) )))) = True
+isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PServiceCall (MkServiceCall "Array" "pop" [PureE (PVar (MkVar "@_" arrayType))] _)) )))) = True
 -- $_[...] but this will only work if the index expression is a constant
 -- also, we need to deal with out-of-order indexing, by building a list of pairs and sorting them. 
-isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PServiceCall (MkServiceCall "Array" "at" [PureE (PVar (MkVar "_" arrayType)),_] _) ))))) = True
+isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PServiceCall (MkServiceCall "Array" "at" [PureE (PVar (MkVar "@_" arrayType)),_] _) ))))) = True
 -- @_
-isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PVar (MkVar "_" arrayType))) ))) = True
+isArgExpr (BindE (BAssign (MkAssign _ _  (PureE (PVar (MkVar "@_" arrayType))) ))) = True
 isArgExpr _ = False
 
 hasArgs exprs = length (filter isArgExpr exprs) > 0
 
 {-
 processArgExpr (BindE (BAssign (MkAssign vtype vname (PServiceCall (MkServiceCall "Array" "shift" [PureE (PVar (MkVar "_" arrayType))] _))))) idx = (vtype,vname,idx+1)
-processArgExpr (BindE (BAssign (MkAssign vtype vname (PFunAppl (MkFunAppl "shift" [PVar (MkVar "_" arrayType)] GCAny)) ))) idx = (vtype,vname,idx+1)
+processArgExpr (BindE (BAssign (MkAssign vtype vname (PFunAppl (MkFunAppl "shift" [PVar (MkVar "_" arrayType)] GPAny)) ))) idx = (vtype,vname,idx+1)
 --processArgExpr (BindE (BAssign (MkAssign vtype vname (PServiceCall (MkServiceCall "Array" "pop" [PureE (PVar (MkVar "_" arrayType))] _))))) = (vtype,vname,idx-1) 
 --processArgExpr (BindE (BAssign (MkAssign vtype vname (PServiceCall (MkServiceCall "Array" "at" [PureE (PVar (MkVar "_" arrayType)),_] _))))) 
 --	| idx==0 = (vtype,vname,idx)
@@ -380,9 +380,9 @@ whileExprNoLet = do
                 reserved "while"
                 c <- parens expr -- pureExpr
                 let c' =  case c of
-					PureE (PServiceCall (MkServiceCall "IO" "readline" _ _)) -> BindE (BAssign (MkAssign scalarTypeAny "_" c)) 
+					PureE (PServiceCall (MkServiceCall "IO" "readline" _ _)) -> BindE (BAssign (MkAssign scalarTypeAny "$_" c)) 
 					_ -> c
-                return $ PWhile (MkWhile c (PureE (PLet (MkLet [] [] GCAny))))
+                return $ PWhile (MkWhile c (PureE (PLet (MkLet [] [] GPAny))))
 
 whileExprLet = do
 	reserved "while"
@@ -390,7 +390,7 @@ whileExprLet = do
 	b <- letExpr		
 	let c' =  case c of
 	-- only a <...> inside a while () is assigned automatically to $_ 
-		PureE (PServiceCall (MkServiceCall "IO" "readline" _ _)) -> BindE (BAssign (MkAssign scalarTypeAny "_" c)) 
+		PureE (PServiceCall (MkServiceCall "IO" "readline" _ _)) -> BindE (BAssign (MkAssign scalarTypeAny "$_" c)) 
 		_ -> c
 --		_ -> BindE (BAssign (MkAssign scalarType "_" c))
 	return $ PWhile (MkWhile c' (PureE (PLet b)))
@@ -417,8 +417,8 @@ foreachExpr = do
 		b <- letExpr		
 		let
 			lv' = case lv of
-				PBegin (MkBegin _ [(PureE (PServiceCall (MkServiceCall "Range" "new" rargs _)))] _) -> PServiceCall (MkServiceCall "Range" "new" rargs GCAny)
-				PBegin (MkBegin _ body _) -> PServiceCall (MkServiceCall "Array" "new" body GCAny)
+				PBegin (MkBegin _ [(PureE (PServiceCall (MkServiceCall "Range" "new" rargs _)))] _) -> PServiceCall (MkServiceCall "Range" "new" rargs GPAny)
+				PBegin (MkBegin _ body _) -> PServiceCall (MkServiceCall "Array" "new" body GPAny)
 				otherwise -> lv
 		return $ PForeach (MkForeach (PureE (PVar (MkVar ivn ivt))) (PureE lv') (PureE (PLet b)))
 		
@@ -430,20 +430,21 @@ dotdotList= do
 				return $ dotdotExpr
 											
 returnExpr = reserved "return" >> pureExpr >>= \arg -> return $ PReturn arg
-			 		
+-- Open returns nonzero on success, the undefined value otherwise; here we have to use 0 to mean "undefined"
+-- but the runtime will return NIL			 		
 fileOpenExpr = do
 		reserved "open"
-		reserved "my"
+		reserved "my" -- although someone might declare the FH before using it in open(), so maybe "many"
 		(fht,fhn) <- varIdentifierPair -- a FH is a uint
 		comma
 		mode <- stringExpr
 		comma
 		filename <- stringExpr
-		return $ PServiceCall (MkServiceCall "IO" "open" [(PureE (PVar (MkVar fhn (fht fhType)))),PureE filename,PureE mode] GCAny) 
+		return $ PServiceCall (MkServiceCall "IO" "open" [PureE (PVar (MkVar fhn (fht fhType))),PureE filename,PureE mode] intType) 
 
 fileReadExpr = do
 	(fht,fhn) <- angles varIdentifierPair
-	return  $ PServiceCall (MkServiceCall "IO" "readline" [PureE (PVar (MkVar fhn (fht fhType)))] GCAny) -- FIXME: it's a String!
+	return  $ PServiceCall (MkServiceCall "IO" "readline" [PureE (PVar (MkVar fhn (fht fhType)))] GPAny) -- FIXME: it's a String!
 	 		
 --exprList = do 
 --			exprs <- sepEndBy1 expr semi
@@ -483,8 +484,8 @@ assignExpr = do
             else
             do
             	let
-            		rhs' = transformList (vartype GCAny) rhs            		
-                return $ BindE $ BAssign (MkAssign (vartype GCAny) varname rhs')
+            		rhs' = transformList (vartype GPAny) rhs            		
+                return $ BindE $ BAssign (MkAssign (vartype GPAny) varname rhs') -- FIXME: if assignment returns bool, this should be bool
 
 {-
 We need list assignments and updates as well:
@@ -525,22 +526,22 @@ an Array constructor call. As there is only one, implicit, Array service, this i
 MkBegin { -- b_ is taken by Basic
 	bb_blocktype::[String] 
 ,	bb_body::[Expr]
-,	bb_type::GCType
+,	bb_type::GPType
 
 data ServiceCall = MkServiceCall
     {
-         sc_name::String, sc_op::String, sc_args::[Expr], sc_type::GCType -- sc_args is  [PureExpr] but for Data.Generics, use Expr
+         sc_name::String, sc_op::String, sc_args::[Expr], sc_type::GPType -- sc_args is  [PureExpr] but for Data.Generics, use Expr
     }
  
 BindE (BAssign 
 (MkAssign {
-	a_type = GCTemplObj (MkTemplObj {to_typequal = [], to_qtype = ["Array"], to_args = [TArgT GCAny]}), 
+	a_type = GPTemplObj (MkTemplObj {to_typequal = [], to_qtype = ["Array"], to_args = [TArgT GPAny]}), 
 	a_name = "ar", 
-	a_rhs = PureE (PServiceCall (MkServiceCall {sc_name = "Range", sc_op = "new", sc_args = [PureE (PNumber (NInt 1)),PureE (PNumber (NInt 10))], sc_type = GCAny}))}))
+	a_rhs = PureE (PServiceCall (MkServiceCall {sc_name = "Range", sc_op = "new", sc_args = [PureE (PNumber (NInt 1)),PureE (PNumber (NInt 10))], sc_type = GPAny}))}))
 
 -}
-transformList (GCTemplObj (MkTemplObj [] ["Array"] [TArgT GCAny])) (PBegin (MkBegin bt [(PureE (PServiceCall (MkServiceCall "Range" "new" body GCAny)))] _)) = PureE (PServiceCall (MkServiceCall "Range" "new" body GCAny))
-transformList (GCTemplObj (MkTemplObj [] ["Array"] [TArgT GCAny])) (PBegin (MkBegin bt body _)) = PureE (PServiceCall (MkServiceCall "Array" "new" body GCAny))
+transformList (GPTemplObj (MkTemplObj [] ["Array"] [TArgT GPAny])) (PBegin (MkBegin bt [(PureE (PServiceCall (MkServiceCall "Range" "new" body GPAny)))] _)) = PureE (PServiceCall (MkServiceCall "Range" "new" body GPAny))
+transformList (GPTemplObj (MkTemplObj [] ["Array"] [TArgT GPAny])) (PBegin (MkBegin bt body _)) = PureE (PServiceCall (MkServiceCall "Array" "new" body GPAny))
 transformList _ e = PureE e
        
 updateExpr = do		
@@ -564,9 +565,9 @@ funDef = do
 		let
 			exprs = l_body fbody
 			args
-				| hasArgs exprs = [ Arg (MkArgTup arrayTypeAny "_" ) ]
+				| hasArgs exprs = [ Arg (MkArgTup arrayTypeAny "@_" ) ]
 				| otherwise = []		
-		return $ MkFunDef GCAny fname args (PureE (PLet fbody))
+		return $ MkFunDef GPAny fname args (PureE (PLet fbody))
 		
 argExpr = do
 		argtype <- typeExpr
@@ -587,38 +588,63 @@ argExpr = do
 varIdentifierPair = scalarIdentifierPair <|> arrayIdentifierPair <|> hashIdentifierPair <?> "varIdentifierPair"
 varIdentifierPairAny = scalarIdentifierPairAny <|> arrayIdentifierPairAny <|> hashIdentifierPairAny <?> "varIdentifierPairAny"
 
-scalarType t = GCTemplObj $ MkTemplObj [] ["Scalar"] [TArgT t]
-scalarTypeAny = GCTemplObj $ MkTemplObj [] ["Scalar"] [TArgT GCAny]
+--scalarType t = GPTemplObj $ MkTemplObj [] ["Scalar"] [TArgT t]
+--scalarTypeAny = GPTemplObj $ MkTemplObj [] ["Scalar"] [TArgT GPAny]
 scalarIdentifierPair = do
         s <- scalarIdentifier
-        return (scalarType,s)
+        let
+        	s'
+        		| s=="_" = "$_"
+        		| otherwise = s
+        return (scalarType,s')
+
 scalarIdentifierPairAny  = do
         s <- scalarIdentifier
+        let
+        	s'
+        		| s=="_" = "$_"
+        		| otherwise = s
         return (scalarTypeAny,s)
          
-arrayType t = GCTemplObj $ MkTemplObj [] ["Array"] [TArgT t]
-arrayTypeAny = GCTemplObj $ MkTemplObj [] ["Array"] [TArgT GCAny]        
+--arrayType t = GPTemplObj $ MkTemplObj [] ["Array"] [TArgT t]
+--arrayTypeAny = GPTemplObj $ MkTemplObj [] ["Array"] [TArgT GPAny]        
 arrayIdentifierPair = do
         s <- arrayIdentifier
+        let
+        	s'
+        		| s=="_" = "@_"
+        		| otherwise = s
         return (arrayType,s)
 arrayIdentifierPairAny = do
         s <- arrayIdentifier
+        let
+        	s'
+        		| s=="_" = "@_"
+        		| otherwise = s
         return (arrayTypeAny,s)        
         
-hashType t = GCTemplObj $ MkTemplObj [] ["Hash"] [TArgT t]
-hashTypeAny = GCTemplObj $ MkTemplObj [] ["Hash"] [TArgT GCAny]        
+--hashType t = GPTemplObj $ MkTemplObj [] ["Hash"] [TArgT t]
+--hashTypeAny = GPTemplObj $ MkTemplObj [] ["Hash"] [TArgT GPAny]        
 hashIdentifierPair = do
         s <- hashIdentifier
+        let
+        	s'
+        		| s=="_" = "%_"
+        		| otherwise = s
         return (hashType,s)
 hashIdentifierPairAny = do
         s <- hashIdentifier
+        let
+        	s'
+        		| s=="_" = "%_"
+        		| otherwise = s
         return (hashTypeAny,s)
 
-refType t = GCTemplObj $ MkTemplObj [] ["Ref"] [TArgT t]
-refTypeAny = GCTemplObj $ MkTemplObj [] ["Ref"] [TArgT GCAny]
-fhType = GCObj $ MkObj [] ["FileHandle"]
-
-regexType = GCObj $ MkObj [] ["RegEx"]
+--refType t = GPTemplObj $ MkTemplObj [] ["Ref"] [TArgT t]
+--refTypeAny = GPTemplObj $ MkTemplObj [] ["Ref"] [TArgT GPAny]
+--fhType = GPObj $ MkObj [] ["FileHandle"]
+--
+--regexType = GPObj $ MkObj [] ["RegEx"]
 -- ------------------------------------------------------------
 instanceType = (try funcType) <|> (try templObjType) <|> (try objType) <|> basicType <|> yadaType <|> anyType
 
@@ -635,8 +661,8 @@ typeExpr =
 objType = do 
 			tq <- many typeQual
 			qobjtype <- sepBy1 identifier nsSep
-			return $ GCObj (MkObj tq qobjtype)
---objType = objIdentifier >>= \objtype -> return (GCObj (MkObj [qobjtype]))	
+			return $ GPObj (MkObj tq qobjtype)
+--objType = objIdentifier >>= \objtype -> return (GPObj (MkObj [qobjtype]))	
 
 -- Any type should presumably const? But I only enforce const (if I do at all)
 -- for basic tyes and List<> types. 
@@ -647,7 +673,7 @@ templObjType = do
 		tq <- many typeQual
 		qobjtype <- sepBy1 objIdentifier nsSep
 		templargs <- angles (commaSep templArg)
-		return $ GCTemplObj (MkTemplObj tq qobjtype templargs)	
+		return $ GPTemplObj (MkTemplObj tq qobjtype templargs)	
 
 templArg = 
 		-- (liftM TArgT (try typeExpr))
@@ -658,18 +684,18 @@ templArg =
 
 nsSep = symbol "::"
 		
-yadaType = reserved "..." >> return GCYada
-anyType = reserved "any" >> return GCAny
+yadaType = reserved "..." >> return GPYada
+anyType = reserved "any" >> return GPAny
 
 basicType = do
 		tq <- many typeQual
 		uqbt <- unQualBasicType
-		return $ GCBasic $ MkBasic tq uqbt 
+		return $ GPBasic $ MkBasic tq uqbt 
 
 unQualBasicType :: Parser UnqualBasicType			
 unQualBasicType = 
 				liftM (OtherT . MkOtherType) otherType 
-			<|> liftM NumberT numberType -- symbol "int" >> return (GCBasic (MkBasic [] (NumberT (SimpleT Int))))
+			<|> liftM NumberT numberType -- symbol "int" >> return (GPBasic (MkBasic [] (NumberT (SimpleT Int))))
 --			<|> liftM (OtherT . MkOtherType) (try otherType) 
 			<?> "unQualBasicType"
 
@@ -706,7 +732,7 @@ sizeQual = keyword "short" <|> keyword "long"	 <|> keyword "int" <|> keyword "ch
 funcType = do
 			rettype <- retTypeExpr
 			argtypes <- parens (commaSep retTypeExpr) 
-			return $ GCFunc $ MkFunc rettype argtypes
+			return $ GPFunc $ MkFunc rettype argtypes
 
 retTypeExpr = do
 			yadaType
@@ -736,7 +762,7 @@ serviceDecl = do
 varDecl = do
         reserved "my"
         (vartype,varname) <- varIdentifierPair
-        return $ MkVarDecl varname (vartype GCAny)
+        return $ MkVarDecl varname (vartype GPAny)
 
 useDecl = do
 				reserved "use"
@@ -760,18 +786,18 @@ serviceTemplCtor = do
 				service <- identifier
 				templargs <- angles (commaSep templArg)
 				argtypes <- parens (commaSep typeExpr)
-				return $ DeclE $ DOpDecl $ MkOpDecl service (GCFunc (MkFunc (GCTemplObj (MkTemplObj [] [service] templargs)) argtypes)) 		
+				return $ DeclE $ DOpDecl $ MkOpDecl service (GPFunc (MkFunc (GPTemplObj (MkTemplObj [] [service] templargs)) argtypes)) 		
 			
 serviceCtor = do
 				service <- identifier
 				argtypes <- parens (commaSep typeExpr)
-				return $ DeclE $ DOpDecl $ MkOpDecl service (GCFunc (MkFunc (GCObj (MkObj [] [service])) argtypes)) 		
+				return $ DeclE $ DOpDecl $ MkOpDecl service (GPFunc (MkFunc (GPObj (MkObj [] [service])) argtypes)) 		
 				
 methodDeclF = do
 				rettype <- retTypeExpr
 				service <- identifier
 				argtypes <- parens (commaSep retTypeExpr)
-				return $ DeclE $ DOpDecl $ MkOpDecl service (GCFunc (MkFunc rettype argtypes)) 
+				return $ DeclE $ DOpDecl $ MkOpDecl service (GPFunc (MkFunc rettype argtypes)) 
 				
 methodDeclV = do
 				ftype <- funcType
@@ -845,7 +871,7 @@ data DeclExpr =
 
 varExpr = do 
 		(vartype,x) <- varIdentifierPair
-		return (PVar (MkVar x (vartype GCAny)))
+		return (PVar (MkVar x (vartype GPAny)))
 		
 stringExpr = 
 	do
@@ -980,16 +1006,16 @@ pureExpr = buildExpressionParser optable atomicPureE <?> "pureExpr"
 
 optable =
 	let
-		binop name assoc   = Infix ( do {  reservedOp name; return (\x y ->(POpCall (MkOpCall name [x,y] GCAny))) } ) assoc
+		binop name assoc   = Infix ( do {  reservedOp name; return (\x y ->(POpCall (MkOpCall name [x,y] GPAny))) } ) assoc
 --		prefix name = Prefix ( do {  reservedOp name; return (\x ->(POpCall (MkOpCall name [x]))) } ) 
-		postfix name = Postfix ( do {   reservedOp name; return (\x ->(POpCall (MkOpCall name [x] GCAny))) } ) 
-		prefix name     = Prefix  ( reservedOp  name >> return (\x ->(POpCall (MkOpCall name [x] GCAny))) ) 
+		postfix name = Postfix ( do {   reservedOp name; return (\x ->(POpCall (MkOpCall name [x] GPAny))) } ) 
+		prefix name     = Prefix  ( reservedOp  name >> return (\x ->(POpCall (MkOpCall name [x] GPAny))) ) 
 --		postfix name  = Postfix ( reservedOp name >> return (\x ->(POpCall (MkOpCall name [x]))) )
 --try (do {many1 anyChar; notFollowedBy (oneOf ">,;")});   
---		arrow = Infix ( try $ do { reservedOp "->";  return (\x y ->(POpCall (MkOpCall "->" [x,y] GCAny))) } ) AssocLeft        
+--		arrow = Infix ( try $ do { reservedOp "->";  return (\x y ->(POpCall (MkOpCall "->" [x,y] GPAny))) } ) AssocLeft        
 		arrow = Infix ( try $ do { reservedOp "->";  return (\x y ->(arrowAppl x y)) } ) AssocLeft		
---		pair = Infix ( try $ do { reservedOp "=>";  return (\x y ->(POpCall (MkOpCall "=>" [x,y] GCAny))) } ) AssocRight 		
-		ltop = Infix ( try $ do { reservedOp "<";  return (\x y ->(POpCall (MkOpCall "<" [x,y] GCAny))) } ) AssocNone    
+--		pair = Infix ( try $ do { reservedOp "=>";  return (\x y ->(POpCall (MkOpCall "=>" [x,y] GPAny))) } ) AssocRight 		
+		ltop = Infix ( try $ do { reservedOp "<";  return (\x y ->(POpCall (MkOpCall "<" [x,y] GPAny))) } ) AssocNone    
 		dotdot = Infix ( try $ do { reservedOp "..";  return (\x y ->(dotdotAppl x y)) } ) AssocNone
 		regexmatch = Infix ( try $ do { reservedOp "=~";  return (\x y ->(regexMatchAppl x y)) } ) AssocLeft
 --		opupdate name = Infix ( do {  reservedOp name; return (\x y ->(BOpUpdate (MkOpUpdate "x" name (PureE y)))) } ) AssocRight -- FIXME: is not a PureE BOpUpdate !!!                                                          	
@@ -1019,10 +1045,10 @@ optable =
 		]
 
 arrowAppl (PVar (MkVar vname vtype)) (PFunAppl (MkFunAppl fname fargs ftype)) = PServiceCall (MkServiceCall vname fname fargs ftype) -- or is it vtype?
-arrowAppl x y = POpCall (MkOpCall "->" [x,y] GCAny) -- this must be FunAppl!!!
+arrowAppl x y = POpCall (MkOpCall "->" [x,y] GPAny) -- this must be FunAppl!!!
 
-dotdotAppl start_expr stop_expr = PServiceCall (MkServiceCall "Range" "new" [PureE start_expr,PureE stop_expr] GCAny)
-regexMatchAppl str re = PServiceCall (MkServiceCall "PCRE" "match" [PureE str,PureE re] GCAny)
+dotdotAppl start_expr stop_expr = PServiceCall (MkServiceCall "Range" "new" [PureE start_expr,PureE stop_expr] GPAny)
+regexMatchAppl str re = PServiceCall (MkServiceCall "PCRE" "match" [PureE str,PureE re] GPAny)
 
 -- The lexer
 gannetcDef = emptyDef {
