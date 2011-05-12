@@ -1,0 +1,114 @@
+/*
+l1           nonassoc    ++ --
+l2           right       **
+l3           right       ! ~ 
+l4           left        * / % 
+l5           left        + -
+           left        << >>
+           nonassoc    < > <= >= 
+           nonassoc    == != 
+           left        & bitand
+           left        | ^ bitor xor
+           left        && and
+           left        || or
+           right       ?:
+           right       = += -= *= etc.
+*/
+Package expression;
+
+Helpers
+
+    digit = ['0' .. '9'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+    l1ops = '++' | '--';
+    l2ops = '**';
+    l3ops= '!' | '~' ;
+    l4ops= '*' | '/' | '%';
+    l5ops = '+' | '-';
+    nonzero_digit = ['1' .. '9'];
+    sign = '+' | '-';
+    signed_decimal_constant = sign nonzero_digit digit*;
+    pos_decimal_constant = nonzero_digit digit*;
+    decimal_constant = sign? nonzero_digit digit*;
+    blank = (' ' | tab | eol)+;
+
+Tokens
+    l_par = '(';
+    r_par = ')';
+//    plus = '+';
+//    minus = '-';
+//    mult = '*';
+//    div = '/';
+     l1op=l1ops;
+     l2op=l2ops;
+     l4op=l4ops;
+     l5op=l5ops;
+
+    semi = ';';
+
+    blank = blank;
+    
+    number = decimal_constant;
+//    number = pos_decimal_constant; /*digit+;*/
+//    signednumber = signed_decimal_constant;    
+
+Ignored Tokens
+
+    blank;
+
+Productions
+
+    grammar           = exp_list                    {-> New grammar ([exp_list.expr])}
+                      ;
+
+    exp_list          {-> expr*} =
+                        {list}    exp_list separator l5term {-> [exp_list.expr, l5term.expr] }
+                      | {single}  l5term               {-> [l5term.expr] }
+                      ;
+    l5term               {-> expr} =  
+                        {l5op}  l5term l5op l4term   {-> New expr.l5 (l5op,l5term.expr, l4term.expr) }
+                      | {pplus}    l5term l4term {-> New expr.plus (l5term.expr, l4term.expr) } // this is a bit of a hack, to deal with signed integers
+                      | {l4term}  l4term            {-> l4term.expr }
+                      ;
+
+    l4term            {-> expr} =
+                        {l4op}    l4term l4op l2term  {-> New expr.l4 (l4op,l4term.expr, l2term.expr) }
+                      | {l2term}    l2term              {-> l2term.expr }                      
+                      ;
+    l2term            {-> expr} =
+                        {l2op}    l0term l2op l2term  {-> New expr.l2 (l2op,l0term.expr,l2term.expr) }
+                      | {l0term}    l0term              {-> l0term.expr } ;    
+                      
+    l0term              {-> expr} =
+                        {number}        number              {-> New expr.number(number) }
+//                      | {signednumber}  signednumber        {-> New expr.signednumber(signednumber) }
+                      | {parexp}        l_par l5term r_par  {-> l5term.expr }
+                      | {l1op}          l0term l1op         {-> New expr.l1 (l1op,l0term.expr) }
+                      ;
+                      
+    separator  {-> } =
+                        {semicolon} semi {-> }
+                      ;
+                      
+                      
+Abstract Syntax Tree
+
+    grammar           = expr+
+                      ;
+
+    expr               =
+                        {l1}    [op]:l1op [l]:expr |
+                        {l2}    [op]:l2op [l]:expr  [r]:expr |
+                        {l4}    [op]:l4op [l]:expr  [r]:expr |
+                        {l5}    [op]:l5op [l]:expr  [r]:expr |
+                        {plus}    [l]:expr  [r]:expr |
+//                        {minus}   [l]:expr  [r]:expr |
+//                        {div}     [l]:expr  [r]:expr |
+//                        {mult}    [l]:expr  [r]:expr |
+                        {number}  number 
+//                       | {signednumber}  signednumber
+                      ;
+                                          

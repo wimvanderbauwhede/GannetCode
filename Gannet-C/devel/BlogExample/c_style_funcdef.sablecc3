@@ -1,0 +1,134 @@
+/* Example grammar to parse
+
+    unsigned int cmp(int x, int y) {
+        if (x==y) { 1 } else { 0 }
+    }
+
+    (c) Wim Vanderbauwhede 2010    
+*/
+
+Package CFundef;
+
+Helpers
+    all = [0 .. 127];
+    digit = ['0' .. '9'];
+	nondigit =  ['_' + [['a' .. 'z'] + ['A' .. 'Z']]];
+	noncap = ['a' .. 'z'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+    not_cr_lf = [all - [cr + lf]];
+    blank = (' ' | tab | eol)+;
+    nonzero_digit = ['1' .. '9'];
+    decimal_constant = nonzero_digit digit* | '0';
+    not_star = [all - '*'];
+    not_star_slash = [not_star - '/'];
+    comment_chars = [32 .. 126];    
+    short_comment = '//' not_cr_lf* eol;
+    long_comment =
+        '/*' not_star* '*'+ (not_star_slash not_star* '*'+)* '/';
+    comment = short_comment | long_comment;
+    
+
+// Identifiers not defined in the AST (e.g. "cmp", "identifier" and "int" must be terminals of the grammar, i.e. tokens:
+
+Tokens
+
+    comma = ',';    
+    l_par = '(';
+    r_par = ')';
+    semi = ';';
+    cmp = '==';
+    l_brace = '{';
+    r_brace = '}';
+    if = 'if';
+    else = 'else';
+    int = 'int';
+    signed = 'signed';
+    unsigned = 'unsigned';    
+    number = decimal_constant ;
+    identifier = noncap (digit | nondigit)*;
+    blank = blank;    
+    comment = comment; 
+
+//SableCC conveniently lets us specify which tokens can be ignored:
+
+Ignored Tokens
+
+    blank,
+    comment; 
+    
+    
+//Unquoted identifiers on the rhs of the expressions are defined as regular expressions in the Helpers section of the grammar.
+//Assuming that our program will only exists of one or more function definitions, the production rules become
+
+Productions
+
+    program			= expr_list separator?   {-> New program ([expr_list.expr])} ;                          
+
+    expr_list          {-> expr*} =
+                        {list}    expr_list separator expr {-> [expr_list.expr, expr.expr] }
+                      | {single}  expr      {-> [expr.expr] }
+                      ;
+                                     
+	pure_expr_list  {-> pure_expr*} =
+						{list} pure_expr_list separator pure_expr {-> [pure_expr_list.pure_expr,pure_expr.pure_expr]}
+					|	{single} pure_expr {-> [pure_expr.pure_expr]}
+					;
+					
+	expr = 
+						{bind} bind_expr 
+					|	{pure} pure_expr {-> New expr.pure(pure_expr.pure_expr)}
+					;
+					
+	bind_expr  = {fundef} function_definition {-> function_definition.bind_expr};
+                   
+    function_definition {-> bind_expr} = {fundef} c_int_type identifier l_par arg_decl_list r_par l_brace expr_list separator? r_brace 
+    {-> New bind_expr.fundef (c_int_type,identifier,[arg_decl_list.funcarg],[expr_list.expr]) };
+    
+    arg_decl_list {-> funcarg* } =    
+                                 {alist}    arg_decl_list list_sep func_arg {-> [arg_decl_list.funcarg,func_arg.funcarg]}
+				               | {asingle}  func_arg {-> [func_arg.funcarg]}                
+				               ;
+				               
+    func_arg {-> funcarg } = c_int_type identifier {-> New funcarg.argtup (c_int_type,identifier)};
+
+    pure_expr {-> pure_expr} = 
+          {cmp} [left]:atom_pure_expr [op]:cmp [right]:atom_pure_expr    {-> New pure_expr.cmp (op,[left.pure_expr,right.pure_expr]) }
+        | {atom} atom_pure_expr {-> atom_pure_expr.pure_expr };             
+                                            
+    atom_pure_expr {-> pure_expr} =
+                      {cond} if l_par [pred]:pure_expr r_par [lbt]:l_brace [iftrue]:expr_list [s1]:separator? [rbt]:r_brace else [lbf]:l_brace [iffalse]:expr_list [s2]:separator? [rbf]:r_brace 
+                    {-> New pure_expr.cond (pred.pure_expr,[iftrue.expr],[iffalse.expr])}
+                    | {number}  number              {-> New pure_expr.number(number) }
+                    | {var} identifier               {-> New pure_expr.var(identifier) }
+                      ;                      
+                       
+    c_int_type  =  signedness? int ;
+    signedness     = {sig} signed | {unsig} unsigned;
+    
+    separator {-> } = semi {-> };                             
+    list_sep {-> } = comma  {-> };
+    
+Abstract Syntax Tree
+    
+	program = expr+ ;
+	expr =    {bind} bind_expr
+			| {pure} pure_expr
+			;
+
+	bind_expr = {fundef} [ftype]:c_int_type [fname]:identifier [fargstypes]:funcarg+ [fbody]:expr+
+            ;
+    pure_expr =
+              {cmp}   [op]:cmp [args]:pure_expr+ 
+            | {cond}  [pred]:pure_expr [iftrue]:expr+ [iffalse]:expr+  
+            | {number} number
+            | {var} identifier
+            ;            
+            
+    funcarg = {argtup} [argtype]:c_int_type [argvar]:identifier;
+                
+    c_int_type       =  signedness? int;
+    signedness     = {sig} signed | {unsig} unsigned;
+    

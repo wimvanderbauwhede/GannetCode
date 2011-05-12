@@ -1,0 +1,88 @@
+# For SystemC, it seems both service id and address must be contiguous
+# And we must have exactly 15 services!
+
+# Service Id: { Service Instance name: [Service Core Id, Core Function name, Nthreads], Addr: Service NoC Address }
+# Service Name is the "class" or "type" of the service. It is basically an alias for the Core Function name
+# Service Core name is actually the name of a particulat instance of the service.
+
+--- # SystemConfiguration.yml
+System:
+  Version: 2.0
+  Library: SBAnew
+  NServiceNodes: 10 # excluding gateway
+  ServiceNodes:
+  # "Fundamental" Services
+    c1: [ 1, [BEGIN] ]
+    c2: [ 2, [SEQ] ]
+    c3: [ 3, [LET] ]
+    c4: [ 4, [IF] ]
+    c5: [ 5, [APPLY] ]   
+    c6: [ 6, [LAMBDA] ]    
+    io: [ 7, [IO] ]
+    a: [ 8, [ALU] ] 
+    m: [ 9, [Math] ]  
+    f: [ 10, [FPU] ]
+    
+#    10: { CALL: [CALL, 0, ls_CALL, 1, [0, 0]], Addr: 10 }
+#    11: { UNQUOTE: [UNQUOTE, 0, ls_UNQUOTE, 1, [0, 0]], Addr: 11 }
+#    12: { UNSYMBOL: [UNSYMBOL, 0, ls_UNSYMBOL, 1, [0, 0]], Addr: 12 }
+    
+  Services: # last value is control bit (1=control, 0=computational)
+    BEGIN: [ 1, ls_BEGIN, 1 ]
+    SEQ: [ 2, ls_SEQ, 1 ]
+    LET: [ 3, ls_LET, 1 ]
+    IF: [ 4, ls_IF, 1 ]
+    APPLY: [ 5, ls_APPLY, 1 ]
+    LAMBDA: [ 6, ls_LAMBDA, 0 ]
+    IO: [ 7, ls_IO, 0 ]
+    ALU: [ 8, ls_ALU, 0 ]
+    Math: [ 9, ls_Math, 0 ]
+    FPU: [ 10, ls_FPU, 0 ]
+    S_IF: [ 11, ls_S_IF, 1 ]
+    
+#	CALL: [ 10, ls_CALL ]
+#    UNQUOTE: [ 11, ls_Symbol ]
+#    UNSYMBOL:
+#    SYMBOL:
+
+  Aliases:
+  # Alias Name (case sensitive): FQN
+    begin: c1.BEGIN.begin
+    begintc: c1.BEGIN.begintc
+    seq: c2.SEQ.seq
+    seqtc: c2.SEQ.seqtc
+    if: c4.IF.if
+    return: c4.IF.if
+    returntc: c4.IF.if
+    iftc: c4.IF.if
+    let: c3.LET.let
+    assign: c3.LET.assign
+    update: c3.LET.update
+    read: c3.LET.read
+    lettc: c3.LET.lettc
+    apply: c5.APPLY.apply
+    applytc: c5.APPLY.applytc
+    lambda: c6.LAMBDA.lambda
+# These used to be "ALU_names"  
+    '+': a.ALU.plus
+    '-': a.ALU.minus
+    '*': a.ALU.times
+    '/': a.ALU.over
+    '<': a.ALU.lt
+    '>': a.ALU.gt
+    '==': a.ALU.eq
+    '!': a.ALU.not
+  
+  ServiceClasses:
+# Gannet  
+    LET: [ let, assign, read, update, lettc ]
+    APPLY: [ apply, applytc ]
+    IF: [ if, iftc, return, returntc ]
+    S_IF: [ if, return ]
+    SEQ: [ seq, seqtc ]
+    BEGIN: [ begin, begintc ]
+    LAMBDA: [ lambda ]
+    IO: [ open, close, readline, write, eof, display ]
+    Math: [ rand ]
+    ALU: [ plus, minus, times, over, lt, gt, eq, not ]
+    FPU: [ plus, minus, times, over, lt, gt, eq, not ]

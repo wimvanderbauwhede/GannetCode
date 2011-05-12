@@ -1,0 +1,136 @@
+/*
+The important issue is: how do we encode the names of the dynamically reconfigurable service libraries and "symbols"?
+
+Assuming that we have a library with a single symbol, then it is easy. For example 
+*/
+configuration DynMult { // so the lib is libDynMult.so
+    typedef uint32 mult(uint32,uint32); // the symbol is mult. So this is a kind of typedef
+}
+
+// Note that "configuration" is like "class" or "struct", so it must be lowercase
+// We can regard it as a kind of type constructor
+// or rather, configuration is more like an alias for namespace
+
+
+const uint8 s1address=1;
+Service s1 = DynService(s1address); // constructor with only address, not core id
+
+DynMult::mult c1(NATIVE); 
+// If there is only one symbol, it could be implicit:
+//DynMult c1(NATIVE); 
+
+s1=c1; 
+// or maybe (to avoid the type conflict)
+s1(c1);
+
+/*
+Multi-operation services:
+In general, we can have several dyn reconf cores incorporating multiple operations. In that case we need to identify 
+the cores in the Service declaration; for practical purposes it appears as a different service instance.
+
+e.g. suppose we have a MatrixALU configuration:
+*/
+configuration MatrixALU {
+    Data add(Data,Data);
+    Data sub(Data,Data);
+    Data mult(Data,Data);
+    Data trans(Data,Data);
+}
+/*
+and we have a DynService which has 4 substrates:
+In DynService(1,0) the '1' is the address of the service; the '0' the substrate id
+*/
+Service s5[4];
+ s5[0] = DynService(1,0);
+ s5[1] = DynService(1,1);
+ s5[2] = DynService(1,2);
+ s5[3] = DynService(1,3);
+ 
+// the compiler could even be so smart as to allow
+for (int i: [0..3] ) {
+    s5[i] = DynService(1,i);
+}
+ 
+/*
+or maybe even:
+
+Service s5[4] = DynService(5);
+
+That needs some more work: If Dynservice() returns a service it can't return an array of services.
+So we might need DynMTService but that is quite ugly. 
+We could actually view DynService as a constructor that either takes a configuration or a list of them.
+
+*/
+
+/*
+We declare all available configurations that will be used in the program,
+specifying the type of configuration:
+
+Configuration c1 = RGB2YCrCb(ST1);
+
+Dynamic reconfiguration is now simply
+
+s1 = c1;
+
+For a multi-substrate (aka multi-threaded) service, we can maybe even allow:
+
+s5 = {c1,c2,c3,c4};
+
+We need :: as 'configuration' is like 'namespace'
+*/
+RGB2YCrCb::RGB2YCrCb r2y(ST1);
+YCrCb2RGB::RGB2YCrCb y2r(ST3);
+Sobel::ConvHor sobh(ST2);
+Sobel::ConvVert sobv(ST3);
+dynALU::Add add(ST1);
+MatrixALU::Trans trans(ST2);
+
+Service s1 = DynService(1); // links a dyn service s1 to the physical tile 1
+Service img = Image(2); // links img to the hard core at tile 2
+Service s2 = DynService(3);
+Service s3= DynService(4);
+
+/*
+Or we could say 
+
+s1.address=1; // but making this mutable is a nightmare!
+*/
+
+
+seq {
+    Data img= im.get-img-block();
+    s1 =  r2y; // these statements should be stored in a special table and inserted into the first following call
+    // the alternative notation is s1(r2y);
+    Buf<Data> br = s1.run(img);
+
+    par {        
+        // an explicit seq {} works but either requires a let() or a rewrite into a local return for s2
+        seq {        
+        s2 = sobh;
+        Buf<Data> bsh = s2.run( br );
+        }
+        // or we can use the comma operator:
+        // with the same semantics as in C++ or Perl: throw away the return value of the first statement, then do the next.
+        // The key is that the comma does a "seq" by nesting the first statement as an argument of the second
+        s3= sobv ,
+        Buf<Data> bsv =s3.run( br );
+        
+    }
+    
+    s1=add, Buf<Data> ba1 = run( bsh.stream(), bsv.stream() );
+    s2=add, Buf<Data> ba2 = run( br.peek(), ba1.stream() );
+    
+/* The comma might be nice but it is confusing. A better solution is to have a run() command wich takes the configuration
+as an argument and one that doesn't. So we simply have
+s3.run(add,br)
+The type checker will have noticed that add is of type dynALU::Add which is in its turn a configuration
+
+*/    
+    
+    forever {
+        s3=c2, YCrCb2RGB( br.stream(), ba2.stream());
+    }
+}
+
+
+

@@ -1,0 +1,66 @@
+
+Package Expression;
+
+Helpers
+
+    digit = ['0' .. '9'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+    nonzero_digit = ['1' .. '9'];
+    decimal_constant = nonzero_digit digit* | '0';
+    blank = (' ' | tab | eol)+;
+    //OP_EXPR_HELPERS
+
+Tokens
+    l_par = '(';
+    r_par = ')';
+    
+    //OP_EXPR_TOKENS
+
+    semi = ';';
+    colon = ':';
+    questionmark = '?';
+
+    blank = blank;
+    
+    number = decimal_constant;
+
+Ignored Tokens
+
+    blank;
+
+Productions
+
+    grammar           = exp_list                    {-> New grammar ([exp_list.expr])}
+                      ;
+
+    exp_list          {-> expr*} =
+                        {list}    exp_list separator term_lNLEVS {-> [exp_list.expr, term_lNLEVS.expr] }
+                      | {single}  term_lNLEVS               {-> [term_lNLEVS.expr] }
+                      ;
+//OP_EXPR_PRODUCTIONS
+                                            
+    term_l0              {-> expr} =
+                        {number}        number              {-> New expr.number(number) }
+                      | {parexp}        l_par term_lNLEVS r_par  {-> term_lNLEVS.expr }
+                      | {sign}        sign term_l0          {-> New expr.sign (sign,term_l0.expr) }
+                      ;
+                      
+    separator  {-> } =
+                        {semicolon} semi {-> }
+                      ;
+                      
+                      
+Abstract Syntax Tree
+
+    grammar           = expr+
+                      ;
+
+    expr               =
+//OP_EXPR_AST    
+                        {sign}  [op]:sign [r]:expr |
+                        {number}  number 
+                      ;
+                                          

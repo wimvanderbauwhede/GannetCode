@@ -1,0 +1,14 @@
+int square (int x) {
+	x*x;
+};	
+
+int fortytwo () seq {
+	int z=6;
+	int y=7;
+	z*y
+};
+
+int fortytwovoid (void) {
+	42;
+};
+

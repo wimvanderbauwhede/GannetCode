@@ -1,0 +1,6 @@
+int b=0;
+for (int a=1;a<10;a=a+1) seq {
+    print(a);
+	print(b*(a+2));
+	print("Hello!\n");
+}

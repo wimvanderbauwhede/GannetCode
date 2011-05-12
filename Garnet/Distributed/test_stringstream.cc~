@@ -1,0 +1,25 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+using namespace std;
+int main () {
+    const int dot ='.';
+
+    string ipstr("127.0.0.1");
+    istringstream str2;
+    str2.str(ipstr);
+    int bytes[4];
+    str2 >> bytes[0];
+        str2.ignore(1, dot);
+    str2 >> bytes[1]; 
+        str2.ignore(1, dot);
+    str2 >> bytes[2] ;
+        str2.ignore(1, dot);
+    str2 >> bytes[3] ;
+    for (int i=0;i<4;i++) {
+        cout << bytes[i]<< endl;
+    }
+    int ipnum = (bytes[0]<<24)+(bytes[1]<<16)+(bytes[2]<<8)+bytes[3];
+    cout << ipnum << endl;
+    return ipnum;
+}

@@ -1,0 +1,105 @@
+# New-style System Configuration for Gannet-Perl
+# Requirements:
+# Compiler reads node.class.method, looks up node id (sid), class id (scid) and opcode
+# Or compiler reads an alias, looks up the double-dotted name and does the above
+# Runtime needs a table of scid => service wrapper
+# SystemC needs the cycle times for every method
+# For dyn reconf, need a description of the configurations
+
+--- # SystemConfiguration.rb
+System:
+  Version: 2.0
+  Library: Perl
+  NServiceNodes: 15 # excluding gateway  
+  ServiceNodes: # Number from 1, the GW is 0; I guess GW can be implicit, as it's never used
+#    gw: [ 0, [GATEWAY] ]
+# "Fundamental" Services
+    c1: [ 1, [BEGIN] ]
+    c2: [ 2, [SEQ] ]
+    c3: [ 3, [LET] ]
+    c4: [ 4, [IF] ]
+    c5: [ 5, [APPLY] ]   
+    c6: [ 6, [LAMBDA] ]    
+# Object-based Services	
+    c7: [ 7, [IO] ]
+    c8: [ 8, [ALU] ] 
+    c9: [ 9, [Math] ]  
+    c10: [ 10, [FPU] ]
+    c11: [ 11, [Array] ]
+    c12: [ 12, [String] ]
+    c13: [ 13, [Hash] ]
+    c14: [ 14, [Range] ]
+    c15: [ 15, [PCRE] ]
+# Program-specific Services    
+#   c17: [ 17, [ ConwayLife ] ]
+
+# Map the Service or ServiceClass name to the wrapper function 
+  Services: # [ServiceId, function name]
+#    GATEWAY: [ 0, sba_GATEWAY ]  
+    BEGIN: [ 1, ls_BEGIN, 1 ]
+    SEQ: [ 2, ls_SEQ, 1 ]
+    LET: [ 3, ls_LET, 1 ]
+    IF: [ 4, ls_IF, 1 ]
+    S_IF: [ 16, ls_S_IF, 1 ]
+    APPLY: [ 5, ls_APPLY, 1 ]
+    LAMBDA: [ 6, ls_LAMBDA, 0 ]
+    IO: [ 7, ls_IO, 0 ]
+    ALU: [ 8, ls_ALU, 0 ]
+    Math: [ 9, pl_Math, 0 ]
+    FPU: [ 10, pl_FPU, 0 ]
+    Array: [ 11, pl_Array, 0 ]
+    String: [ 12, pl_String, 0 ]
+    Hash: [ 13, pl_Hash, 0 ]
+    Range: [ 14, pl_Range, 0 ]
+    PCRE: [ 15, pl_PCRE, 0 ]
+#   ConwayLife: [ 17, cs_ConwayLife ]
+
+# New aliases, shorter names for FQN    
+  Aliases:
+  # Alias Name (case sensitive): FQN
+    if: c4.IF.if
+    return: c4.IF.if
+    returntc: c4.IF.if
+    iftc: c4.IF.if
+    let: c3.LET.let
+    assign: c3.LET.assign
+    update: c3.LET.update
+    read: c3.LET.read
+    lettc: c3.LET.lettc
+    apply: c5.APPLY.apply
+    applytc: c5.APPLY.applytc
+# These used to be "ALU_names"    
+    '+': c8.ALU.plus
+    '-': c8.ALU.minus
+    '*': c8.ALU.times
+    '/': c8.ALU.over
+    '<': c8.ALU.lt
+    '>': c8.ALU.gt
+    '==': c8.ALU.eq
+    '!': c8.ALU.not
+
+  ServiceClasses:    
+# Gannet  
+    LET: [ let, assign, read, update, lettc ]
+    APPLY: [ apply, applytc ]
+    IF: [ if, iftc, return, returntc ]
+    S_IF: [ if, return ]
+    SEQ: [ seq ]
+    BEGIN: [ begin ]
+    LAMBDA: [ lambda ]
+# Perl    
+    Array: [ new, at, size, push, pop, shift, unshift, set, copy, fromRange ]
+    Hash: [ new, copy,  keys, values, exists, delete, insert, lookup, toList, fromList ] 
+    Range: [ new, inc, done ]
+    String: [ new, chomp, chop, ne, eq ]
+    ALU: [ plus, minus, times, over, mod, rshift, lshift, and, or, not, xor, lt, gt, eq, lte, gte, ne ]
+    FPU: [ plus, minus, times, over, lt, gt, eq, lte, gte, ne ]
+    Math: [ abs, atan2, cos, exp, hex, int, log, oct, rand, sin, sqrt, srand ]
+    IO: [ print, open, close, readline, write, eof ]
+    PCRE: [ new, match, subst ]
+# Program-specific	
+#   ConwayLife: [ tl, t, tr, r, br, b, bl, l ]
+    
+# Timings:
+# Configurations:
+

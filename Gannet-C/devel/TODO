@@ -1,0 +1,62 @@
+TODO Gannet-C
+
+* Important:
+
+-We need the types to the extent that we can quote apply correctly
+=> So for every expression we must store the type based on the identifier
+=> then look up when the function is called or the variable referenced
+
+-We also need to make sure the tail calls work, i.e. put tc where required in for and while
+=> relatively easy
+-File IO is important for adoption
+* We can't really use cout << ... can we? We have a simple mechanism:
+	-open file
+	-write to it
+	-read from it
+
+I think I'll go for the following:
+
+File fd = fopen(filename,flag)
+string inp = fd.fgets(nbytes)
+fd.fputs(inp)
+fd.close()
+
+this means that reading from stdin and writing to stdout requires a fd, unless we support the use
+without fd, so gets() an puts() 
+
+
+-Without lists we are completely lost
+=> relatively easy?
+-Stream support
+=> relatively easy
+
+* Less important:
+
+-Tuples
+-foreach (or is it?)
+-correct operator precedence
+-type inference
+-function types via typedefs
+
+---------------------------------------
+
+- correct operator precedence
+- correct overloading of operators
+- case statement
+- string support
+- type extraction and insertion (in particular a table of the types for every typed expression)
+- later maybe type inference
+- lambda functions; returns a Lambda class? but then will we have Lambda l = lambda(int x, int y) { x*y } ; l.apply(6,7);
+- method calls (Buf<int> b; b.stream(); b.peek() etc
+- lists and list methods -- or should we use functions? Maybe List l = [1,2,3]; l.length(); l.head(); l.tail();
+- proper quoting in apply (requires proper typing)
+- tuple expressions: 
+tuple ScoreTup { // like struct
+  Data data;
+  Score score;
+};
+-foreach
+-typedefs
+    typedef FType int(int,float)    
+    typedef HOType FType(int,FType)
+-correct inference of applytc, lettc etc (maybe simply like this: if it's a while or for, fine; if it's a recursive function, no TC

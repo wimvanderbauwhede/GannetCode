@@ -1,0 +1,48 @@
+
+Package expression;
+
+Helpers
+
+
+    //OP_EXPR_HELPERS
+
+Tokens
+
+
+    //OP_EXPR_TOKENS
+
+ 
+
+
+Productions
+
+    grammar           = exp_list                    {-> New grammar ([exp_list.expr])}
+                      ;
+
+    exp_list          {-> expr*} =
+                        {list}    exp_list separator l5term {-> [exp_list.expr, l5term.expr] }
+                      | {single}  l14term               {-> [l14term.expr] }
+                      ;
+//OP_EXPR_PRODUCTIONS
+                                            
+    l0term              {-> pure_expr} =
+                        {atomic}        atomic_pure_expr              {-> New expr.number(number) }
+                      | {l1op}          l0term l1op         {-> New operator_pure_expr.l1 (l1op,l0term.expr) }
+                      ;
+                      
+    separator  {-> } =
+                        {semicolon} semi {-> }
+                      ;
+                      
+                      
+Abstract Syntax Tree
+
+    grammar           = expr+
+                      ;
+
+    expr               =
+//OP_EXPR_AST    
+                        {plus}    [l]:expr  [r]:expr |
+                        {number}  number 
+                      ;
+                                          

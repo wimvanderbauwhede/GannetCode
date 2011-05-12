@@ -1,0 +1,39 @@
+//*
+//* Block comments don't work
+//* dot doesn't work
+//* function types don't work
+//* empty parens don't work?
+//* semicolon at end of block gives error
+
+typedef Matrix<int> ImgBlock;
+ 
+service Img {
+	ImgBlock in(string,int);
+	void out(ImgBlock,int)
+};
+
+service DynService {
+
+	int configure(Configuration);
+	Data run(...);
+	Data run(Configuration,...)
+};
+
+configuration ImgProc {
+	typedef ImgBlock(ImgBlock,int) Rotate;
+	typedef ImgBlock(ImgBlock) Sharpen
+};
+
+{
+    ImgProc::Rotate rot();
+    Buf<int> b1=0;
+
+	s1=rot;
+	test();
+	img_out(b1,8); // dot here
+	// comment
+	// comment 2
+    42;
+};
+
+

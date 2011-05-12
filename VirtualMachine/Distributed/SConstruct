@@ -1,0 +1,5 @@
+sources=["UDPSocket.cc"]
+
+env = Environment( CXX = 'g++', CXXFLAGS = ['-Wall','-DWORDSZ=64','-DGWPORT=7188'])
+client=env.Program('test_client',sources+["test_client.cc"])
+server=env.Program('test_server',sources+["test_server.cc"])

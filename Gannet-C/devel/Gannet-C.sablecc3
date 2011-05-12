@@ -1,0 +1,525 @@
+/*
+Either I have to add all service names and aliases as tokens, which means I'd have to generate the grammar from YAML
+But that means I have to recompile the compiler, that is probably not acceptable
+
+Or at grammar level I make no distinction between service calls and function calls, but the emitter reads the YAML
+(so is there a YAML interface for Java?)
+
+*/
+
+Package GannetC;
+
+Helpers
+    all = [0 .. 127];
+    digit = ['0' .. '9'];
+	nondigit =  ['_' + [['a' .. 'z'] + ['A' .. 'Z']]];
+	cap = ['A' .. 'Z'];
+	noncap = ['a' .. 'z'];
+    tab = 9;
+    cr = 13;
+    lf = 10;
+    eol = cr lf | cr | lf;
+    not_cr_lf = [all - [cr + lf]];
+    blank = (' ' | tab | eol)+;
+
+    digit_sequence = digit+;
+    fractional_constant = digit_sequence? '.' digit_sequence | digit_sequence '.';
+    sign = '+' | '-';
+    exponent_part = ('e' | 'E') sign? digit_sequence;
+    floating_suffix = 'f' | 'F' | 'l' | 'L';
+    simple_escape_sequence = '\' ''' | '\"' | '\?' | '\\' | 
+        '\a' | '\b' | '\f' | '\n' | '\r' | '\t' | '\v';
+    octal_digit = ['0' .. '7'];
+    octal_escape_sequence = '\' octal_digit octal_digit? octal_digit?;
+    hexadecimal_digit = [digit + [['a' .. 'f'] + ['A' .. 'F']]];
+    hexadecimal_escape_sequence = '\x' hexadecimal_digit+;
+    escape_sequence = simple_escape_sequence | octal_escape_sequence | hexadecimal_escape_sequence;
+    s_char = [all - ['"' + ['\' + [10 + 13]]]] | escape_sequence;
+    s_char_sequence = s_char+;
+    nonzero_digit = ['1' .. '9'];
+    decimal_constant = nonzero_digit digit* | '0';
+    octal_constant = '0' octal_digit*;
+    hexadecimal_constant = '0' ('x' | 'X') hexadecimal_digit+;
+    unsigned_suffix = 'u' | 'U';
+    long_suffix = 'l' | 'L';
+    integer_suffix = unsigned_suffix long_suffix? | long_suffix unsigned_suffix?;
+    c_char = [all - [''' + ['\' + [10 + 13]]]] | escape_sequence;
+    c_char_sequence = c_char+;
+    not_star = [all - '*'];
+    not_star_slash = [not_star - '/'];
+    comment_chars = [32 .. 126];
+    
+	operator_unary = '!' | '~';
+	operator_one = '+' | '-' | '*' | '/' | '%' | '&' | '|' | '^';
+	operator_two = '*' | '&' | '|' | '^'  ;
+	operator_helper = operator_two+ | operator_one ;
+	
+    //OP_EXPR_HELPERS
+	l1ops = '++' | '--';
+	l2ops = '**';
+	l3ops = '!' | '~';
+	l4ops = '*' | '/' | '%';
+	l5ops = '+' | '-';
+	l6ops = '<<' | '>>';
+	l7ops = '<=' | '>=';
+	l8ops = '==' | '!=';
+	l9ops = '&' | 'bitand';
+	l10ops = '|' | '^' | 'bitor' | 'xor';
+	l11ops = '&&' | 'and';
+	l12ops = '||' | 'or';
+	l13ops = '?';
+	l14ops = '=';	
+	
+    update_operator_helper = operator_one '=';
+    object_identifier =   cap (digit | nondigit)* ;
+    namespace_separator = '::';
+    simple_int_type = 'u'? 'int' digit_sequence?;
+
+    short_comment = '//' not_cr_lf* eol;
+    long_comment =
+        '/*' not_star* '*'+ (not_star_slash not_star* '*'+)* '/';
+    comment = short_comment | long_comment;
+        
+Tokens
+
+    dot = '.';
+    comma = ',';
+    colon = ':';
+    
+    l_par = '(';
+    r_par = ')';
+
+    semi = ';';
+	assign = '=';    
+    l_pointy = '<';
+    r_pointy = '>';
+    operator = operator_helper;
+    update_operator = update_operator_helper;  
+    
+    //OP_EXPR_TOKENS
+	l1op = l1ops;
+	l2op = l2ops;
+	l3op = l3ops;
+	l4op = l4ops;
+	l5op = l5ops;
+	l6op = l6ops;
+	l7op = l7ops;
+	l8op = l8ops;
+	l9op = l9ops;
+	l10op = l10ops;
+	l11op = l11ops;
+	l12op = l12ops;
+	l13op = l13ops;
+	l14op = l14ops;    
+    
+    l_bracket = '[';
+    r_bracket = ']';
+    l_brace = '{';
+    r_brace = '}';
+    case = 'case';
+    default = 'default';
+    if = 'if';
+    else = 'else';
+    switch = 'switch';
+    while = 'while';
+    do = 'do';
+    for = 'for';
+	seq = 'seq';
+	par = 'par';   
+    goto = 'goto';
+    continue = 'continue';
+    break = 'break';
+    return = 'return';
+    type_def = 'typedef'; // without the underscore SableCC complains that it's "ambiguous"
+// Gannet-C specific
+    lambda = 'lambda';
+    configuration = 'configuration';
+    service = 'service';
+/*
+    extern = 'extern';
+    static = 'static';
+    auto = 'auto';
+    register = 'register';
+    volatile = 'volatile';    
+*/    
+    void = 'void';
+    char = 'char';
+    int = 'int';
+    inttype = simple_int_type;
+    short = 'short';
+    long = 'long';
+    float = 'float';
+    double = 'double';
+    signed = 'signed';
+    unsigned = 'unsigned';
+    
+    bool = 'bool';    
+    string = 'string';
+    
+    tuple = 'tuple';
+    data = 'data';
+    any = 'any';
+    local = 'local';
+    word = 'word';
+    symbol = 'symbol';    
+    const = 'const';
+
+    
+    floating_constant = fractional_constant exponent_part? floating_suffix? |
+        digit_sequence exponent_part floating_suffix?;
+//    string_literal = 'L'? '"' s_char_sequence? '"';
+    string_literal = '"' s_char_sequence? '"';    
+/*    
+    integer_constant = decimal_constant integer_suffix? | octal_constant integer_suffix? | 
+        hexadecimal_constant integer_suffix?;
+  */  
+    //character_constant = 'L'? ''' c_char_sequence ''';
+    character_constant = ''' c_char_sequence ''';    
+    blank = blank;
+    number = decimal_constant integer_suffix? | octal_constant integer_suffix? | 
+        hexadecimal_constant integer_suffix?;
+    //unqual_obj_identifier =   object_identifier; // cap (digit | nondigit)* ;
+    obj_identifier = object_identifier;// (namespace_separator object_identifier)*;
+    namespace_separator = namespace_separator;
+    yada_operator = '...';
+    identifier = noncap (digit | nondigit)*;
+    comment = comment; 
+
+Ignored Tokens
+
+    blank,
+    comment;    
+/* ************************************************************************* */
+Productions
+
+    program			= expr_list separator?   {-> New program ([expr_list.expr])} ;                          
+
+    expr_list          {-> expr*} =
+                        {list}    expr_list separator expr {-> [expr_list.expr, expr.expr] }
+                      | {single}  expr      {-> [expr.expr] }
+                      ;
+                                     
+	pure_expr_list  {-> pure_expr*} =
+						{list} pure_expr_list separator op_pure_expr {-> [pure_expr_list.pure_expr,op_pure_expr.pure_expr]}
+					|	{single} op_pure_expr {-> [op_pure_expr.pure_expr]}
+					;
+					
+	expr = 
+						{bind} bind_expr 
+					|	{pure} op_pure_expr {-> New expr.pure(op_pure_expr.pure_expr)}
+					|   {decl} decl_expr
+					;
+	bind_expr  = 
+                     {assignexpr} assign_expr {-> assign_expr.bind_expr}
+                   | {updateexpr} update_expr {-> update_expr.bind_expr }
+                   | {opupdateexpr} opupdateexpr {-> opupdateexpr.bind_expr }
+                   | {fundef} function_definition {-> function_definition.bind_expr}
+				   ;				   
+	decl_expr =      {servicedecl} service_declaration {-> service_declaration.decl_expr}
+            	   | {configdecl} config_declaration {-> config_declaration.decl_expr}            	   
+            	   | {typedecl} type_decl {-> type_decl.decl_expr}
+            	   | {instdecl} inst_declaration {-> inst_declaration.decl_expr}
+	               ;			   
+    assign_expr {-> bind_expr} = type identifier assign op_pure_expr 
+    {-> New bind_expr.assign (type,identifier, op_pure_expr.pure_expr) };
+    update_expr {-> bind_expr} = identifier assign op_pure_expr 
+    {-> New bind_expr.update (identifier, op_pure_expr.pure_expr) };
+    opupdateexpr {-> bind_expr} = identifier update_operator op_pure_expr 
+    {-> New bind_expr.opupdate (identifier, update_operator,op_pure_expr.pure_expr) };
+
+    inst_declaration {-> decl_expr} = {instdecl} type identifier 
+    {-> New decl_expr.instdecl (type,identifier) }
+    | {instdeclpar} type identifier l_par r_par
+    {-> New decl_expr.instdecl (type,identifier) }
+    | {instdeclspec} type identifier l_par number r_par
+    {-> New decl_expr.instdeclspec (type,identifier,number) }
+    ;
+    
+    function_definition {-> bind_expr} = {fundef} type identifier l_par arg_decl_list r_par seq? l_brace expr_list separator? r_brace 
+    {-> New bind_expr.fundef (type,identifier,[arg_decl_list.funcarg],[expr_list.expr],seq) };
+    arg_decl_list {-> funcarg* } =    
+                                 {alist}    arg_decl_list list_sep func_arg {-> [arg_decl_list.funcarg,func_arg.funcarg]}
+				               | {asingle}  func_arg {-> [func_arg.funcarg]}                
+				               ;
+    func_arg {-> funcarg } =
+                     {nonvoid} type identifier {-> New funcarg.argtup (type,identifier)}
+                    | {void} void {-> New funcarg.void ()}  
+                    ;         
+
+    service_declaration {-> decl_expr} = {servicedecl} service obj_identifier l_brace service_method_decl_list separator? r_brace 
+    {-> New decl_expr.servicedecl (obj_identifier,[service_method_decl_list.opdecl]) };
+            
+    service_method_declaration {-> opdecl} = 
+          {opdeclf} type identifier l_par type_list r_par 
+                {-> New opdecl.opdeclf (identifier,type,[type_list.type]) }
+        | {opdeclft} identifier function_type 
+                {-> New opdecl.opdeclft (identifier,function_type.type) };
+    service_method_decl_list          {-> opdecl*} =
+                        {list}    service_method_decl_list separator service_method_declaration  {-> [service_method_decl_list.opdecl, service_method_declaration.opdecl] }
+                      | {single}  service_method_declaration    {-> [service_method_declaration.opdecl] }
+                      ;
+    
+    config_declaration {-> decl_expr} = {configdecl} configuration obj_identifier l_brace config_type_decl_list separator? r_brace 
+    {-> New decl_expr.configdecl (obj_identifier,[config_type_decl_list.typedef]) };
+
+    //config_type_declaration {-> typedef} = {typedef} type_def [ctype]:type [ftype]:type {-> New typedef(ctype.type,ftype.type)};
+    type_decl {-> decl_expr} = {typedecl} type_def_rule {-> New decl_expr.typedecl(type_def_rule.typedef)};
+    type_def_rule    {-> typedef} = type_def [otype]:type [ntype]:type {-> New typedef(otype.type,ntype.type)};         
+    config_type_decl_list {-> typedef*} =
+                        {list}    config_type_decl_list separator type_def_rule  {-> [config_type_decl_list.typedef, type_def_rule.typedef] }
+                      | {single}  type_def_rule       {-> [type_def_rule.typedef] }
+                      ;
+           
+    service_call {-> pure_expr} = [inst]:identifier dot [meth]:identifier par_arg_list 
+    {-> New pure_expr.servicecall(inst,meth,[par_arg_list.pure_expr])};
+//    proc_appl {-> pure_expr} = identifier l_par void? r_par 
+//    {-> New pure_expr.procappl(identifier)};
+    fun_appl {-> pure_expr} = identifier par_arg_list 
+    {-> New pure_expr.funappl(identifier,[par_arg_list.pure_expr])};
+    lambda_definition {-> pure_expr} ={lambdadef} lambda l_par arg_decl_list r_par l_brace expr_list separator? r_brace 
+    {-> New pure_expr.lambdadef ([arg_decl_list.funcarg],[expr_list.expr]) };
+
+     lt_expr {-> pure_expr} =
+               {ltcall}    [left]:l6term [op]:l_pointy [right]:l6term  {-> New pure_expr.ltcall (op,[left.pure_expr,right.pure_expr]) }
+             | {l6term}    l6term              {-> l6term.pure_expr };
+
+     gt_expr {-> pure_expr} =
+               {ltcall}    [left]:l6term [op]:r_pointy [right]:l6term  {-> New pure_expr.gtcall (op,[left.pure_expr,right.pure_expr]) }
+             | {l6term}    l6term              {-> l6term.pure_expr };
+    
+//OP_EXPR_PRODUCTIONS
+
+    op_pure_expr            {-> pure_expr} =
+               {l14op}    [left]:l13term [op]:l14op [right]:op_pure_expr  {-> New pure_expr.opcall (op,[left.pure_expr,right.pure_expr] ) }
+             | {l13term}    l13term              {-> l13term.pure_expr };
+
+    l13term            {-> pure_expr} =
+               {l13op}    [cond]:l12term [op]:l13op [t]:l13term colon [f]:l13term   {-> New pure_expr.l13 (op,[cond.pure_expr,t.pure_expr,f.pure_expr] ) }
+             | {l12term}    l12term              {-> l12term.pure_expr };
+
+    l12term            {-> pure_expr} =
+               {l12op}    [left]:l12term [op]:l12op [right]:l11term  {-> New pure_expr.l12 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l11term}    l11term              {-> l11term.pure_expr };
+
+    l11term            {-> pure_expr} =
+               {l11op}    [left]:l11term [op]:l11op [right]:l10term  {-> New pure_expr.l11 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l10term}    l10term              {-> l10term.pure_expr };
+
+    l10term            {-> pure_expr} =
+               {l10op}    [left]:l10term [op]:l10op [right]:l9term  {-> New pure_expr.l10 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l9term}    l9term              {-> l9term.pure_expr };
+
+    l9term            {-> pure_expr} =
+               {l9op}    [left]:l9term [op]:l9op [right]:l8term  {-> New pure_expr.l9 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l8term}    l8term              {-> l8term.pure_expr };
+
+    l8term            {-> pure_expr} =
+               {l8op}    [left]:l7term [op]:l8op [right]:l7term  {-> New pure_expr.l8 (op,[left.pure_expr,right.pure_expr]) }
+             | {l7term}    l7term              {-> l7term.pure_expr };
+
+    l7term            {-> pure_expr} =
+               {l7op}    [left]:l6term [op]:l7op [right]:l6term  {-> New pure_expr.l7 (op,[left.pure_expr,right.pure_expr]) }
+             | {l6term}    l6term              {-> l6term.pure_expr };
+
+    l6term            {-> pure_expr} =
+               {l6op}    [left]:l6term [op]:l6op [right]:l5term  {-> New pure_expr.l6 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l5term}    l5term              {-> l5term.pure_expr };
+
+    l5term            {-> pure_expr} =
+               {l5op}    [left]:l5term [op]:l5op [right]:l4term  {-> New pure_expr.l5 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l4term}    l4term              {-> l4term.pure_expr };
+
+    l4term            {-> pure_expr} =
+               {l4op}    [left]:l4term [op]:l4op [right]:l3term  {-> New pure_expr.l4 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l3term}    l3term              {-> l3term.pure_expr };
+
+    l3term            {-> pure_expr} =
+               {l3op}    [op]:l3op [right]:l3term  {-> New pure_expr.l3 (op,[right.pure_expr] ) }
+             | {l2term}    l2term              {-> l2term.pure_expr };
+
+    l2term            {-> pure_expr} =
+               {l2op}    [left]:l1term [op]:l2op [right]:l2term                     {-> New pure_expr.l2 (op,[left.pure_expr,right.pure_expr] ) }
+             | {l1term}    l1term              {-> l1term.pure_expr };
+             
+    l1term            {-> pure_expr} = {l1op}    [left]:atom_pure_expr [op]:l1op    {-> New pure_expr.l1 (op,[left.pure_expr]) }
+             | {l0term}    atom_pure_expr              {-> atom_pure_expr.pure_expr };             
+                                            
+    atom_pure_expr            {-> pure_expr} =
+                      {sign}        [sgn]:l5op [arg]:atom_pure_expr          {-> New pure_expr.sign (sgn,arg.pure_expr) }
+                    | {servicecall} service_call {-> service_call.pure_expr}
+                    | {funappl} fun_appl {-> fun_appl.pure_expr }  
+//                  | {procappl} proc_appl {-> proc_appl.pure_expr }
+                    | {cond} if l_par [pred]:op_pure_expr r_par [seqt]:seq? [lbt]:l_brace [iftrue]:expr_list [s1]:separator? [rbt]:r_brace else  [seqf]:seq? [lbf]:l_brace [iffalse]:expr_list [s2]:separator? [rbf]:r_brace 
+                    {-> New pure_expr.cond (pred.pure_expr,[iftrue.expr],seqt,[iffalse.expr],seqf)}
+                    | {while} while l_par [cond]:op_pure_expr r_par seq? l_brace [wblock]:expr_list separator? r_brace 
+                    {-> New pure_expr.while (cond.pure_expr,[wblock.expr],seq)}
+                    | {for} for l_par [init]:assign_expr [s1]:semi [cond]:op_pure_expr [s2]:semi [mod]:update_expr r_par seq? l_brace [lbody]:expr_list separator? r_brace 
+                    {-> New pure_expr.for (init.bind_expr,cond.pure_expr,mod.bind_expr,[lbody.expr],seq)}
+                    | {seqlet} seq l_brace expr_list separator? r_brace 
+                    {-> New pure_expr.seqlet ([expr_list.expr])}
+                    | {parlet} par? l_brace expr_list separator? r_brace 
+                    {-> New pure_expr.parlet ([expr_list.expr])}
+                    | {lambda} lambda_definition {-> lambda_definition.pure_expr}                    
+                    | {group} l_par op_pure_expr r_par {-> op_pure_expr.pure_expr}                   
+                    | {number}  number              {-> New pure_expr.number(number) }
+                    | {string} string_literal       {-> New pure_expr.string(string_literal) }
+                    | {var} identifier               {-> New pure_expr.var(identifier) }      
+                      ;                      
+             
+                  
+    separator  {-> } = semi {-> };                             
+    
+    type  {-> type}        =
+                        {qualobj} qual_obj_type    {-> qual_obj_type.type}                                                
+                      | {templobj} templ_obj_type {-> templ_obj_type.type}
+                      | {func} function_type {-> function_type.type}
+                      | {yada} yada_operator
+					  | {basic} type_qual? basic_type
+                        ;
+    basic_type   =    {number} number_type
+					| {other} other_type 
+                    ;
+    number_type =   {c_int} c_int_type | {simple} simple_num_type ;
+    other_type =   {char} char | // not sure about char
+                   {str} string | 
+                   {data} data | 
+                   {void} void |
+                   {any} any 
+                   ;                    
+                       
+   // int_type  =  type_qual? signedness? int_type_spec? int ;
+    c_int_type  =  signedness? int_type_spec? int ;
+    int_type_spec  = {short} short | {long} long+ ;
+    signedness     = {sig} signed | {unsig} unsigned;
+    type_qual     = const? local? ;
+    simple_num_type = 
+                     {bool} bool                     
+//                   | {char} char   
+//                   | {str} string  
+                   | {flt} float   
+                   | {dbl} double 
+                   | {word} word  
+                   | {int} inttype
+//                   | {data} data  
+//                   | {void} void 
+//                   | {any} any
+				   ;
+				   
+	qual_obj_type {-> type }=      {fullyqual} qual_obj_type namespace_sep obj_identifier 	{-> New type.qualobj([qual_obj_type.type],obj_identifier)}
+	                   | {unqual} obj_identifier	{-> New type.obj(obj_identifier)}
+	                   ;
+//	obj_type {-> type }=   obj_identifier {-> New type.obj(obj_identifier)};                  	   
+    function_type {-> type} = type l_par type_list r_par  {-> New type.func(type,[type_list.type])};				   
+// template objext type is like Buf<int> or Buf<Matrix<int>> or Lambda<Data(...)>
+    templ_obj_type {-> type} = qual_obj_type l_pointy type_list r_pointy {-> New type.templobj([qual_obj_type.type],[type_list.type])};          
+    type_list {-> type* }=  {tlist}    type_list list_sep type  {-> [type_list.type, type.type] }
+                          | {tsingle}  type  {-> [type.type] }
+                            ;
+    par_arg_list {-> pure_expr* } = l_par arg_list r_par {-> [arg_list.pure_expr]} ;
+    arg_list {-> pure_expr* } =    {alist}    arg_list list_sep op_pure_expr {-> [arg_list.pure_expr,op_pure_expr.pure_expr]}
+                               | {asingle}  op_pure_expr? {-> [op_pure_expr.pure_expr]}                
+                               ;
+                              
+    list_sep = comma  {-> };
+    namespace_sep = namespace_separator {-> };
+    
+// ============================================================================================================================    
+Abstract Syntax Tree
+
+	program = expr+ ;
+	expr =    {bind} bind_expr
+			| {pure} pure_expr
+			| {decl} decl_expr
+			;
+
+	bind_expr =
+	          {assign} [avartype]:type [vname]:identifier [rhs]:pure_expr
+            | {update} [vname]:identifier [rhs]:pure_expr
+            | {opupdate} [vname]:identifier [op]:update_operator [rhs]:pure_expr             
+            | {fundef} [ftype]:type [fname]:identifier [fargstypes]:funcarg+ [fbody]:expr+ [blocktype]:seq?
+            ;
+    decl_expr=
+              {configdecl} [cname]:obj_identifier [typedefs]:typedef+            
+            | {servicedecl} [sname]:obj_identifier [opdecls]:opdecl+
+            | {instdecl} [otype]:type [iname]:identifier
+            | {instdeclspec} [otype]:type [iname]:identifier [id]:number
+            | {typedecl} typedef
+            ;	
+           
+/* "pure" expressions are function calls, including operator expressions, or variable lookups */
+
+    pure_expr =
+//OP_EXPR_AST    
+                 {l1}    [op]:l1op [args]:pure_expr+  |
+                 {l2}    [op]:l2op [args]:pure_expr+  |
+                 {l3}    [op]:l3op [args]:pure_expr+  |
+                 {l4}    [op]:l4op [args]:pure_expr+  |
+                 {l5}    [op]:l5op [args]:pure_expr+  |
+                 {l6}    [op]:l6op [args]:pure_expr+  |
+                 {l7}    [op]:l7op [args]:pure_expr+  |
+                 {l8}    [op]:l8op [args]:pure_expr+  |
+                 {l9}    [op]:l9op [args]:pure_expr+  |
+                 {l10}    [op]:l10op [args]:pure_expr+  |
+                 {l11}    [op]:l11op [args]:pure_expr+  |
+                 {l12}    [op]:l12op [args]:pure_expr+  |
+                 {l13}    [op]:l13op [args]:pure_expr+  |
+                 {opcall}    [op]:l14op [args]:pure_expr+  |
+                 
+              {sign}   [op]:l5op [arg]:pure_expr                           
+            | {ltcall} [op]:l_pointy [args]:pure_expr+
+            | {gtcall} [op]:r_pointy [args]:pure_expr+
+            | {servicecall} [sname]:identifier [op]:identifier [sargs]:pure_expr*
+            | {funappl} [fname]:identifier [args]:pure_expr+
+            | {lambdadef} [lambdatypes]:funcarg+ [lambdabody]:expr+
+            | {cond} [pred]:pure_expr [iftrue]:expr+ [blocktypet]:seq? [iffalse]:expr+  [blocktypef]:seq?
+            | {while} [pred]:pure_expr [wbody]:expr+ [blocktype]:seq?
+            | {for} [init]:bind_expr [cond]:pure_expr [mod]:bind_expr [lbody]:expr+ [blocktype]:seq?
+            | {seqlet} expr+
+            | {parlet} expr+
+            | {number} number
+            | {string} string_literal
+            | {var} identifier
+            ;            
+            
+
+    funcarg = {argtup} [argtype]:type [argvar]:identifier
+              | {void} 
+              ;
+                
+    typedef = [otype]:type [ntype]:type;
+    
+    type =    {basic} type_qual? basic_type 
+            | {obj} obj_identifier
+            | {qualobj} [namespace]:type+ [type]:obj_identifier
+            | {templobj} [type]:type+ [args]:type+
+            | {yada} yada_operator
+            | {func} [rettype]:type [argtypes]:type*
+                    ;
+                        
+//    basic_type     =   {int} int_type | {non_int} non_int_type ;
+    basic_type     =   {number} number_type | {other} other_type ;
+    number_type =   {c_int} c_int_type | {simple} simple_num_type ;
+    other_type =   {char} char | // not sure about char
+                   {str} string | 
+                   {data} data | 
+                   {void} void |
+                   {any} any 
+                   ;
+    
+    c_int_type       =  signedness? int_type_spec? int;
+    //int_type       =   type_qual? signedness? int_type_spec? int;
+    int_type_spec  = {short} short | {long} long+ ;
+    //long_long      = {long_long} long long ;
+    signedness     = {sig} signed | {unsig} unsigned;
+    type_qual     = const? local? ;
+    simple_num_type = {bool} bool | 
+                   {flt} float | 
+                   {dbl} double | 
+                   {word} word  |
+                   {int} inttype |
+                   ;
+
+    // these are the declarations of operations supported by a service
+    // they are similar to C/C++ function declarations
+    opdecl =  {opdeclf} [opid]:identifier [rtype]:type [argtypes]:type*
+            | {opdeclft} [opid]:identifier [ftype]:type;

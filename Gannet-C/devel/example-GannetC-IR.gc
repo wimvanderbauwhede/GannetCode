@@ -1,0 +1,45 @@
+// Gannet-C example: stream filtering
+
+tuple ScoreTup { // like struct
+  Data data;
+  Score score;
+};
+    
+// [more declarations]
+
+service getData {    
+  Stream<Data> get_data(int iodesc);   
+  // [more declarations]
+}
+
+service scoreData {     
+  ScoreTup score_data(Data data, Prof prof);
+}                       
+
+// Gannet function, not a service
+void report_score(ScoreTup) {
+  // code here
+}
+
+foreach int i in (0..3) {    
+    Buf<Data> b1[i]=get_data(i);
+}
+
+Buf<Data> buf2 = merge {
+  foreach int i in (0..3) {    
+      b1[i].stream();
+  }
+}        
+
+Buf<ScoreTup> b3=score_data(b2.stream(),prof1);
+Buf<ScoreTup> b4=
+    if (b3.score<thresh) {
+      report_score(b3);
+      score_data(b3.stream().data,prof2);
+    } else {     
+      b3.stream();
+    }
+
+while (!b4.eos()) {
+  report_score(b4.stream());    
+}

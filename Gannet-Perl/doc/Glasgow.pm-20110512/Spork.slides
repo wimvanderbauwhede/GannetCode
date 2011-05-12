@@ -1,0 +1,72 @@
+----
+presentation_topic: 
+presentation_title: <br><span class="tag">Perl, the Ultimate Concurrent Language</span>
+#presentation_place: Glasgow, UK
+#presentation_date: May 12th, 2011
+----
+= What is this about?
++== "Writing parallel programs in Perl 5"
++== |use Gannet;|
+----
+= Why?
++* Perl is great
++* But sometimes a bit slow 
++* Writing parallel Perl is hard
++* Writing concurrent Perl is hard
+----
+= What if 
++* you could write a Perl script
++* and it would automatically run in parallel, even on a cluster?
++* It can be done -- and again, at almost no cost
+----
+= |use Gannet;|
++* Gannet is a distributed, concurrent Virtual Machine
++* On a multicore system, every core runs an instance of the GannetVM
++* So, compile Perl into Gannet and that's it ...
+----
+= Really?
+----
+= Not quite
++* The Gannet programming model separates computation from communication 
++* Computation is done (sequentially) in /services/
++* Communication is expressed in a functional language with parallel evaluation
++* So you need to write your script as a set of interacting objects
+---- 
+= Gannet-Perl
++* Add Gannet support: |use Gannet;|
++* Provides support for stream buffers and service objects
++* Sequential computations: |use seq;| 
++* Support a "useful subset" of Perl 
+---- 
+= Practically:
++* Compiler in Haskell using Parsec 
++* Emit Gannet bytecode for the interactions between services
++* Either compile the Perl services into C++ with the mythical |upc|
++* Or embed Perl in C++
+----
+= Challenges:
++* Parsing Perl ...
++* Embedding Perl in C++
++* Freeze/Thaw
+----
+= Help Needed
++* PR: spread the word, attract volunteers
++* Project management: plans, milestones, releases etc
+----
+= Help Needed
++* Lambdacamels:
++** Extending the parser
++** Extending the code generator
+----
+= Help Needed
++* C++ experts: esp. for memory management
++* Perl gurus
+----
+= <span class="hide">_</span>
+== |https://github.com/|
+== |wimvanderbauwhede/Gannet|
+
+----
+= <span class="hide">_</span>
+=  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thank you!
+----

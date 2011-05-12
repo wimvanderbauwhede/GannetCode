@@ -1,0 +1,31 @@
+int square (int x) {
+	x*x;
+};	
+
+int fortytwo () seq {
+	int x=6;
+	int y=7;
+	x*y
+};
+
+int fortytwovoid (void) {
+	42;
+};
+
+
+{
+	int a=6;int b=3; int c=4;
+	seq {
+		Int b=7;
+    	s1( in(),0,out(1) )
+	};
+    s2( in(),0,out(1) );
+	(a+(b*s3(c,42)));
+	Stream < int > test = if (a<b) seq {
+		a+=1;
+		s1(1,2,3)
+	} else seq {
+		s2 (3,2,1);
+		square(5);
+	}
+}

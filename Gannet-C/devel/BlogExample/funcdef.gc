@@ -1,0 +1,4 @@
+// simple C-style function definition
+unsigned int cmp(int x, int y) {
+    if (x==y) { 1 } else { 0 }
+}
