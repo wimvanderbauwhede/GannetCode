@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Tile.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 29-Oct-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -20,7 +20,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -50,7 +50,7 @@ class SC_Tile : public sc_module
 public:
     // ---------------------------- PORTS --------------------------------------
     port_SC_Fifo_if <Packet_t>   network_rx_fifo;   //!< for writing to to network.rx_fifo
-    port_SC_Config_if		     cfg_services; 		//!< port for access to SBA::Config object (wrapped inside an sc_module)
+    port_SC_Config_if		     cfg; 		//!< port for access to SBA::Config object (wrapped inside an sc_module)
 													//!< required by service_core
 
     // ---------------------------- EXPORTS ------------------------------------
@@ -76,7 +76,7 @@ public:
 //     SBA::LookupTable                                lookup_table;
 
 	// ---------------------------- METHODS ------------------------------------
-	void do_proc();
+	//void do_proc();
 	 // overload sc_module.kind() to return a more appropriate class name
     virtual const char* kind() const
         { return "SC_Tile"; }
@@ -122,7 +122,7 @@ public:
         service_core.n_args         .bind(service_manager.xp_n_args         );  // for access to n_args inside the manager
         service_core.arg_addresses  .bind(service_manager.xp_arg_addresses);    // for access to arg_addresses inside the manager
         service_core.service_id 	.bind(service_manager.xp_service_id);    	// for access to service_id inside the manager
-        service_core.cfg_services	.bind(cfg_services);	//propagate up the port for accessing config object
+        service_core.cfg	.bind(cfg);	//propagate up the port for accessing config object
         service_core.symbol_table   .bind(service_manager.xp_symbol_table);
         service_core.subtask_reference_fifo   .bind(service_manager.xp_subtask_reference_fifo);
 //        service_core.transceiver_tx_fifo.bind   (transceiver.xpwr_txfifo); // FIXME: NEED ARBITER!

@@ -7,6 +7,7 @@ module Gannet.State.Context (
 	inLambda,
 ) where
 import Gannet.State.Scope
+import Gannet.SBA.Constants
 import Gannet.SBA.Types
 import Gannet.SBA.SystemConfiguration -- for constants
 
@@ -74,7 +75,7 @@ data Context = MkContext {
 						varc::Integer, -- ^ Running variable (D,L,A) count
 						scopetype::Int, -- ^ let=0,lambda=1
 						scope::ScopeTable, -- ^ See "Gannet.State.Scope"
-						datastore::DataStore, -- ^ See "Gannet.State.Scope"
+--WV13102009: obsolete						datastore::DataStore, -- ^ See "Gannet.State.Scope"
 						reflabel::GannetToken,
 						reflabelt::RefLabelTable,
 						numeric::Bool, -- ^ For numerification
@@ -88,8 +89,10 @@ data Context = MkContext {
 
 -- | Initial values for Context 
 -- NOTE that @varc=1024@, totally 'ad hoc'
+-- emptyDataStore
 emptyC :: Context
-emptyC = (MkContext 1 [0] "_" ["GATEWAY"] 0 [] emptyGT [] Hash.empty 1 1 1024 0 emptyScope emptyDataStore emptyGT emptyLT False [] emptyAddrCounters emptyRegisters emptyRVT emptyVarBindings emptyGS) -- subtaskc was 0
+--emptyC = (MkContext 1 [0] "_" ["GATEWAY"] 0 [] emptyGT [] Hash.empty 1 1 1024 0 emptyScope emptyGT emptyLT False [] emptyAddrCounters emptyRegisters emptyRVT emptyVarBindings emptyGS) -- subtaskc was 0
+emptyC = (MkContext 1 [0] "_" ["GATEWAY"] 0 [] emptyGT [] Hash.empty 1 1 0 0 emptyScope emptyGT emptyLT False [] emptyAddrCounters emptyRegisters emptyRVT emptyVarBindings emptyGS) -- subtaskc was 0
 
 type AddrCounters = Hash.Map Integer Integer
 
@@ -106,7 +109,7 @@ initAddrCounters addrcounters service_ids
 		in
 			initAddrCounters ac xs
 
-emptyAddrCounters = initAddrCounters Hash.empty serviceids
+emptyAddrCounters = initAddrCounters Hash.empty serviceids -- FQN: service node ids
 
 
 -- WV21112008 For BUF/STREAM/VAR we must add a lookup table registers::Registers
@@ -155,7 +158,6 @@ The cleanup: when we leave the block enclosing the assignment, all registers sho
 That means that the Registers table contains the registers active for a given Subtask for a given Service, not simply for a given Service. 
 
 -}
-
 
 
 type  RefLabelTable = Hash.Map GannetToken GannetSymbol

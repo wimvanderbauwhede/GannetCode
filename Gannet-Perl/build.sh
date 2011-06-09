@@ -1,2 +1,2 @@
 cd src
-ghc --make Main -o ../bin/GannetPerl
+ghc --make Main -XNoMonomorphismRestriction -o ../bin/GannetPerl

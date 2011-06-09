@@ -21,27 +21,21 @@ require "SBA/ServiceCore.rb"
 
 # Tile is a container for the ServiceManager, ServiceCore and Transceiver and all memories
 class SBA_Tile #< public Base::Tile
-	attr_reader :service,:address,:status
+	attr_reader :sba_system,:service,:address,:status
 	attr_accessor :data_store,:code_store,:lookup_table,:service_manager,:service_core,:transceiver,:th
 	
-	def initialize(sba_system,service,address)		
+	def initialize(sba_system,service,address)
+  	    @sba_system=sba_system	
 		@service=service
 		@address=address
 		@data_store=SBA_Store.new()
 		@code_store=SBA_Store.new()
 		@lookup_table=SBA_LookupTable.new()
 		@service_manager=SBA_ServiceManager.new(self,service) # Need self for Mem and Core		
-if MULTI_THREADED_CORE==1
-		@service_core=[]
-		for i in 0..NCORE_THREADS
-    		@service_core[i]=SBA_ServiceCore.new(sba_system,self,service,i)
-        end
-else # MULTI_THREADED_CORE==0        
 		@service_core=SBA_ServiceCore.new(sba_system,self,service,0)
-end # MULTI_THREADED_CORE
-		
 		@transceiver=SBA_Transceiver.new(sba_system,service)
 		@status=false # idle at start
+		@verbose=(VERBOSE==1)
 	end
 	
 	def run(sba_system)
@@ -51,23 +45,17 @@ end # MULTI_THREADED_CORE
     
     # THREADS: we need a blocking if @transceiver.rx_fifo.has_packets, then we set @status to true, then we go into a while loop, while (@status) do work 
     # the problem is that the ServiceCore can put packets in the ServiceManager tx_queue, but the status does not reflect this
-      if @transceiver.rx_fifo.has_packets()
+if DISTR==0
+if USE_THREADS==0
+      if @transceiver.rx_fifo.has_packets() 
         @status=true
         while (@status==true)
     #puts "TRX #{@service}: #{@transceiver.rx_fifo.packets.length}"
             @service_manager.run()	
     #		end
-if MULTI_THREADED_CORE==1
-            for i in 0..NCORE_THREADS-1 #t uint		
-              if (@service_manager.core_status[i]==CS_busy)
-                @service_core[i].run()
-              end
-            end # loop over "threads"
-else # MULTI_THREADED_CORE==0
     		if (@service_manager.core_status==CS_busy)
         		@service_core.run()
     		end
-end # MULTI_THREADED_CORE 
     #		if (@transceiver.tx_fifo.length>0 or sba_system.network.tx_fifo[@address].length>0)
               @transceiver.run()
     #		end
@@ -76,6 +64,40 @@ end # MULTI_THREADED_CORE
     #		puts "ServiceTile #{@service} STATUS-AFTER: #{@status}"
         end
       end
+else # USE_THREADS
+    # WV: actually, only works with NEW==1!
+    @transceiver.receive_packets()
+    @status=true
+    while (@status==true)
+          @service_manager.run()  
+          if (@service_manager.core_status==CS_busy)
+              @service_core.run()
+          end
+          @transceiver.transmit_packets()
+          @status = (true and (@service_manager.status or (@transceiver.tx_fifo.length>0) or (@transceiver.rx_fifo.length>0)))
+    end          
+end # USE_THREADS         
+else # DISTR==1    
+    @transceiver.receive_packets()
+    if @transceiver.rx_fifo.has_packets() # need this? we just received a packet!
+      @status=true
+      while (@status==true)
+  #puts "TRX #{@service}: #{@transceiver.rx_fifo.packets.length}"
+          @service_manager.run()  
+  #       end
+          if (@service_manager.core_status==CS_busy)
+              @service_core.run()
+          end
+  #       if (@transceiver.tx_fifo.length>0 or sba_system.network.tx_fifo[@address].length>0)
+            @transceiver.transmit_packets()
+  #       end
+          @status = (true and (@service_manager.status or (@transceiver.tx_fifo.length>0) or (@transceiver.rx_fifo.length>0)))
+  #       puts "ServiceTile #{@service} STATUS-AFTER: #{@service_manager.status} or #{@transceiver.tx_fifo.length>0} or #{@transceiver.rx_fifo.length>0}:#{@transceiver.rx_fifo.packets.length}"
+  #       puts "ServiceTile #{@service} STATUS-AFTER: #{@status}"
+      end # 
+    end
+    
+end # DISTR      
     end
 
 if USE_THREADS==1	
@@ -88,6 +110,14 @@ if USE_THREADS==1
         end        
     end	
 end # USE_THREADS
+if DISTR==1
+    def run_proc(sba_system)
+        puts "Starting Tile #{@service}" if @verbose #skip
+            while (true)
+                run(sba_system)
+            end
+    end
+end # DISTR
 end
 #endskip
 
@@ -138,11 +168,7 @@ class Tile : public Base::Tile {
 #endif
         LookupTable lookup_table;
 
-#if MULTI_THREADED_CORE==1
-        ServiceCore* service_core[NCORE_THREADS];
-#else
 		ServiceCore service_core;
-#endif		
 		bool finished;
 #ifdef WV_SYSTEMC		
 	SC_HAS_PROCESS (Tile);
@@ -158,33 +184,19 @@ class Tile : public Base::Tile {
 	status(false),
 	transceiver(sba_s_,this,s_,addr_), 
 	service_manager(sba_s_,this,s_,addr_),
-#if MULTI_THREADED_CORE==0	
 	service_core(sba_s_,this,s_,addr_,0),
-#endif	
 	finished(false)
 #endif	
 	 {
-#if MULTI_THREADED_CORE==1
-        for (uint i=0;i<NCORE_THREADS;i++) {
-            service_core[i] = new ServiceCore(sba_system_ptr,this,service,address,i);
-        }
-#endif		 
 	 };	// END of constructor	
 	
 	Tile()
 	: sba_system_ptr(NULL), service(0), address(0), status(false),
 	transceiver(sba_system_ptr,this,service,address), 
 	service_manager(sba_system_ptr,this,service,address),
-#if MULTI_THREADED_CORE==0	
 	service_core(sba_system_ptr,this,service,address,0),
-#endif	
 	finished(false)
 	{
-#if MULTI_THREADED_CORE==1
-        for (uint i=0;i<NCORE_THREADS;i++) {
-            service_core[i] = new ServiceCore(sba_system_ptr,this,service,address,i);
-        }
-#endif	
 	};
 /*
  Main methods
@@ -197,6 +209,9 @@ class Tile : public Base::Tile {
     void* tstatus;
     void run_th ();
 #endif 
+#if DISTR==1
+    void run_proc();
+#endif
 	
 }; // end # of Tile class definition
 
@@ -220,28 +235,33 @@ class Tile : public Base::Tile {
     
 using namespace std;
 using namespace SBA;
+/*
+	def run(sba_system)
+      if @transceiver.rx_fifo.has_packets()
+        @status=true
+        while (@status==true)
+            @service_manager.run()	
+    		if (@service_manager.core_status==CS_busy)
+        		@service_core.run()
+    		end
+            @transceiver.run()
+            @status = (true and (@service_manager.status or (@transceiver.tx_fifo.length>0) or (@transceiver.rx_fifo.length>0)))
+        end
+      end
+    end
+*/
+
+
 void Tile::run() {
-        System& sba_system=*((System*)sba_system_ptr);
-    if (transceiver.rx_fifo.length()>0) {
-//	    if ((transceiver.rx_fifo.length()>0) || service_manager.status) {        
+        //System& sba_system=*((System*)sba_system_ptr);
+    if (transceiver.rx_fifo.has_packets()) { // WV15122010: was .length()>0
         status=true; 
         while (status==true) {
             service_manager.run();        
-    //}
-#if MULTI_THREADED_CORE==1
-    		for (uint i = 0;i<NCORE_THREADS;i++) {		
-    		  if (service_manager.core_status[i]==CS_busy) {
-                service_core[i]->run();
-    		  }
-    		} // loop over "threads"
-#else // MULTI_THREADED_CORE==0
             if (service_manager.core_status==CS_busy) {
                 service_core.run();
             }
-#endif // MULTI_THREADED_CORE         
-            //if (transceiver.tx_fifo.length()>0 || sba_system.network.tx_fifo[address].length()>0) {
     	    transceiver.run();
-    	    //}
             status= true && (service_manager.status || (transceiver.tx_fifo.length()>0) || (transceiver.rx_fifo.length()>0));
         }
     }
@@ -249,9 +269,9 @@ void Tile::run() {
 
 #if USE_THREADS==1
     void *SBA::run_tile_loop(void* voidp) { 
-        SBA::Tile* the_object = (SBA::Tile*)voidp;
+        SBA::Tile* tilep = (SBA::Tile*)voidp;
         while (1) { 
-        the_object->run(); 
+            tilep->run(); 
         }
         pthread_exit((void *) 0);
     }
@@ -264,6 +284,15 @@ void Tile::run() {
         pthread_create(&tid, &attr, SBA::run_tile_loop, (void*)this);        
     }        
 #endif // USE_THREADS==1   
-
+#if DISTR==1
+    void SBA::run_proc()
+#ifdef VERBOSE
+        cout << "Starting Tile "<<service<<"\n";
+#endif // VERBOSE 
+            while (true) {
+                run();
+            }
+    }
+#endif // DISTR
 =end #cc
 

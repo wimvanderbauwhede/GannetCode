@@ -1,9 +1,9 @@
 /*
 ***********************************************************************************************************
                  |
-  File Name      | SC_sba.h
+  File Name      | SC_SBA.h
 -----------------|-----------------------------------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|-----------------------------------------------------------------------------------------
   Created        | October 2008. Department of Computing Science, University of Glasgow
 -----------------|-----------------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ const SBA::Service debug_service=0;
 
 
 #include "SC_SBA_Interfaces.h"
-#include "SC_Spec_Ports.h"
+#include "SC_SBA_Spec_Ports.h"
 
 #include "SC_Helpers.h"
 //#include "../lib/SC_Helpers.h"
@@ -156,24 +156,24 @@ const SBA::Service debug_service=0;
 #include "SC_Config.h"
 //#include "SC_req_rsp.h"
 
-#include "SC_Registers.h"
+#include "SC_Register.h"
 //#include "SC_SBA_Fifo.h"
 #include "SC_Deque.h"
 #include "SC_Fifo.h"
-#include "SC_Word_List.h"
+//#include "SC_Word_List.h"
 #include "SC_Stack.h"
 #include "SC_RequestTable.h"
 #include "SC_LookupTable.h"
 #include "SC_Memory.h"
 #include "SC_Subtask_List.h"
 
-#include "SC_RegArbiter.h"
-#include "SC_DequeArbiter.h"
-#include "SC_StackArbiter.h"
-#include "SC_FifoArbiter.h"
-#include "SC_MemArbiter.h"
-#include "SC_MemArbiter_dual.h"
-#include "SC_StlistArbiter.h"
+#include "SC_Register_Arbiter.h"
+#include "SC_Deque_Arbiter.h"
+#include "SC_Stack_Arbiter.h"
+#include "SC_Fifo_Arbiter.h"
+#include "SC_Memory_Arbiter.h"
+#include "SC_Memory_Arbiter_dual.h"
+#include "SC_Subtask_List_Arbiter.h"
 
 
 #include "SC_ServiceCore.h"
@@ -188,14 +188,7 @@ const SBA::Service debug_service=0;
 #include "SC_prepare_subtask.h"
 #include "SC_transmit_packets.h"
 
-
-
-
 #include "SC_ServiceManager.h"
-#include "SC_Tranceiver.h"
-
-#include "SC_Tile.h"
-
 #include "SC_Interface.h"
 //#include "SC_receive_packets_gw.h"
 //#include "SC_transmit_packets_gw.h"
@@ -204,13 +197,28 @@ const SBA::Service debug_service=0;
 
 #include "SC_Gateway.h"
 
+#ifndef QUARC_NOC
+#include "SC_Tranceiver.h"
+#include "SC_Tile.h"
 #include "SC_GatewayTile.h"
-
 #include "SC_Network.h"
+#else
+#define FIXED_PACKET_SIZE 4
+#include "SC_Fragmenter.h"
+#include "SC_Defragmenter.h"
+#include "SC_QuarcTransceiver.h"
+#include "SC_QuarcTile.h"
+#include "SC_GatewayQuarcTile.h"
+#endif
 
 
 
+
+#ifndef QUARC_NOC
 #include "SC_System.h"
+#else
+#include "SC_SystemQuarcNoC.h"
+#endif
 
 #include "SC_Runtime.h"
 

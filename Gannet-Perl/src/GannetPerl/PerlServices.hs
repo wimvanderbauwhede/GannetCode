@@ -88,7 +88,7 @@ perlALU = Hash.fromList [
 	 ("+","plus")
 	,("-","minus")
 	,("*","times")
-	,("/","over")
+	,("/","over") -- maybe not: e.g. 8/3 will always be a float 2.66667 in Perl, not 2
 	,("**","pow")
 	,("%","minus")
 	,(">>","rshift")

@@ -5,7 +5,7 @@
 #--
 #
 # *
-# *  (c) 2004-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+# *  (c) 2004-2010 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 # *  
 #
 #// $Id: ServiceCoreLibrary.rb 2532 2009-04-22 16:15:08Z socgroup $
@@ -16,7 +16,7 @@
 =begin #inc
 
 #ifndef SYSC
-#include <dlfcn.h>
+#include <dlfcn.h> // for dynamic linking
 #include <fstream>
 #include <sstream>
 #include "Types.h" //skipcc
@@ -484,7 +484,7 @@ end # WORDSZ
         npad=NBYTES - (str.length % NBYTES) #t uint 
         nwords=(str.length+npad)/NBYTES #t uint
         str=str+null * npad #C++ str.resize(NBYTES*nwords,0);
-        sheader=mkSymbol(K_Q,T_s&1,1,1,0,nwords,npad)
+        sheader=mkSymbol(K_B,T_s,1,1,0,nwords,npad)
 =begin #C++
         Word_List sym;
         sym.push_back(sheader);
@@ -1520,7 +1520,7 @@ end # of BEGIN_OLD
                         # i.e. create a request packet
                         parent.core_return_type= P_request                               
                         sba_tile.service_manager.subtask_list.to(parent.current_subtask,getKind(result))                
-                    elsif getKind(result) == K_B or getKind(result) == K_Q                         
+                    elsif getKind(result) == K_B # or getKind(result) == K_Q                         
                         puts "BUILTIN"  if @v #skip
                         puts parent.ack_ok if @v #skip
                         # If it's a quoted expression =>  Just return it
@@ -2396,13 +2396,9 @@ So what happens if it's a tail call?
                     var_value=sba_tile.data_store.mget(data_address) #t Word_List
 #iv
                     puts "ASSIGN: storing",ppPayload(var_value), "@ #{var_address}"
-#ev                                        
+#ev                    
                     sba_tile.data_store.mput(var_address,var_value)
-                    if var_value[0]==NIL
-                        result=ZERO
-                    else
-                        result=ONE
-                    end    
+                    result=word
 #iv                                
                 else
                     # Some trouble: we're overwriting a presumably immutable variable!!                    
@@ -2444,12 +2440,7 @@ So what happens if it's a tail call?
                     newval_address=addresses[1] #t MemAddress
                     newval= sba_tile.data_store.mget(newval_address) #t Word_List
                     sba_tile.data_store.mput(var_address,newval)
-                    if var_value[0]==NIL
-                        result=ZERO
-                    else
-                        result=ONE
-                    end                        
-                    result_list=[result] #C++ result_list.push_back(result); 
+                    result_list=newval
                 else
                     # ASSIGN has not yet returned. 
                     sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_pending)
@@ -3155,7 +3146,7 @@ recursive calls and multiple calls...
                                 end 
                             end
                         end                                   
-                        if getExt(symbol_word)==1 and (getKind(symbol_word)==K_B or getKind(symbol_word)==K_Q) # Only K_B symbols should extended!
+                        if getExt(symbol_word)==1 and (getKind(symbol_word)==K_B ) # or getKind(symbol_word)==K_Q) # Only K_B symbols should extended!
                             ext=getSubtask(symbol_word)
                             #iv
                             puts "EXT: #{ppSymbol(symbol_word)} => ext=#{ext}"
@@ -3358,6 +3349,35 @@ No, we must do it like in IF or LET
 #ev
         return result_list
     end # of ls_UNSYMBOL
+    # ----------------------------------------------------------------------------
+	# SYMBOL turns a raw value into a symbol of a given type. 
+	# The type is just a number of course; one more reason why we need to be able to label constants
+	# (symbol INT (s1 ...))
+	# (symbol DATA (s1 ...))	
+	# Also, as remarked before, we should really be able to pass single-word symbols instead of addresses	 
+	def  SBA_SCLib.ls_SYMBOL(sba_tile,parent,addresses) #t Word_List (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+	#core
+	raise "SYMBOL is not yet implemented" 
+        print "#{parent.service} CORE: #{parent.current_subtask}: (UNSYMBOL \n"
+		#  I should be able to do just this:
+		#  typesym = addresses[0]
+        typeaddr=addresses[0] #t MemAddress
+		typesyml=sba_tile.data_store.mget(argaddr) #t Word_List
+		type = getUint(typesyml[0]) #t uint
+        argaddr=addresses[1] #t MemAddress
+        data_list=sba_tile.data_store.mget(argaddr) #t Word_List
+		nelts = data_list.length #t uint
+		result_list=[] #t Word_List
+		for elt in data_list # Word_List
+			
+		end
+#iv
+        puts "#{parent.service} CORE: #{result_list[0]}"
+        puts "#{parent.service} CORE: )"
+#ev
+        return result_list
+		
+	end
     # ----------------------------------------------------------------------------
 #skip
     
@@ -3635,7 +3655,7 @@ end # WORDSZ
             else
             	return fail
             end        
-        elsif service==A_IO_READ or service==A_IO_READLINE 
+        elsif service==A_IO_READ 
             if addresses.length == 2
                 nbytes_address=addresses[1] #t MemAddress
                 nbytes=getValue(sba_tile.data_store.mget(nbytes_address)[0]) #t Word
@@ -3662,8 +3682,7 @@ end # WORDSZ
                 puts inp_sym.inspect #skip
                 return inp_sym
             else
-                emptyK_B = NIL #t Word 
-                emptysymbol = [emptyK_B]  #C++ Word_List emptysymbol;emptysymbol.push_back(emptyK_B);
+                emptysymbol = [NIHIL]  #C++ Word_List emptysymbol;emptysymbol.push_back(NIHIL);
                 return emptysymbol
             end
                 # or maybe we need a conditional outside the function
@@ -3673,7 +3692,9 @@ end # WORDSZ
             #C++ string data;            
             kind=getKind(data_symbol[0]) #t Kind_t
             datatype=getDatatype(data_symbol[0]) #t Datatype_t
-            if (kind==K_B and getExt(data_symbol[0])==1 and getSubtask(data_symbol[0])==0) # means it's an "empty" symbol
+			nwords =  getSubtask(data_symbol[0]) #t uint
+			ext =  getExt(data_symbol[0]) #t uint
+            if (kind==K_B and ext==1 and nwords==0) # means it's an "empty" symbol
                 return eof
             else
                  if (not parent.lookup_table.count(port))
@@ -3682,21 +3703,23 @@ end # WORDSZ
                  else            
                      fd = parent.lookup_table.read(port) #C++ FILE* fd=(FILE*)(parent.lookup_table.read(port));
                      puts "CORE IOWRITE: #{port}: #{data_symbol}" #skip
-                    if datatype==(T_s&1) and kind==K_Q
+					if kind==K_B
+# because in 32-bit, type is only 1 bit, so any ext symbol of more than 4 bytes is considered as a string
+                    if datatype==T_s or (WORDSZ==32 and nwords>1) 
                         data=sym2str(data_symbol) #t string
                         #C++ fprintf(fd,"%s",data.c_str());
-                    elsif  datatype==T_i
+                    elsif datatype==T_i
                         data=sym2int(data_symbol) #t Int           
                         #C++ fprintf(fd,"%d",(int)data);
                     elsif  datatype==T_f
                         data=sym2flt(data_symbol) #t Float            
                         #C++ fprintf(fd,"%f",data);
-                    elsif  datatype==(T_i) and getUInt(data_symbol)<2 and kind==K_Q 
-                        data=sym2bool(data_symbol) #t bool           
-                        #C++ fprintf(fd,"%u",data);
                     else
                         raise "CORE IOWRITE: datatype #{datatype}"
-                    end                
+                    end          
+					else
+						raise "can't write out non-K_B values"	#skip
+					end
                      fd.puts data #skip
                      return pass
                  end

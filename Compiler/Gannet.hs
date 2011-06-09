@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+
+-- WV20110609 for old config handling, revert to before r4987 and undef NEW
+
 {-| Gannet main:
 
 >    - read .td file (the program to be compiled)
@@ -25,6 +29,7 @@ Command-line arguments:
 
 
 module Main (
+        main,
 	ymlFileName
 ) where 
 import System.Environment
@@ -34,10 +39,11 @@ import Gannet.Symbolizer.InferTypes
 import Gannet.Packetizer
 import Gannet.Bytecodizer
 import Gannet.State.Context
-import Gannet.Emitters.Puffin
-import Gannet.Emitters.Petrel
-import Gannet.Emitters.Skua
-import Gannet.Emitters.Cormorant
+--import Gannet.Emitters.Puffin
+--import Gannet.Emitters.Petrel
+--import Gannet.Emitters.Skua
+--import Gannet.Emitters.Cormorant
+import Gannet.SBA.Constants
 import Gannet.SBA.SystemConfiguration
 
 import System.Console.GetOpt
@@ -62,7 +68,7 @@ getFilenames =do
                     Output outf = head (filter isOutput opts)
                 in 
                     outf
-            | otherwise = infile++"c" -- td -> tdc
+            | otherwise = infile++"c"++(if c_WORDSZ==32 then "" else show c_WORDSZ) -- td -> tdc; tdc64 for 64-bit
         ymlfile
             | not $ null (filter isYaml opts) = 
                 let 
@@ -89,7 +95,7 @@ main =do
                             Output outf = head (filter isOutput opts)
                         in 
                             outf
-                    | otherwise = infile++"c" -- td -> tdc
+                    | otherwise = infile++"c"++(if c_WORDSZ==32 then "" else show c_WORDSZ) -- td -> tdc; tdc64 for 64-bit
                 ymlfile
                     | not $ null (filter isYaml opts) = 
                         let 
@@ -99,9 +105,14 @@ main =do
                     | otherwise ="SBA.yml"                    
                 datafile= ((init . init . init) outfile)++"data" -- s/tdc/data/
             if elem Verbose opts 
-                then putStrLn $ "\nCompiling "++infile++" ...\n\n"
+                then putStrLn $ "\nCompiling "++infile++" with YAML file "++ ymlfile ++ " ...\n\n"
                 else return () 
             input <- readFile infile -- slurp file into string. Ugly but easy
+-- ----------------------------------------------------------------------------            
+--
+-- Tokenize
+--
+-- ----------------------------------------------------------------------------            
             let
                 tokens = tokenize input                
             if elem Verbose opts 
@@ -111,24 +122,35 @@ main =do
                 numeric
                     | elem PPrint opts = False
                     | elem PPrintNum opts = True
+{- ifdef OLD_BACKENDS
                     | elem Puffin opts = False
                     | elem Petrel opts = False
                     | elem Skua opts = False
---                    | elem Cormorant opts = True 
+--                    | elem Cormorant opts = True
+ endif 
+-}
                     | otherwise = True
-                (symboltree,ctxt) 
-                    | elem Cormorant opts = let (nst,nctxt) = symbolize tokens in inferTypes nctxt nst
-                    | otherwise = symbolize tokens                            
+-- ----------------------------------------------------------------------------            
+--
+-- Symbolize
+--
+-- ----------------------------------------------------------------------------            
+                (symboltree,ctxt) = symbolize tokens
+--                    | elem Cormorant opts = let (nst,nctxt) = symbolize tokens in inferTypes nctxt nst
+--                    | otherwise = symbolize tokens                            
             if elem Verbose opts 
                 then 
                     do 
-                        putStrLn "; Pretty-print Services\n" 
-                        putStrLn $ show services
+                        putStrLn "; Pretty-print Service Instances\n" 
+                        putStrLn $ show newservices
                         putStrLn "\n; Pretty-print Aliases\n"
-                        putStrLn $ show aliases
+                        putStrLn $ show newaliases
+                        putStrLn "\n; Pretty-print Services\n"
+                        putStrLn $ show newinterfaces
                         putStrLn "\n; Pretty-print AST\n" 
                         putStrLn $ show symboltree
                 else return ()
+{-
             if elem Puffin opts
                 then
                     do
@@ -148,7 +170,8 @@ main =do
 --                then
 --                    do                        
 --                        putStrLn $ emitCCode $ packetize symboltree numeric
---                else return ()                    
+--                else return ()
+-}
             if ((elem PPrint opts) || (elem PPrintNum opts))
                 then
                     do
@@ -156,12 +179,18 @@ main =do
                         packets = packetize symboltree ctxt numeric
                     putStrLn $ "\n; Gannet packet list\n" ++ (gplToWords packets False)
                 else return ()
+-- ----------------------------------------------------------------------------            
+--
+-- Packetize
+--
+-- ----------------------------------------------------------------------------            
             if numeric
                 then
                     do
                     let
-                        packets = packetize symboltree ctxt numeric                    
-                    writeFile outfile (gplToWords packets numeric)
+                        packets = packetize symboltree ctxt numeric
+                        padding = take (c_WORDSZ - ((length ymlfile) `mod` c_WORDSZ)) (repeat '\0')                   
+                    writeFile outfile ((gplToWords packets numeric) ++ ymlfile ++ padding)
                 else return()
                     
 -- We don't use DATA at the moment
@@ -217,6 +246,7 @@ compilerOpts args =
   where header = "Usage: gannet [-hpsvwV56SC] task description file (.td)"    
   
 showHelp = do
+    putStrLn $ "Gannet bytecode compiler, "++(show c_WORDSZ)++"-bit version"
     putStrLn "Usage: gannet [-hpsvwV56SC] task description file (.td)"
     putStrLn "    -h,-? : this message"
     putStrLn "    -p : pretty-print the compiled task and exit"        

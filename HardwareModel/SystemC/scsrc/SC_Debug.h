@@ -18,13 +18,13 @@
 
 
 
-ofstream OUT; // for storing output debug messages (link to file in sc_main)
+ofstream OSTREAM; // for storing output debug messages (link to file in sc_main)
 ofstream CON; // for storing connection info (link to file in sc_main)
 
 // out stream where debug messages should be put
 //#define OSTREAM std::cout // select this for viewing messages on screen
 //#define OSTREAM OUT         // this for storing output in log file
-#define OSTREAM  cout         // this for storing output in log file
+//#define OSTREAM  cout         // this for storing output in log file
 
 namespace SC_SBA{
 

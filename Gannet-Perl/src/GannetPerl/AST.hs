@@ -146,6 +146,7 @@ data PureExpr =
 -- operators via Parsec's built-in capabilities
           POpCall OpCall
         | PServiceCall ServiceCall
+        | PDummyServiceCall DummyServiceCall
         | PFunAppl FunAppl
         | PLambdaDef LambdaDef
         | PReturn PureExpr
@@ -171,6 +172,12 @@ data OpCall = MkOpCall
     }
 	deriving (Eq, Show, Typeable, Data)    
 	
+data DummyServiceCall = MkDummyServiceCall
+    {
+         dsc_name::String, dsc_op::String, dsc_type::GPType -- sc_args is  [PureExpr] but for Data.Generics, use Expr
+    }
+	deriving (Eq, Show, Typeable, Data)    
+
 data ServiceCall = MkServiceCall
     {
          sc_name::String, sc_op::String, sc_args::[Expr], sc_type::GPType -- sc_args is  [PureExpr] but for Data.Generics, use Expr

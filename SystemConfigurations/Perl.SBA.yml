@@ -1,0 +1,152 @@
+# System Configuration for Gannet-Perl
+
+# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads, [t_setup, t_proc_value], Addr: Service NoC Address }
+
+--- # SystemConfiguration.rb
+System:
+  Version: 2.0
+  Library: Perl 
+  NServices: 15 # excluding gateway
+  ServiceInstances:
+# "Fundamental" Services
+    c1: [ 1, [BEGIN] ]
+    c2: [ 2, [SEQ] ]
+    c3: [ 3, [LET] ]
+    c4: [ 4, [IF] ]
+    c5: [ 5, [APPLY] ]   
+    c6: [ 6, [LAMBDA] ]    
+# Object-based Services	
+    io: [ 7, [IO] ]
+    al: [ 8, [ALU] ] 
+    m: [ 9, [Math] ]  
+    fp: [ 10, [FPU] ]
+    ar: [ 11, [Array] ]
+	str: [ 11, [String] ]
+	ha: [ 11, [Hash] ]
+	rng: [ 11, [Range] ]
+	re: [ 11, [PCRE] ]
+# Program-specific Services    
+
+  Services:  # last value is control bit (1=control, 0=computational)
+    BEGIN: [ 1, ls_BEGIN, 1 ]
+    SEQ: [ 2, ls_SEQ, 1 ]
+    LET: [ 3, ls_LET, 1 ]
+    IF: [ 4, ls_IF, 1 ]
+    APPLY: [ 5, ls_APPLY, 1 ]
+    LAMBDA: [ 6, ls_LAMBDA, 0 ]
+    IO: [ 7, ls_IO, 0 ]
+    ALU: [ 8, ls_ALU, 0 ]
+    Math: [ 9, ls_Math, 0 ]
+    FPU: [ 10, ls_FPU, 0 ]
+    S_IF: [ 11, ls_S_IF, 1 ]
+ 
+  Aliases:
+  # Alias Name (case sensitive): FQN
+    begin: c1.BEGIN.begin
+    begintc: c1.BEGIN.begintc
+    seq: c2.SEQ.seq
+    seqtc: c2.SEQ.seqtc
+    if: c4.IF.if
+    return: c4.IF.if
+    returntc: c4.IF.if
+    iftc: c4.IF.if
+    let: c3.LET.let
+    assign: c3.LET.assign
+    update: c3.LET.update
+    read: c3.LET.read
+    lettc: c3.LET.lettc
+    apply: c5.APPLY.apply
+    applytc: c5.APPLY.applytc
+    lambda: c6.LAMBDA.lambda
+# These used to be "ALU_names"  
+    '+': a.ALU.plus
+    '-': a.ALU.minus
+    '*': a.ALU.times
+    '/': a.ALU.over
+    '<': a.ALU.lt
+    '>': a.ALU.gt
+    '==': a.ALU.eq
+    '!': a.ALU.not
+  
+  ServiceClasses:    
+    Array: [ new, at, size, push, pop, shift, unshift, set, copy, fromRange ]
+    Hash: 
+		new:  [0, [0, 0]]
+		copy:  [1, [0, 0]]
+		keys: [2, [0, 0]]
+		values: [3, [0, 0]]
+		exists: [4, [0, 0]]
+		delete: [5, [0, 0]]
+		insert: [6, [0, 0]]
+		lookup: [7, [0, 0]]
+		toList: [8, [0, 0]]
+		fromList: [9, [0, 0]]
+    Range: [ new, inc, done ]
+	String:
+		new: [0, [0, 0]]
+		chomp: [0, [0, 0]]
+		chop: [0, [0, 0]]
+		ne: [0, [0, 0]]
+		eq: [0, [0, 0]]	
+	ALU:
+		new: [0, [0, 0]]
+		plus: [1, [0, 0]]
+		minus: [2, [0, 0]]
+		times: [3, [0, 0]]
+		over: [4, [0, 0]]
+		mod: [5, [0, 0]]
+		rshift: [6, [0, 0]]
+		lshift: [7, [0, 0]]
+		and: [8, [0, 0]]
+		or: [9, [0, 0]]
+		not: [10, [0, 0]]
+		xor: [11, [0, 0]]
+		lt: [12, [0, 0]]
+		gt: [13, [0, 0]]
+		eq: [14, [0, 0]]
+		lte: [15, [0, 0]]
+		gte: [16, [0, 0]]
+		ne: [17, [0, 0]]
+	FPU:
+		plus: 1, [0, 0]]
+		minus: 2, [0, 0]]
+		times: 3, [0, 0]]
+		over: 4, [0, 0]]
+		lt: [12, [0, 0]]
+		gt: [13, [0, 0]]
+		eq: [14, [0, 0]]
+		lte: [15, [0, 0]]
+		gte: [16, [0, 0]]
+		ne: [17, [0, 0]]		
+	Math:
+		abs: [1, [0, 0]]
+		atan2: [2, [0, 0]]
+		cos: [3, [0, 0]]
+		exp: [4, [0, 0]]
+		hex: [5, [0, 0]]
+		int: [6, [0, 0]]
+		log: [7, [0, 0]]
+		oct: [8, [0, 0]]
+		rand: [9, [0, 0]]
+		sin: [10, [0, 0]]
+		sqrt: [11, [0, 0]]
+		srand: [12, [0, 0]]
+	IO:
+		new: [0, [0, 0]]
+		print: [1, [0, 0]]
+		open: [2, [0, 0]]
+		close: [3, [0, 0]]
+	PCRE:
+		new: [0, [0, 0]]
+		match: [1, [0, 0]]
+		subst: [2, [0, 0]]
+
+  ALU_Names:
+    '+': 'plus'
+    '-': minus
+    '*': times
+    '/': over
+    '<': lt
+    '>': gt
+    '==': eq
+    '!': not

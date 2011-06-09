@@ -3,7 +3,7 @@
                  |
   File Name      | SC_ServiceManager.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 29-Oct-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -23,7 +23,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -58,7 +58,7 @@ public:
     bool                                            status;                 //!<
     // ---------------------------- PORTS --------------------------------------
     port_SC_Fifo_if     <Packet_t>          transceiver_rx_fifo;//!< read/write port for transceiver rx fifo
-    port_SC_Fifo_if     <Packet_t>          transceiver_tx_fifo;//!< read/write port for tranceiver tx fifo
+    port_SC_Fifo_if     <Packet_t>          transceiver_tx_fifo;//!< read/write port for transceiver tx fifo
     port_SC_Memory_if   <ADDR_T, DATA_T>    data_store;      //!< write/read port for data memory access
     port_SC_Stack_if 						data_address_stack;
     //port_SC_Memory_if   <ADDR_T, DATA_T>    data_store_2;   //!< 2nd write/read port for data memory access
@@ -106,14 +106,14 @@ public:
     SC_Fifo             <Word, PACKET_FIFO_SZ>  subtask_fifo;           //!< Used?
     SC_Fifo             <Subtask , PACKET_FIFO_SZ>  pending_subtasks_fifo;  //!<
 
-    SC_FifoArbiter      <Packet_t>                  arb_tx_fifo;            //!< Arbiter for write contention on tx_fifo
-    SC_FifoArbiter      <Packet_t>                  arb_data_fifo;          //!< Arbiter for write contention on data_fifo
-    SC_FifoArbiter      <Packet_t>                  arb_subtask_code_fifo;  //!< Arbiter for write contention on subtask_code_fifo
-    SC_FifoArbiter      <Packet_t>                  arb_request_fifo;       //!< Arbiter for write contention on request_fifo
-    SC_FifoArbiter      <Packet_t>                  arb_subtask_reference_fifo;//!< Arbiter for write contention on subtask_reference_fifo
-    SC_FifoArbiter      <Word>                  	arb_subtask_fifo;       //!< Arbiter for write contention on subtask_fifo
+    SC_Fifo_Arbiter      <Packet_t>                  arb_tx_fifo;            //!< Arbiter for write contention on tx_fifo
+    SC_Fifo_Arbiter      <Packet_t>                  arb_data_fifo;          //!< Arbiter for write contention on data_fifo
+    SC_Fifo_Arbiter      <Packet_t>                  arb_subtask_code_fifo;  //!< Arbiter for write contention on subtask_code_fifo
+    SC_Fifo_Arbiter      <Packet_t>                  arb_request_fifo;       //!< Arbiter for write contention on request_fifo
+    SC_Fifo_Arbiter      <Packet_t>                  arb_subtask_reference_fifo;//!< Arbiter for write contention on subtask_reference_fifo
+    SC_Fifo_Arbiter      <Word>                  	arb_subtask_fifo;       //!< Arbiter for write contention on subtask_fifo
     // it seems only core_control is accessing this fifo; but still arbitering for ease of later connections
-    SC_FifoArbiter      <Subtask >                  arb_pending_subtasks_fifo;            //!< Arbiter for write contention on pending_subtasks_fifo
+    SC_Fifo_Arbiter      <Subtask >                  arb_pending_subtasks_fifo;            //!< Arbiter for write contention on pending_subtasks_fifo
 
     // this stack seems to have one writer (core_control) and one reader (parse_subtask)
     // so I am presuming no contention, and hence directly giving each of them access to one of the stack's port
@@ -121,48 +121,48 @@ public:
 //    SC_Stack            <DATA_SZ>                   data_address_stack;     // "
     // Following stack for VM only. So commented and not connected.
     //SC_Stack            <SUBTASKS_SZ>               subtasks_address_stack;
-	SC_StackArbiter     			                arb_data_address_stack;
+	SC_Stack_Arbiter     			                arb_data_address_stack;
 
     SC_Register         <Core_Status>               core_status;            //!< SC_Register of enumerated type for storing core_status
-    SC_RegArbiter       <Core_Status>               arb_core_status;         //!< Arbiter managing contention on core_status
+    SC_Register_Arbiter       <Core_Status>               arb_core_status;         //!< Arbiter managing contention on core_status
 
     SC_Register         <bool>                      ack_ok;                 //!< shared b/w core_control and service_core
-    SC_RegArbiter       <bool>                      arb_ack_ok;             //!< Arbiter managing contention on ack_ok boolean
+    SC_Register_Arbiter       <bool>                      arb_ack_ok;             //!< Arbiter managing contention on ack_ok boolean
 
     SC_Register         <Packet_Type >              core_return_type;       //!< shared between core_control and service_core
-    SC_RegArbiter       <Packet_Type >              arb_core_return_type;         //!< Arbiter managing contention on core_return_type
+    SC_Register_Arbiter       <Packet_Type >              arb_core_return_type;         //!< Arbiter managing contention on core_return_type
 
     SC_Register         <SBA::Subtask     >         current_subtask;
-    SC_RegArbiter       <SBA::Subtask     >         arb_current_subtask;    //!< Arbiter managing contention on current_subtask
+    SC_Register_Arbiter       <SBA::Subtask     >         arb_current_subtask;    //!< Arbiter managing contention on current_subtask
 
     SC_Register         <uint             >         n_args;
-    SC_RegArbiter       <uint             >         arb_n_args;             //!< Arbiter managing contention on n_args
+    SC_Register_Arbiter       <uint             >         arb_n_args;             //!< Arbiter managing contention on n_args
 
     SC_Register         <uint             >         opcode;
-    SC_RegArbiter       <uint             >         arb_opcode;             //!< Arbiter managing contention on arb_core_return_type
+    SC_Register_Arbiter       <uint             >         arb_opcode;             //!< Arbiter managing contention on arb_core_return_type
 
     SC_Memory           <ADDR_T, uint>              code_status;            //!< Modelled as a small memory
-    SC_MemArbiter       <ADDR_T, uint>              arb_code_status;         //!< Arbiter for contention on code_status
+    SC_Memory_Arbiter       <ADDR_T, uint>              arb_code_status;         //!< Arbiter for contention on code_status
 
     SC_Memory           <ADDR_T, SBA::Word>         symbol_table;           //!< Modelled as a small memory
-    SC_MemArbiter       <ADDR_T, SBA::Word>         arb_symbol_table;           //!< Arbiter for contention on symbol_table
+    SC_Memory_Arbiter       <ADDR_T, SBA::Word>         arb_symbol_table;           //!< Arbiter for contention on symbol_table
 
 
 //    SC_Memory           <ADDR_T, Requests>          request_table;          //!< Modelled as a small memory
-//    SC_MemArbiter       <ADDR_T, Requests>          arb_request_table;           //!< Arbiter for contention on request_table
+//    SC_Memory_Arbiter       <ADDR_T, Requests>          arb_request_table;           //!< Arbiter for contention on request_table
 
     SC_Deque            <SBA::MemAddress>           arg_addresses;
-    SC_DequeArbiter     <SBA::MemAddress>           arb_arg_addresses;
+    SC_Deque_Arbiter     <SBA::MemAddress>           arb_arg_addresses;
 
     SC_Deque            <SBA::Word>                 results_store;          //!< For this FIFO, one reader (core_control) and one writer(service_core)
     SC_Register         <SBA::MemAddress >          service_core_ram;       //!<
 
-    SC_MemArbiter       <ADDR_T, RegisterEntry>     arb_register_set;             //!< Arbiter for register_set
-    SC_StlistArbiter                                arb_subtask_list;             //!< Arbiter for subtask_list
+    SC_Memory_Arbiter       <ADDR_T, RegisterEntry>     arb_register_set;             //!< Arbiter for register_set
+    SC_Subtask_List_Arbiter                                arb_subtask_list;             //!< Arbiter for subtask_list
     // service manager has access to only one port of data_storate (the other is for core), so use normal N-to-1 arbiter
-    SC_MemArbiter       <ADDR_T, DATA_T>            arb_data_store;               //!<
+    SC_Memory_Arbiter       <ADDR_T, DATA_T>            arb_data_store;               //!<
     // service manager has access to both ports of code_store, so use N-to-2 arbiter
-    SC_MemArbiter_dual  <ADDR_T, DATA_T>            arb_code_store;               //!< Arbiter for dual-ported code_store
+    SC_Memory_Arbiter_dual  <ADDR_T, DATA_T>            arb_code_store;               //!< Arbiter for dual-ported code_store
 
     // ---------------------------- METHODS ------------------------------------
     void do_proc();
@@ -182,7 +182,6 @@ public:
         address                 ("address", a_)             ,
         service_id				("service_id")				,
         debug_service           ("debug_service")           ,
-
         receive_packets         ("receive_packets")         ,
         store_subtask_code      ("store_subtask_code")      ,
         activate_subtask        ("activate_subtask")   ,
@@ -398,6 +397,7 @@ private:
 //==============================================================================
 //  DO_PROC()
 //==============================================================================
+
 template <typename ADDR_T, typename DATA_T>
 void SC_ServiceManager<ADDR_T, DATA_T> :: do_proc()
 {

@@ -22,26 +22,26 @@
 #include <systemc.h> //skipcc
 #endif // WV_SYSTEMC
 #include "Types.h" //skipcc
-//#include "Packet.h" //skipcc
-//#include "Base/System.h" //skipcc
-//#include "Tile.h" //skipcc
-//#include "GatewayTile.h" //skipcc
-//#include "Network.h" //skipcc
 #include "SystemConfiguration.h" //skipcc
 #include "System.h" //skipcc
 #include "Runtime.h" //skiph
 =end #inc
 
+=begin
+
+=end
+
+# WV20110609: for the old configuration behaviour revert to before r4987 and set NEW=0
+
 require "SBA/ServiceConfiguration.rb"
-require "SBA/SystemConfiguration.rb"
+require "SBA/SystemConfigurationNew.rb"
 require "SBA/System.rb"
 
 # SBA_Runtime is now a very thin wrapper around SBA_System
 
 class SBA_Runtime
-#	include SBA_ServiceConfiguration
 	include SBA_SystemConfiguration
-#	puts "RUNTIME #{services.inspect}"
+
 #H TaskDescList task_descriptions;	
 #H Bytecode bytecode;
 #H System sba;	
@@ -54,11 +54,8 @@ class SBA_Runtime
     #skip    
     # object constructor	
 	def initialize(task_descriptions)      
-		@task_descriptions=task_descriptions
-#		puts "RUNTIME #{self.services.inspect}"
-        @sba=SBA_System.new(self.services,@task_descriptions)
-#		@task_counter=0
-#		@task_description_file=''
+		@task_descriptions=task_descriptions		
+        @sba=SBA_System.new(self.servicenodes,self.configurations,@task_descriptions)
 	end
    
 	def show()
@@ -101,6 +98,12 @@ if USE_THREADS==0
         puts "Warning: GannetVM ran for #{ncycles} cycles without completion." #skiph
         puts "         Try increasing the number of cycles on the command line." #skiph
 else #  USE_THREADS==1
+#    The current Gannet thread model is to create a thread per tile and use blocking queues.
+#    This should work fine for long-running SW tasks as the scheduler will timeslice the threads.
+#    What about HW services? 
+#    As long as there is a single HW service per Tile, the thread can simply block until the HW returns a result
+#    so the HW response will be the scheduler period. It means we don't even need an interrupt from the HW
+#    When do we really need interrupts? It would be logical to let the core deal with the interrupts for its HW    
         @sba.run_th()
 end # USE_THREADS   
         return @sba.results

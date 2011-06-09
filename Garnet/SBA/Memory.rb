@@ -155,12 +155,16 @@ attr_reader :store
         end
     end
     
-    # RAM-FIFO Push operation for list of words
+    # RAM Append operation for list of words
     def mpush(address,data)
-    raise "FIFO Push"
-    if data.is_a?(Array) and data[0].is_a?(Integer)
-        @store[address][1]=[] unless @store.has_key?(address)
-        @store[address][1].push(data)
+        if data.is_a?(Array) and data[0].is_a?(Integer)
+            if not @store[address].is_a?(Array)
+                @store[address]=[]
+                @store[address][1]=[] 
+            end
+            for w in data
+                @store[address][1].push(w)
+            end
         else
           raise "Trying to mput wrong data type in store: #{data.class}, #{data[0].class} "
         end

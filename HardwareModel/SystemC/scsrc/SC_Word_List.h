@@ -8,7 +8,7 @@
 #ifndef SC_WORD_LIST_H_
 #define SC_WORD_LIST_H_
 
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 
 namespace SC_SBA{

@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
+{-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -cpp -D_WORDSZ=32 #-}
 
 -- |Turn Gannet Symbols and Packet headers into bytecode.
 
@@ -147,58 +148,74 @@ gs_to_bytes gs =
         reg_field=(reg gs)
         (regvar,regval)=reg_field
         modeval =fromIntegral $ fromEnum (mode gs)
+-- for both 32- and 64-bit, Subtask is 16 bits
+-- However, 32-bit K_B's use up the LSB!
+-- So purely for consistency, for K_B I should set the Subtask to 0?         
         stval
             | (kind gs)==K_S || (kind gs)==K_R || (kind gs)==K_C || (kind gs)==K_D
                 = (subtask gs) + modeval*16384+(fromIntegral regval)*1024
-            | otherwise = subtask gs
+            | otherwise = subtask gs                        
         st :: Word16 -- FIXME: this is surely not correct for 64 bits?
         st = fromIntegral $ stval
---            | kind gs == K_B = 0
---            | otherwise = fromIntegral $ subtask gs
         stl :: Word8
-        stl= fromIntegral $ mod st 256
+        stl
+        	| kind gs /= K_B = fromIntegral $ mod st 256
+        	| otherwise = 0 -- FIXME: ugly hack!!
         sth= fromIntegral $ div (st - fromIntegral stl) 256    
         sname :: Integer
         sname = case name gs of
             GannetTokenL (GannetLabelI li) -> li
             GannetTokenB (GannetBuiltinI bi) -> bi
             GannetTokenS (GannetLabelI sli) -> sli
-            otherwise -> error $ "Name in " ++ (show gs) ++ " not properly numerified\n"            
+            otherwise -> error $ "Name in " ++ (show gs) ++ " not properly numerified\n"
+#if WORDSZ==32                        
         sn :: Word16
         sn = fromIntegral sname
         nl :: Word8
         nl=fromIntegral $ mod sn 256    
-#if WORDSZ==32
-        k=fromEnum (kind gs)
-        dt=fromEnum (datatype gs)
-        kt
-            | dt<4 = 2*k+dt -- 12+0 = 110|0, 12+1 = 110|1, 12+2 = 111|0, 12+3 = 111|1       
-            | otherwise = 2*k+(dt.&.1)
-        q -- This is very late to quote strings, but better late than never :-)
---            | datatype gs == T_s = 1 -- somehow builtins got unquoted by moving from Name to Subtask. I have no time to figure out why
-            | kind gs == K_B = 1
-            | otherwise = quoted gs
-        kteqt=fromIntegral $ 16*kt + 8*(ext gs) + 4*q + (task gs) 
-#elif WORDSZ==64
-        kte=fromIntegral $ (fromEnum (kind gs))*16+(fromEnum (datatype gs))*2+(ext gs) 
-        t=task gs        
-        q=quoted gs
-        qt=fromIntegral $ (shiftL q 6)+t
+        -- FIXME: if the Symbol is a non-extended K_B and Name > 8 bits, we must
+        -- use 2nd byte to store the rest of the number
         nh :: Word8
         nh=fromIntegral $ div (sn - fromIntegral nl) 256
-        -- FIXME: we don't use Count!
-        ct :: Word16
-        ct=fromIntegral $ count gs
-        cl :: Word8
-        cl=fromIntegral $ mod ct 256
-        ch :: Word8
-        ch=fromIntegral $ div (ct - fromIntegral cl) 256
+#else
+-- 64 bits
+        sn :: Word32
+        sn = fromIntegral sname 
+        n3 :: Word8
+        n3=fromIntegral $ (sn `shiftR` 24) .&. 255
+        n2 :: Word8
+        n2=fromIntegral $ (sn `shiftR` 16) .&. 255
+        n1 :: Word8
+        n1=fromIntegral $ (sn `shiftR` 8) .&. 255
+        n0 :: Word8
+        n0=fromIntegral $ sn .&. 255
+        
+#endif             
+        e=(ext gs).&.1
+        k
+        	| kind gs /= K_Unknown =fromEnum (kind gs)
+        	| otherwise = 0
+        dt=fromEnum (datatype gs)   
+        q -- This is very late to quote strings, but better late than never :-)
+            | kind gs == K_B = 1
+            | otherwise = (quoted gs).&.1
+        t=task gs               
+#if WORDSZ==32                
+        kt = 2*k+(dt.&.1)
+--            | dt<4 = 2*k+dt -- 12+0 = 110|0, 12+1 = 110|1, 12+2 = 111|0, 12+3 = 111|1       
+--            | otherwise = 2*k+(dt.&.1)
+        kteqt=fromIntegral $ 16*kt + 8*e + 4*q + t -- i.e. kt<<4 + e<<3 + q<<2 + t
+#elif WORDSZ==64
+        kte=fromIntegral $ (k.&.15)*16+(dt.&.0x7)*2+e -- kte is a byte 4|3|1      
+        qt=fromIntegral $ (shiftL q 6)+t -- qt is a byte 2|6
 #endif
     in
 #if WORDSZ==32
-        [kteqt,sth,stl,nl]
+		if k==(fromEnum K_B) && (e==0) -- for not-extended built-ins 
+			then [kteqt,sth,nh,nl]
+			else [kteqt,sth,stl,nl]        
 #elif WORDSZ==64
-        [kte,qt,sth,stl,nh,nl,ch,cl]
+        [kte,qt,sth,stl,n3,n2,n1,n0]
 #endif		
 -- Neat, what?
 -- though in a more HW-ish language it would just be (n & (0xFF<<x))>>x)

@@ -14,6 +14,44 @@
 =end #inc
 
 # BridgeCore is the equivalent of ServiceCore in Tile. It contains the actual HW interface
+# For HPC-Gannet, the BridgeCore contains the MPI send/receive calls
+#    The rules are as follows:
+#    Addresses 0-7: all go to node 0. For global services like LET, APPLY etc and the GW
+#    Addresses 8-15: these are switched locally, so every node will implement these services, e.g. IF, ALU, IO
+#    Addresses 16-higher: these go to the corresponding node
+#    
+#    Global control services are:
+#    GATEWAY (0)
+#    LET (6)
+#    APPLY (7)
+#    
+#    Local control services are
+#    
+#    IF (1)
+#    ALU (2)
+#    CONFIG (3)
+#    IO (4)
+#    BEGIN (5)
+#        
+#    A slight complication is that the GW does not have address 0 but should run on the head node, i.e. node 0
+#    
+#    Currently, the NoC switches all addresses with service id > SBA_BRIDGE_ADDR to the bridge. 
+#    The modification we need is: GW (id 0) should go to the bridge; LET and APPLY as well. The latter are easy: give them id > SBA_BRIDGE_ADDR
+#    The actual core service might very well have an id > SBA_BRIDGE_ADDR, but it should of course be delivered locally.
+#        SBA_BRIDGE_ADDR=5
+#    if (service_id > SBA_BRIDGE_ADDR and node_id != (service_id - 7)) or (service_id==0 and node_id!=0)
+#         switch to bridge
+#    end 
+#    
+#    Then, the Bridge itself does this:
+#    
+#    if service_id<8 
+#        send to node 0
+#    else
+#        send to node (service_id - 7) 
+#    end
+
+
 class SBA_BridgeCore  
     include SBA
 
@@ -78,8 +116,8 @@ BridgeCore(Base::System* sba_s_, Base::Bridge* sba_t_)
 #C++        	Bridge& sba_tile=*((Bridge*)sba_tile_ptr);
 
 #iv
-if @sba_tile.transceiver.rx_fifo.status==1
-puts "NoC Bridge: receive_packets(): #{@sba_tile.transceiver.rx_fifo.status};"
+if @sba_tile.transceiver.rx_fifo.status()==1
+puts "NoC Bridge: receive_packets(): #{@sba_tile.transceiver.rx_fifo.status()};"
 puts @sba_tile.transceiver.rx_fifo.length #C++ cout << "NoC Bridge: "<<sba_tile.transceiver.rx_fifo.size() << "\n";
 end
 #ev
@@ -91,7 +129,7 @@ end
         GANNET_VM_OPB_IF_WV_mResetWriteFIFO(baseaddr); 
 #endif // HWIF 
 =end #C++ HWIF
-        while @sba_tile.transceiver.rx_fifo.status==1 and get_txfifo_status()==1   
+        while @sba_tile.transceiver.rx_fifo.status()==1 and get_txfifo_status()==1   
             rx_packet= @sba_tile.transceiver.rx_fifo.shift #t Packet_t 
             puts "PACKET:",rx_packet.inspect #skip
             put_packet(rx_packet)
@@ -149,7 +187,7 @@ end
         mod_packet=setHeader(packet,mod_header) #t Packet_t
         hw1=mod_packet.shift #C++ Word hw1=mod_packet.front();mod_packet.pop_front();
         mod_packet_length=(hw1 & F_Length) >> FS_Length #t Length_t
-        @hw_reg.push(hw1) #s/push/push_back/
+        @hw_reg.push(hw1)
         for i in 1..mod_packet_length+2 #t Length_t
             w=mod_packet.shift #C++ Word w=mod_packet.front();mod_packet.pop_front();
             @hw_reg.push(w) #skip
@@ -167,7 +205,7 @@ end
     def get_packet() #t Packet_t
         packet=[] #t Packet_t
         hw1=@hw_reg.shift #C++ Word hw1=hw_reg.front();hw_reg.pop_front();
-        packet.push(hw1) #s/push/push_back/
+        packet.push(hw1)
         packet_length=(hw1 & F_Length) >> FS_Length #t Length_t
         for i in 1..packet_length+2 #t Length_t
             w=@hw_reg.shift #skip
@@ -179,7 +217,7 @@ end
              hw_reg.pop_front();
 #endif 
 =end #C++ HWIF 
-            packet.push(w) #s/push/push_back/            
+            packet.push(w)            
         end
         return packet
     end    

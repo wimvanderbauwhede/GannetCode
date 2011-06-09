@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
-
+{-# LANGUAGE NoMonomorphismRestriction #-}
 {--
 TODO
 ----
@@ -21,7 +21,7 @@ import qualified GannetC.GannetParsec as GP
 
 import Control.Monad (liftM)
 
-import Text.ParserCombinators.Parsec hiding (State)
+import Text.ParserCombinators.Parsec hiding (State) -- , char)
 import Text.ParserCombinators.Parsec.Expr
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language 
@@ -1141,4 +1141,5 @@ charLiteral     = P.charLiteral lexer
 dot 			= P.dot lexer
 comma			= P.comma lexer
 semi			= P.semi lexer
-
+-- with ghc 7.0.2, I had to define char in GP and hide it from Text.ParserCombinators.Parsec
+--char = GP.char

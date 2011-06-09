@@ -27,7 +27,6 @@ from cxxtestgenlib import createRunner
 
 
 def build(classname,binname,sources):
-
     destdir='../SBA/'
     global opts
 
@@ -36,19 +35,22 @@ def build(classname,binname,sources):
     boost=0
 
     GEN=1
-        # MACROS
-    WORDSZ='WORDSZ=32'
+    # MACROS
+    wordsz=32
+    WORDSZ='WORDSZ='+str(wordsz)
     GL='GANNET_LANGUAGE'
-    NEW='NEW=1'
-    V='' #V='VERBOSE'
+    NEW=''
+    VERBOSE='' #V='VERBOSE'
     # No SystemC by default
     SYSC=''
     SC_IDP=''
     SYSC_FIXME=''
     # Compile for VM (otherwise compiles to model HW)
     VM='VM=0'
+    SEQVM='SEQVM=0'
 #    OLDVM='OLDVM=1'
     USE_THREADS='USE_THREADS=0'
+    DISTR='DISTR=0'
     use_pthreads = False
     THREADED_CORE='' # 'THREADED_CORE=0'
     threaded_core = False
@@ -64,9 +66,11 @@ def build(classname,binname,sources):
     OPTTHREADS = '-O3 '
     OPTSYSC =  '-O3 '
     DEBUG = ''
+    ARCH=''
+    NO_SOCKET=''
     OPT = OPTSYSC
     CYGWIN=0
-
+    PIC = '-fPIC '
     # These are used by the build script to generate flags/switches
     GUI=None
     OSX=0
@@ -84,19 +88,23 @@ def build(classname,binname,sources):
     #use options without leading '-': scons v=0 gui=QtGui
     opts = Variables()
     opts.Add('v', 'Verbose', 0)
+    opts.Add('new', 'New', 0)
     opts.Add('gui', 'Use Qt GUI', "QtGui")
     opts.Add('xc', 'Crosscompile',0)
     opts.Add('llvm', 'Use LLVM',0)
     opts.Add('sysc','Use SystemC',0)
     opts.Add('win','CygWin',0)
     opts.Add('vm', 'Virtual Machine',0)
+    opts.Add('sock', 'Use POSIX socket interface',1)
+    opts.Add('svm', 'Sequential Virtual Machine',0)
 # options can't take . or / in the strings!!
 #    opts.Add('yml','YAML configuration file','') #'../../SBA.yml')
     opts.Add('cycles', 'Count CPU cycles',0)
     opts.Add('timings', 'Time program execution',0)
     opts.Add('dyn', 'Dynamic memory',0)
     opts.Add('pthreads', 'Use POSIX Threads',0)
-    opts.Add('ptcore', 'Use POSIX Threaded Core',0)
+    opts.Add('wordsz', 'Set WORDSZ',32)
+    opts.Add('ptcore', 'Use POSIX Threaded Core',0)    
     opts.Add('dbg', 'Debug',0)
     opts.Add('nogen',"Don't generate C++ sources from Ruby code",0) 
     opts.Add('opt', 'Optimise','speed') # or 'size'
@@ -115,7 +123,7 @@ def build(classname,binname,sources):
 
     for param in os.environ.keys():
         if param == "VERBOSE":
-            V='VERBOSE'
+            VERBOSE='VERBOSE'
         if param == "GANNET_YML_CONFIG":
             yaml_config=os.environ["GANNET_YML_CONFIG"]
 
@@ -123,7 +131,9 @@ def build(classname,binname,sources):
         if option.key == 'nogen' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             GEN=0
         if option.key == 'v' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
-            V='VERBOSE'
+            VERBOSE='VERBOSE'
+        if option.key == 'new' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
+            NEW='NEW=1'
         if option.key == 'gui' and opts.args.has_key(option.key) and opts.args[option.key]==option.default:
             GUI='QtGui'
         if option.key == 'xc' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
@@ -139,19 +149,33 @@ def build(classname,binname,sources):
             OPT=OPTSPEED
         if option.key == 'sysc' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             SC=1
+            PIC=''
             SYSC='SYSC'
             SC_IDP='SC_INCLUDE_DYNAMIC_PROCESSES'
             SYSC_FIXME='SYSC_FIXME=1'
             STATIC_ALLOC=''
             destdir='../../HardwareModel/SystemC/scsrc/SBA/'
+            if VERBOSE=='VERBOSE':
+                VERBOSE='SC_VERBOSE'
         if option.key == 'win' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             CYGWIN=1
         if option.key == 'vm' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             VM='VM=1'
+        if option.key == 'svm' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
+            VM='VM=1'
+            SEQVM='SEQVM=1'
 # doesn't work if the path has dots or slashes!
 #        if option.key == 'yml' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
 #            print "YAML!"
 #            yaml_config=opts.args[option.key]
+        if option.key == 'sock' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
+            NO_SOCKET='NO_SOCKET'
+            sockpatt=re.compile('^\.\.\/SBA')
+            nsources=filter(sockpatt.search,sources)
+            sources=nsources
+        if option.key == 'wordsz' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
+            wordsz=opts.args[option.key]
+            WORDSZ='WORDSZ='+str(wordsz)
         if option.key == 'pthreads' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             USE_THREADS='USE_THREADS=1'
             use_pthreads=True
@@ -160,6 +184,9 @@ def build(classname,binname,sources):
             THREADED_CORE='THREADED_CORE=1'
             threaded_core=True
             OPT=OPTTHREADS
+        if option.key == 'distr' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
+            DISTR='DISTR=1'
+            OPT=OPTSPEED
         if option.key == 'cycles' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             CYCLES='CYCLES'
         if option.key == 'timings' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
@@ -168,9 +195,10 @@ def build(classname,binname,sources):
             STATIC_ALLOC=''
         if option.key == 'dbg' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             DEBUG='-g ' #'-g -fno-exceptions -fno-rtti '
+            OPT=''
         if option.key == 'opt' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             if SC!=1:
-                OPT=OPTSYSC #IZE
+                OPT=OPTSPEED
             else:
                 OPT=OPTSYSC
         if option.key == 'D' and  opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
@@ -182,6 +210,8 @@ def build(classname,binname,sources):
     if commands.getoutput("uname") == "Darwin":
         OSX=1
         switches+=['DARWIN']
+        if SC==1:
+            ARCH='-arch i386'
 
     if XC==1:
         switches.append('__ppc__')
@@ -189,8 +219,8 @@ def build(classname,binname,sources):
 
     FLAGS=''
     SWITCHES=''
-    flags+=[WARN,DEBUG,OPT]
-    switches+=[SYSC,SC_IDP,SYSC_FIXME,V,VM,WORDSZ,CYCLES,TIMINGS,STATIC_ALLOC,USE_THREADS,THREADED_CORE]+MACROS
+    flags+=[WARN,DEBUG,ARCH,PIC,OPT]
+    switches+=[SYSC,SC_IDP,SYSC_FIXME,VERBOSE,NEW,VM,SEQVM,WORDSZ,CYCLES,TIMINGS,STATIC_ALLOC,NO_SOCKET,USE_THREADS,THREADED_CORE,DISTR]+MACROS
     for flag in flags:
         if flag !='':
             FLAGS+=flag+' '
@@ -213,7 +243,7 @@ def build(classname,binname,sources):
     if binname=='':
         bin='test_'+classname+'_runner'
     else:
-        bin=binname
+        bin=binname+str(wordsz)
         sources.append(binname+'.cc')
 
     #------------------------------------------------------------------------------
@@ -254,14 +284,21 @@ def build(classname,binname,sources):
             if not re.search('test_|LookupTable|Types|SystemConfiguration|gannet|Socket|Timings|cs_',csource):
                 tsource=re.sub(destdir,'../../Garnet/SBA/',csource)
                 source=re.sub('\.cc','.rb',tsource)
-                target=re.sub('^.*\/','',csource)
+                pl=csource.split('/')
+                if pl[-2]=='ServiceCoreLibraries':
+                    target='ServiceCoreLibraries/'+pl[-1]
+                    add=1
+                else:
+                    target=pl[-1]
+                    add=1
                 target=destdir+re.sub('\.cc','',target)
                 if STATIC_ALLOC!='':
                     targetcc=envr2n.Command(target+'.cc',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -s -CC $SOURCE > $TARGET")
                 else:
                     targetcc=envr2n.Command(target+'.cc',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -CC $SOURCE > $TARGET")
-                targetscc.append(targetcc)
-                targetsh.append(envr2n.Command(target+'.h',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -H $SOURCE > $TARGET"))
+                if add==1:
+                    targetscc.append(targetcc)
+                    targetsh.append(envr2n.Command(target+'.h',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -H $SOURCE > $TARGET"))
 #        if re.search('SystemConfiguration',csource):
 #            targetsh.append(envr2n.Command(target+'.h',source,'/usr/bin/ruby -I ../../ ../../create_Cxx_SystemConfiguration.rb && cp -f SystemConfiguration.h ../SBA'))
 
@@ -279,8 +316,8 @@ def build(classname,binname,sources):
         outputFileName = 'test_'+classname+'.cc'
         files = ['test_'+classname+'.h']
         env.Command(outputFileName,files,sconsWrapper)
-
-    libs=['m']
+#FIXME: dl only needed for dynamic loading!
+    libs=['m','dl'] 
     if use_pthreads or threaded_core:
         libs+=['pthread']
 #libs+=['pthread','boost_thread-mt']
@@ -322,7 +359,7 @@ def build(classname,binname,sources):
 #        LIBpaths+=['/cygdrive/c/Waqar/DCS/SystemC/systemc-2.1.v1/lib-cygwin'] #FIXME!
 
     if SC==1:
-        libs+=['systemc']
+        libs+=['systemc','dl']
 
     if GUI:
         INCpaths+=['/usr/lib/qt3/include/'] #FIXME!
@@ -344,6 +381,6 @@ def build(classname,binname,sources):
         env.Install('../../bin',prog)
         env.Alias('install','../../bin')
         if GEN==1:
-			env.Depends(prog,targetscc+targetsh+r2n)
+            env.Depends(prog,targetscc+targetsh+r2n)
 
 

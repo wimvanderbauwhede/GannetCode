@@ -25,29 +25,41 @@ class SBA_GatewayTile #< public Base::Tile
 	    @service=service	    
 	    @address=address
 	    @status=true # always run Gateway
-if DATA==1
-		@data_store=SBA_Store.new()
-end # DATA		
+#if DATA==1
+#		@data_store=SBA_Store.new()
+#endif // DATA		
 		@result_store=SBA_Store.new()
 		@gateway=SBA_Gateway.new(sba_system,self,service,address,task_descriptions) #Need self for Mem and Core, system for DATA store		
 		@transceiver=SBA_Transceiver.new(sba_system,service)
+		@verbose=(VERBOSE==1)
 	end
 	
 	def run(sba_system)
-#    	puts "Running Gatewaytile #{@service}" # (#{@address})"
-		@gateway.run()	
+    	puts "Running Gatewaytile #{@service}"  if @verbose #skip
+	    # The Gateway must run until all packets are sent, then block until it receives an result
+		@gateway.run()
+		puts "Gateway listening for reply" if @verbose #skip	
 		@transceiver.run()
 	end
 if USE_THREADS==1	
     def run_th(sba_system)
-        puts "Starting Gateway"
+        puts "Starting Gateway" if @verbose #skip
         @th=Thread.new("GWInstance") do    
             while (!@finished)
                 run(sba_system)
             end                
         end        
     end		
-end # USE_THREADS    
+end # USE_THREADS
+if DISTR==1
+    def run_proc(ncycles)        
+        puts "Starting Gateway" if @verbose #skip
+            while (!@finished and ncycles!=0)
+                run(nil)
+                ncycles-=1
+            end
+    end
+end # DISTR    
 end
 #endskip
 # =============================================================================
@@ -157,9 +169,9 @@ void GatewayTile::run() {
 
 #if USE_THREADS==1
     void *SBA::run_gwtile_loop(void* voidp) { 
-        SBA::GatewayTile* the_object = (SBA::GatewayTile*)voidp;
-        while (!the_object->finished) { 
-            the_object->run(); 
+        SBA::GatewayTile* gwtilep = (SBA::GatewayTile*)voidp;
+        while (!gwtilep->finished) { 
+            gwtilep->run(); 
         }
         pthread_exit((void *) 0);
     }

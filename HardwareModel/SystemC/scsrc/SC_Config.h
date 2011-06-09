@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Config.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 04-Jan-2009. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -20,7 +20,7 @@
 #ifndef SC_CONFIG_H_
 #define SC_CONFIG_H_
 
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 using namespace std;
 
@@ -70,7 +70,13 @@ public:
     // overloading the subscript '[]' operator to give read and write access
     // note that returning by reference, so that it can be used to write as well
     SBA::ServicePair&  operator [] (SBA::Service service_id) { return  cfg.services[service_id];}
+//FIXME: only used by ds_CONFIG
+    string lib (unsigned int configurationid) {return cfg.configurations[configurationid].lib;}
+    string symbol (unsigned int configurationid) {return cfg.configurations[configurationid].symbol;}
 
+    SBA::ServicePair& services (SBA::Service service_id) { return  cfg.services[service_id];};
+    SBA::DynConfigTuple& configurations (unsigned int configurationid) { return  cfg.configurations[configurationid];};
+    SBA::TimingTuple& timings (SBA::Service service_id,unsigned int opcode) { return  cfg.timings[service_id][opcode];};
     virtual const char* kind() const
         { return "SC_Config"; }
 

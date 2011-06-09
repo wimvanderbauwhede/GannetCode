@@ -17,8 +17,8 @@ The problem is that we have 5 Kinds, not 4. And for CACHE, we'd need a new K_C K
 so 6. But if we assume that we only need 2 bits Data for K_B, then we can do this:
     
 K_D|T_x => 001|x, 1
-K_U|T_x => 010|x, 2 # because S_APPLY==2
-K_L|T_x => 011|x, 3 # because S_LET==3
+K_A|T_x => 010|x, 2
+K_L|T_x => 011|x, 3
 K_R|T_x => 100|x, 4
 K_C|T_x => 101|x, 5  
 K_B|T_x => 11|xx, so K_B actually spans 6 and 7
@@ -26,8 +26,8 @@ K_B|T_x => 11|xx, so K_B actually spans 6 and 7
 TODO: change as follows; but it means we must recompile all .td files
 
 K_R|T_x => 00|xx, so K_R spans 0 and 1
-K_U|T_x => 010|x, 2 # because S_APPLY==2
-K_L|T_x => 011|x, 3 # because S_LET==3
+K_A|T_x => 010|x, 2 
+K_L|T_x => 011|x, 3 
 K_D|T_x => 100|x, 4
 K_C|T_x => 101|x, 5  
 K_B|T_x => 11|xx, so K_B spans 6 and 7
@@ -39,7 +39,7 @@ K_B|T_x => 11|xx, so K_B spans 6 and 7
         'Unknown'=>16, # 0000 # only used by Compiler   
         'S'=>0, # 0000 # only used by Compiler   
         'D'=>1, # 0001 # 'Data', resurrected for CACHE/BUFFER/ACC
-        'U'=>2, # 0110 # 'Argument', should really be 'A'
+        'A'=>2, # 0110 # 'Argument', should really be 'A'
         'L'=>3, # 0011 # 'Lexical', this was used to request lexical variables but maybe K_D could take this function 
         'R'=> 4, # 0100 # 'Request', the most important Kind
         #'S'=> 0, # 0101 # 'Service', so we don't really need this
@@ -264,6 +264,10 @@ include SBA_ServiceConfiguration
 # NONE=0
 NA=0
 
+if DISTR==1
+GWPORT=7188
+end # DISTR
+
 # GANNET_LANGUAGE=1
 STATE_REG_SZ=8
 SBA_USE_ADDRESS_STACKS=1
@@ -272,8 +276,14 @@ SBA_BRIDGE_HW_FIFO_SZ=64
 # WV17082008: the TX fifo in the Gateway must store all packets for a task, can be large
 PACKET_FIFO_SZ=64 
 #ifdef STATIC_ALLOC
-MAX_NTASKS=4 # determines the number of tasks, so related to F_Task etc
+
+if DISTR==0
 MAX_NSERVICES = 64
+MAX_NTASKS=4 # determines the number of tasks, so related to F_Task etc
+else # DISTR
+MAX_NSERVICES = 1
+MAX_NTASKS=1 # determines the number of tasks, so related to F_Task etc
+end # DISTR
 MAX_NDYNCONFIGS = 64
 MAX_NARGS=16 # determines size of arg address fifo
 MAX_BYC_SZ=1024 # max size of program bytecode 
@@ -325,31 +335,32 @@ if WORDSZ==64 #  # --------------------------------------------------
 NBYTES=8
  
 # 64 bits = 8 bytes. 1 byte = 0xZZ
-# Kind:Typ:Ex| Qu:Task    || Subtask               || Name
-# 0110:000:1 | 01:00:0000 || 0000:0000 | 0000:0001 || 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000
-# 6   :1     | 4    :0    || 0   :0    | 0   :1    || 0   :0    | 0   :0    | 0   :0    | 0   :0     
+# Kind:Typ:E | Qu:Task   | Subtask               | Name 
+# 0110:000:1 | 01:000000 | 0000:0000 | 0000:0001 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000
+# 6   :1     | 4   :0    | 0   :0    | 0   :1    | 0   :0    | 0   :0    | 0   :0    | 0   :0     
 EXTSYM = 0x6140_0001_0000_0000
 #    EXTSYM = 0xC140_0001_0000_0000
-# 0110:001:0 | 01:000000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000
+# 0110:000:0 | 01:000000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000
 ZERO = 0x6240_0000_0000_0000
 ONE = 0x6240_0000_0000_0001
-# Nil is an extended K_B with length 0
-NIL = 0x6140_0001_0000_0000
-
+# NIHIL is an extended symbol of length 0
+NIHIL = 0x6140_0000_0000_0000
 F_AllOnes=0xffffffffffffffff
 
 # 8 bits (HW uses 10 bits address space. 2 bits paging, 3 bits for chunk size, 5 bits for number of chunks
 # FIXME: shouldn't I extend this for 64 bits, no need to keep it so small?
 # We have 6 bits for Task, 16 for Subtask. Check subdivision of Subtask for Code use ...
 # Instead of the 5 bits for HW, let's go for 10 bits
-F_CodeAddress =  0x0000_001f_0000_0000 # TODO: 0x0000_03ff_0000_0000
+# TODO: 0x0000_03ff_0000_0000
+F_CodeAddress =  0x0000_001f_0000_0000 
 # 8 bits (HW needs 10?)
-FN_CodeAddress =  0xffff_ffe0_ffff_ffff # TODO: 0xffff_fc00_ffff_ffff
+# TODO: 0xffff_fc00_ffff_ffff
+FN_CodeAddress =  0xffff_ffe0_ffff_ffff 
 # identical to FS_Subtask
 FS_CodeAddress = 32 
 FB_CodeAddress = 5 # TODO: 10
 FW_CodeAddress = 0x1F # TODO 0x3FF
-FW_CodeAddress=31 # i.e. max. number of subtask code segments is 31! TODO: 1023
+# FW_CodeAddress=31 # i.e. max. number of subtask code segments is 31! TODO: 1023
 
 
 # identical to F_Task, so 6 bits
@@ -430,7 +441,7 @@ FS_Value=0
 FW_Value=0xffff_ffff
 FB_Value=32
     
-# Identical to the Name field
+# Identical to the Name field FIXME: we need padding!!
 F_NSymbols=0x0000_0000_ffff_ffff
 FN_NSymbols=0xffff_ffff_0000_0000
 FS_NSymbols=0
@@ -480,23 +491,27 @@ FS_Return_to=0
 FS_Send_to=[0,16,32,48]
 
 # For ACC/BUFFER/CACHE
-F_NArgs = 255 # 8 bits
+F_NArgs = 0xFF # 8 bits
+FW_NArgs = F_NArgs
 
-F_Reg=0x15 # 4 bits
+FW_Reg=0xF # 4 bits
 FB_Reg=4
 FS_Reg=10
-F_Mode=3 # 2 bits
+FW_Mode=0x3 # 2 bits
 FS_Mode=14
 
 # Looks like we have ?? bits left in the K_D symbol
 # Token: 5 bits, next to Name field (TODO: make larger for 64 bits)
-F_Token=0x1F
+FW_Token=0x1F
+F_Token=0x1F0000
 FS_Token=16
 # NCons: 3 bits, next to Token (TODO: make larger for 64 bits)
-F_NCons=0x07
-FS_NCons=17
+ 
+F_NCons=0xE00000
+FW_NCons=0x7
+FS_NCons=19
 
-F_DataAddress=0x03_ff # 10 bits (TODO: make larger for 64 bits)
+FW_DataAddress=0x03_ff # 10 bits (TODO: make larger for 64 bits)
 
 # We have Subtask == Mode|1Bit|Reg|DataAddress (2|[1]|3|[2]|8) == Mode|1Bit|Reg|2Bits|NArgs
 
@@ -530,23 +545,33 @@ F_DataAddress=0x03_ff # 10 bits (TODO: make larger for 64 bits)
 #FB_Reg_C = 3
 #FW_Reg_C= 7
 
-# For multi-threaded cores, we need F_SCId and F_Opcode
-# We use the upper 3 bits of the LSB of the Name field for the SCId, the lower 5 for the Opcode
-# Again, for 64-bit, we could widen this
-F_SCId = 0xe0
-FS_SCId=5
-FB_SCId=3
-FW_SCId=7
+# For multi-threaded cores, we need F_SCLId, F_SCId and F_Opcode
 
-F_Opcode=0x1f
+F_Opcode=0xFF
+FW_Opcode=0xFF
 FS_Opcode=0
-FB_Opcode=5
-FW_Opcode=0x1f
+FB_Opcode=8
+
+F_SCId = 0xFF00
+FW_SCId=0xFF
+FS_SCId=8
+FB_SCId=8
+# 256 libraries is a lot. I guess 64 should be enough
+F_SCLId= 0x00FF0000
+FW_SCLId = 0xFF
+FS_SCLId = 16
+FB_SCLId=8
+
+# let's say 256 nodes is enough; we could go to 1024 by taking 2 bits from SCLId
+F_SNId= 0xFF000000
+FW_SNId = 0xFF
+FS_SNId = 24
+FB_SNId = 8
 
 # tuple support  
-F_Offset = 0xFFFF
+FW_Offset = 0xFFFF
 FS_Offset = 0
-F_Size = 0xFFFF
+FW_Size = 0xFFFF
 FS_Size = 16
 
 # All ones
@@ -562,12 +587,10 @@ NBYTES=4
 
 # 1100|1100|
 EXTSYM = 0xCC000100 
-# 1101|0|1|01|
-ONE  = 0xD500_0001
-ZERO = 0xD500_0000
-# Nil is a quoted extended K_B with length 0
-# 110:0:1:1:00|
-NIL = 0xCC000000
+# 1101|0|1|00|
+ONE  = 0xD400_0001
+ZERO = 0xD400_0000
+NIHIL= 0xCC000000 
 
 F_AllOnes = 0xffffffff
 # 5 bits (HW uses 10 bits address space. 2 bits paging, 3 bits for chunk size, 5 bits for number of chunks
@@ -697,28 +720,28 @@ FS_Return_to=0
 FS_Send_to=[0,8,16,24]
 
 # NArgs is a subfield of Subtask
-F_NArgs = 255
-
+F_NArgs = 0xFF
+FW_NArgs = F_NArgs
 # For ACC/BUFFER/CACHE
 # The idea is that a P_request contains a K_D with a Mode field telling it if it is a stream request or not
 # For some reason I have 2 bits with Stream being the value 2. 
 # 3 bits so max 8 registers!
 # Shifts are from start of Subtask field
-F_Reg=0x15 
+FW_Reg=0xE 
 FS_Reg=10
-F_Mode=0x3 # 0=normal,1=var/acc,2=buf/stream,3=eos
+FW_Mode=0x3 # 0=normal,1=var/acc,2=buf/stream,3=eos
 # We have 8 bits for N_ARGS, so 8 remain. We use 3 for the registers, so we keep 5. Let's say we use 2 MSBs of Subtask
 FS_Mode=14
 
 # Looks like we have 10 bit left in the K_D symbol
 # Token: 5 bits, next to Name field
-F_Token=0x1F
+FW_Token=0x1F
 FS_Token=8
 # NCons: 3 bits, next to Token
-F_NCons=0x07
+FW_NCons=0x07
 FS_NCons=13
 
-F_DataAddress=0x03_ff # 10 bits
+FW_DataAddress=0x03_ff # 10 bits
 
 # The compiler uses Ext=1 for everything>16 bits so we might as well have 16 bits here
 # This means we use the Name field (1 byte) and the 1st byte of the Subtask field
@@ -768,7 +791,7 @@ FS_NSymbols=0
 F_SCId = 0xe0
 FS_SCId=5
 FB_SCId=3
-FW_SCId=7
+FW_SCId=0x7
 
 F_Opcode=0x1f
 FS_Opcode=0
@@ -776,10 +799,13 @@ FB_Opcode=5
 FW_Opcode=0x1f
 
 # tuple support    
-F_Offset = 0xFF
+FW_Offset = 0xFF
 FS_Offset = 0
-F_Size = 0xFF
+FW_Size = 0xFF
 FS_Size = 8
+# in 32-bit we only encode the SNId in the K_R Name field
+FW_SNId = FW_Name 
+FS_SNId = 0
 
 # All ones
 F_Symbol = 0xff_ff_ff_ff
@@ -794,14 +820,14 @@ if WORDSZ==64
 elsif WORDSZ==32
     MAX_WORD=2**32-1
 end # WORDSZ
-    NA=0
+#    NA=0
     NULL=0
     NONE=-MAX_WORD
     Quote=7
     for key in kinds.keys
         eval "K_#{key} = #{kinds[key]}"
     end
-        eval "K_A = K_U"
+#        eval "K_A = K_U"
     for key in types.keys
         eval "T_#{key} = #{types[key]}"
     end

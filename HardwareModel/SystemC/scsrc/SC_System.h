@@ -3,7 +3,7 @@
                  |
   File Name      | SC_System.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 29-Oct-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -24,7 +24,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -36,7 +36,7 @@ using namespace std;
 //------------------------------------------------------------------------------
 
 //==============================================================================
-//  CLASS: THE SBA GANNET SYSTEM
+//  CLASS: The Gannet SoC Platform  SBA System
 //==============================================================================
 
 //! The namespace for the SystemC Model of Gannet SBA
@@ -56,6 +56,7 @@ public:
     SBA::ServiceAddress gw_address;
     SBA::Services       services;
     uint                nservices;
+    string 				task_data;
     SBA::TaskDescList   task_descriptions; // This should be SC_type too? SC_Deque?
     SBA::Word_List      results;
 
@@ -95,7 +96,10 @@ public:
         io_mech		("io_mech",one)
 
     {
-        // ************ Instantiaing ************
+    	// WV02122009: bit of a hack to get the data file
+    	StringPair tdc_file=task_descriptions.front();
+    	task_data=tdc_file.datafile;
+    	// ************ Instantiaing ************
 
         // Initialize the Services object by reading the Config object
         // two 'dots' required because the SC_Config 'cfg' object is a wrapper
@@ -128,7 +132,7 @@ public:
         // interface.io_mech	.bind(io_mech);
 
         // give the network access to the SC_Config object
-        network.cfg_services .bind (scfg.xp_1);
+        network.cfg.bind (scfg.xp_1);
 
         // Network's "pw_tile" is a port array. So have to make connection for each tile
         // Each connection is assigned a position in the array on
@@ -179,23 +183,23 @@ public:
 
         // connect tile's port for accessing config object, to the export provided by SC_Confif
         // TODO: convert this to loop, but how? not possible to have an array of exports
-        (*instances[0 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[1 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[2 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[3 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[4 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[5 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[6 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[7 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[8 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[9 ]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[10]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[11]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[12]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[13]) .cfg_services .bind ( scfg.xp_2 );
-        (*instances[14]) .cfg_services .bind ( scfg.xp_2 );
-//        (*instances[15]) .cfg_services .bind ( scfg.xp_2 );
-//        (*instances[16]) .cfg_services .bind ( scfg.xp_2 );
+        (*instances[0 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[1 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[2 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[3 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[4 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[5 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[6 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[7 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[8 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[9 ]) .cfg .bind ( scfg.xp_2 );
+        (*instances[10]) .cfg .bind ( scfg.xp_2 );
+        (*instances[11]) .cfg .bind ( scfg.xp_2 );
+        (*instances[12]) .cfg .bind ( scfg.xp_2 );
+        (*instances[13]) .cfg .bind ( scfg.xp_2 );
+        (*instances[14]) .cfg .bind ( scfg.xp_2 );
+//        (*instances[15]) .cfg .bind ( scfg.xp_2 );
+//        (*instances[16]) .cfg .bind ( scfg.xp_2 );
 
 
         SC_THREAD(do_proc);

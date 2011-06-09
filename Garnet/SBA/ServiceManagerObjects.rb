@@ -21,7 +21,9 @@
 #++
 
 require "SBA/Packet.rb"
+if DISTR==0 and VM==0
 require "SBA/Network.rb"
+end
 require "SBA/Memory.rb"
 
 class SBA_RequestTable
@@ -69,7 +71,7 @@ class SBA_RegisterEntry
         @code_address=_ca 
         @subtask_address=_sa
         @offset=0
-        @fsize=0;
+        @fsize=0
     end
 end # of SBA_Register
 
@@ -210,11 +212,11 @@ end # of SBA_Subtask_Argument_List
 # We must redo this carefully, using 10 bits for the Subtask
 class Subtask_List_Item 
     attr_accessor :status,:nargs,:mode,:arguments,:called_as,:to,:return_to,:return_as,:ack_to,:waiting_for_ack,
-        :redir,:code_address,:reg,:nargs_absent,:service_id,:offset,:fsize
+        :redir,:code_address,:reg,:nargs_absent,:service_id,:offset,:fsize,:result_address
     def initialize
         @status=STS_new # 3 bits of 1st byte of 1st Word
         @nargs_absent=MAX_NARGS # WV: only for VM
-        @nargs=0 # Number of arguments, between 0 and 16, so 5 bits (of 1st byte of 1st Word). Take from S-Symbol Count field
+        @nargs=0 # Number of arguments, between 0 and 16, so 5 bits (of 1st byte of 1st Word). 
         @mode=0 #2 bits. Stream=1.Acc=2. Cache=3? else 0
 	    @arguments=[]
         @called_as='' # Symbol, 2nd Word
@@ -233,7 +235,9 @@ class Subtask_List_Item
         @reg=0 # 3 bits
 # tuple support
         @offset=0 # Assuming max. 256 Words payload => 1 byte
-        @fsize=0 # Assuming max. 256 Words payload => 1 byte      
+        @fsize=0 # Assuming max. 256 Words payload => 1 byte
+# support for results returned to memory
+        @result_address=0              
     end    
 
 end # of Subtask_List_Item 
@@ -297,15 +301,7 @@ class SBA_Subtask_List
             @subtasks_hash[subtask].status=val.shift
         end
     end
-    
-    def status(subtask,*val)
-        if val.length==0
-            return @subtasks_hash[subtask].status
-        else
-            @subtasks_hash[subtask].status=val.shift
-        end
-    end
-    
+        
     def to(subtask,*val)
         if val.length==0
             return @subtasks_hash[subtask].to
@@ -420,22 +416,29 @@ class SBA_Subtask_List
         end
     end            
     
-def offset(subtask,*val)
-if val.length==0
-        return @subtasks_hash[subtask].offset
-    else
-        @subtasks_hash[subtask].offset=val.shift
+    def offset(subtask,*val)
+    if val.length==0
+            return @subtasks_hash[subtask].offset
+        else
+            @subtasks_hash[subtask].offset=val.shift
+        end
     end
-end
-
-def fsize(subtask,*val)
-if val.length==0
-        return @subtasks_hash[subtask].fsize
-    else
-        @subtasks_hash[subtask].fsize=val.shift
-    end
-end
     
+    def fsize(subtask,*val)
+    if val.length==0
+            return @subtasks_hash[subtask].fsize
+        else
+            @subtasks_hash[subtask].fsize=val.shift
+        end
+    end
+    
+    def result_address(subtask,*val)
+        if val.length==0
+            return @subtasks_hash[subtask].result_address
+        else
+            @subtasks_hash[subtask].result_address=val.shift
+        end
+    end
 
     def subtasks()
         return @subtasks_hash.keys

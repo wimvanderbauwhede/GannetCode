@@ -15,9 +15,9 @@ class DataTransfer {
         
         //methods
         bool    sendCodeLength(uint32_t len);
-        bool    sendCodeData(const char *data, uint32_t len);
+        bool    sendCodeData(const char *data, uint32_t len); //FIXME: void* ?
         int32_t recvCodeLength();
-        int32_t recvCodeData(char *buf, uint32_t len);
+        int32_t recvCodeData(char *buf, uint32_t len); // FIXME: void* ?
         
     private:
         //variables

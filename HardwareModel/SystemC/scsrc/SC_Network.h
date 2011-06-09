@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Network.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 18-Nov-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -15,7 +15,7 @@
 
   (c) 2008-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>, Syed Waqar Nabi
     
-  */
+*/
 
 #ifndef SC_NETWORK_H_
 #define SC_NETWORK_H_
@@ -23,7 +23,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -35,7 +35,7 @@ using namespace std;
 //------------------------------------------------------------------------------
 
 //==============================================================================
-//  CLASS: SC_Network: The SystemC Class for the GANNET NoC
+//  CLASS: SC_Network: The SystemC Class for the Gannet Platform's NoC
 //==============================================================================
 /*
  * WV 15/03/2009
@@ -51,7 +51,7 @@ using namespace std;
 //! The namespace for the SystemC Model of Gannet SBA
 namespace SC_SBA{
 
-//! The SystemC Class for the GANNET NoC
+//! The SystemC Class for the Gannet Platform's NoC
     /*!
        Detailed description here...
     */
@@ -66,9 +66,9 @@ public:
 
     // ---------------------------- PORTS --------------------------------------
 
-    port_SC_Config_if           cfg_services; //!< port for access to SBA::Config object (wrapped inside an sc_module)
+    port_SC_Config_if           cfg; //!< port for access to SBA::Config object (wrapped inside an sc_module)
 
-    // array of specialized ports for writing to tiles (The rx_fifo of their tranceiver)
+    // array of specialized ports for writing to tiles (The rx_fifo of their transceiver)
     // NSERVICES + 1 because one port for gatewaytile (It will always be connected to the last port)
     port_SC_Fifo_if<PACKET_T, NSERVICES+1> pw_tile; //!<
 
@@ -93,21 +93,20 @@ public:
     sc_export<SC_Fifo_if<PACKET_T> >    xpwr_rx_fifo_17;   // export provided for writing to rx_fifo (of Gateway)
 
     // ---------------------------- Sub-Modules --------------------------------
-    //SC_Fifo<PACKET_T, PACKET_FIFO_SZ>           tx_fifo; // will have to be an array, one element for each tile
-    //SC_Fifo<PACKET_T, PACKET_FIFO_SZ>           rx_fifo;
-
-    // The array of SC Fifos has to be declared as a pointer to an array here...
+    // The array of SC Fifos has to be declared as a pointer to an array here
     // because each instantiation of the array element in an SC_module array has to be given a unique name
-    // That cant be done inside the defintion. Its done in the constructor, using NEW.
+    // That can't be done inside the definition. It's done in the constructor, using NEW.
     // NSERVICES + 1 so that there is a set of FIFOS for GatewayTile as well.
     SC_Fifo <PACKET_T, PACKET_FIFO_SZ> *tx_fifo[NSERVICES + 1];//!< Array of tx_fifos, one for each tile
     SC_Fifo <PACKET_T, PACKET_FIFO_SZ> *rx_fifo[NSERVICES + 1];//!< Array of rx_fifos, one for each tile
 
     // ---------------------------- METHODS ------------------------------------
     // create one thread for each tile
-    void receive_and_sort(int);
+    void receive(int);
     void transmit(int);
+#ifdef QUARC_DELAY
     unsigned int calc_nhops(unsigned int src, unsigned int dest);
+#endif //  QUARC_DELAY
     // the SC_thread that spawns instances of the two functions for each tile
     void spawns();
 
@@ -119,17 +118,14 @@ public:
     // ---------------------------- CONSTRUCTOR --------------------------------
     SC_HAS_PROCESS(SC_Network);
     SC_Network(sc_module_name nm) :
-        sc_module(nm)       //,
-        //tx_fifo ("tx_fifo") ,
-        //rx_fifo ("rx_fifo")
-    {
+        sc_module(nm) {
         // instantiate array of TX FIFOs, one for each tile
         for (unsigned int i=0; i < NSERVICES + 1; i++)
             tx_fifo[i] = new SC_Fifo <PACKET_T, PACKET_FIFO_SZ> (SC_concatenate("tx_fifo",i));  //!< ..  .
         // instantiate array of RX FIFOs, one for each tile
         for (unsigned int j=0; j < NSERVICES+ 1; j++)
             rx_fifo[j] = new SC_Fifo <PACKET_T, PACKET_FIFO_SZ> (SC_concatenate("rx_fifo",j));  //!< ..  .
-
+        //FIXME: This is hardcoded for a 16-node Quarc.
         // export access to internal rx_fifos
         xpwr_rx_fifo_0 .   bind( (*rx_fifo[0 ]) );
         xpwr_rx_fifo_1 .   bind( (*rx_fifo[1 ]) );
@@ -164,7 +160,7 @@ public:
 //  spawns()
 //==============================================================================
 
-// spawn the receive_and_sort() and transmit() threads here for each tile
+// spawn the receive() and transmit() threads here for each tile
 // Spawn NSERVICES + 1; a pair of thread for each tile instance, and the gatewaytile.
 template <typename PACKET_T>
 void SC_Network<PACKET_T> :: spawns()
@@ -174,12 +170,11 @@ void SC_Network<PACKET_T> :: spawns()
         // arg2 = this; indicates function is not global but a member function (passed to sc_bind)
         // arg3 = tile_id argument to functions. Passed to sc_bind
         // arg4 = name of function (using SC_concatenate to generate unique name for each thread
-    for (unsigned int i=0; i < NSERVICES+1 ; i++)
-    {
-        sc_spawn (  sc_bind (   &SC_Network<PACKET_T>::receive_and_sort  ,
+    for (unsigned int i=0; i < NSERVICES+1 ; i++) {
+        sc_spawn (  sc_bind (   &SC_Network<PACKET_T>::receive  ,
                                 this,
                                 i),
-                    SC_concatenate("receive_and_sort",i)
+                    SC_concatenate("receive",i)
                   );
         sc_spawn (  sc_bind (   &SC_Network<PACKET_T>::transmit  ,
                                 this,
@@ -192,19 +187,19 @@ void SC_Network<PACKET_T> :: spawns()
 
 
 //==============================================================================
-//  receive_and_sort()
+//  receive()
 //==============================================================================
 template <typename PACKET_T>
-void SC_Network<PACKET_T> :: receive_and_sort(int tile_id)
+void SC_Network<PACKET_T> :: receive(int tile_id)
 {
-    // do a blocking read of lovcal rx_fifo reserved for tile instance_0
-    // will block here until fifo is no-empty
-    // NOTE: that we are deferencing pointer here, and using dot. Could use -> too directly.
+    // do a blocking read of local rx_fifo reserved for tile instance_0
+    // will block here until fifo is not-empty
+    // NOTE: we are dereferencing the pointer here, and using dot. Could use -> too directly.
 	while(true) {
     PACKET_T packet = (*rx_fifo[tile_id]).shift();
 #ifdef SC_DEBUG
     OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
-            << name() << " receive_and_sort() " << tile_id << " has read its rx_fifo" << endl;
+            << name() << " NoC receive() " << tile_id << " has read its rx_fifo" << endl;
 #endif //SC_DEBUG
 
     // read destination from the packet
@@ -212,11 +207,12 @@ void SC_Network<PACKET_T> :: receive_and_sort(int tile_id)
     // (Note that [] operator is overloaded for the port used to access configure object
     // no time consumed here... explicitly model through wait() ??
     SBA::Service        service_id  = getTo(getHeader(packet));
-    SBA::ServiceAddress dest        = cfg_services[service_id].address;
+    SBA::ServiceAddress dest        = cfg.services(service_id).address;
 
+#ifdef QUARC_DELAY
     unsigned int nhops = calc_nhops(tile_id,dest);
     // FIXME! delay requires a proper "delay line"
-    /*
+
     send_to_network() {
     while (true) {
     // block on rx_fifo;
@@ -235,8 +231,10 @@ void SC_Network<PACKET_T> :: receive_and_sort(int tile_id)
     // post in tx_fifo
 	}
 	}
-     * */
+
     unsigned int delay = nhops*(QUARC_NCYCLES_LINK-1+QUARC_NWORDS_FLIT);
+#endif // QUARC_DELAY
+
     unsigned int latency = (QUARC_NCYCLES_LINK-1+QUARC_NWORDS_FLIT)*(getLength(getHeader(packet))+3)/QUARC_NWORDS_FLIT; // FIXME: correct for time taken to push packet onto fifo
     wait(latency*_CLK_P , _CLK_U);
     // now transmit to the destination... store in the local tx_fifo for that destination
@@ -244,13 +242,11 @@ void SC_Network<PACKET_T> :: receive_and_sort(int tile_id)
     // we are 'pushing' packets into the tiles (and the tiles are pushing packets into the network)
     // so the network object needs to store the packets inside the tile.
 
-    // Uncomment following for hardwired send-to-self
-    // dest = tile_id; // hardwired dest for testing (send to self). Comment this for normal operation
-    (*tx_fifo[dest]).push(packet); // manually insert dest since the packet received is dummy
+    (*tx_fifo[dest]).push(packet);
 
 #ifdef SC_DEBUG
     OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
-            << name() << " receive_and_sort() " << tile_id
+            << name() << " NoC receive() " << tile_id
             << " has pushed packet to the local tx_fifo for dest: " << dest <<  endl;
 #endif //SC_DEBUG
 	}
@@ -273,11 +269,11 @@ void SC_Network<PACKET_T> :: transmit(int tile_id)
         packet = (*tx_fifo[tile_id]).shift();
 #ifdef SC_DEBUG
         OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
-                << name() << " transmit() has found a packet for instance_" << tile_id << endl;
+                << name() << " NoC transmit() has found a packet for instance_" << tile_id << endl;
 #endif //SC_DEBUG
 
         // now transmit to the destination tile (which will go into that tile's
-        // tranceiver's rx_fifo....
+        // transceiver's rx_fifo....
         // we are 'pushing' packets into the tiles (and the tiles are pushing packets into the network)
         // so the network object needs to store the packets inside the tile.
         // This write will be through to port, which would be connected to the export of the approprate tile
@@ -287,12 +283,13 @@ void SC_Network<PACKET_T> :: transmit(int tile_id)
         (*(pw_tile[tile_id])).push(packet);
 #ifdef SC_DEBUG
         OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
-                << name() << " transmit() has pushed packet onto instance_" << tile_id << endl;
+                << name() << " NoC transmit() has pushed packet onto instance_" << tile_id << endl;
 #endif //SC_DEBUG
     }
 
 } // transmit()
 
+#ifdef QUARC_DELAY
 template <typename PACKET_T>
 unsigned int SC_Network<PACKET_T> :: calc_nhops(unsigned int src, unsigned int dest) {
 	unsigned int nnodes=NSERVICES+1; // must be multiple of 4
@@ -315,7 +312,7 @@ unsigned int SC_Network<PACKET_T> :: calc_nhops(unsigned int src, unsigned int d
 	}
 	return nhops;
 } // calc_nhops
-
+#endif //QUARC_DELAY
 
 } /* namespace: SC_SBA */
 

@@ -1,12 +1,15 @@
 #!/usr/bin/perl 
+
+my $gannet_dir=$ENV{'GANNET_DIR'};
+my $gannet_perl_dir="$gannet_dir/Gannet-Perl";
 use Getopt::Std;
 my %opts=();
 getopts( 'hvpsY:', \%opts );
 
 if ($opts{'h'}) {
-    system("./bin/GannetPerl -h");
+    system("$gannet_perl_dir/bin/GannetPerl -h");
 }
 
 die unless @ARGV;
-my $gcfile=shift @ARGV;
-system("./bin/GannetPerl $gcfile");
+my $gpfile=shift @ARGV;
+system("$gannet_perl_dir/bin/GannetPerl $gpfile");

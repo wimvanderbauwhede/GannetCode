@@ -17,7 +17,7 @@ public:
     // is access to data_store required? Does not seem so from the code, but drawing on whiteboard indicates it is.
     port_SC_Memory_if <MemAddress, Data>  data_store;       //!< write/read port for data memory access
     port_SC_Memory_if <MemAddress, Data>  code_store;       //!< write/read port for data memory access
-    port_SC_Config_if           		cfg_services;       //!< port for access to SBA::Config object (wrapped inside an sc_module)
+    port_SC_Config_if           		cfg;       //!< port for access to SBA::Config object (wrapped inside an sc_module)
     port_SC_Memory_if <MemAddress,SBA::Word> symbol_table;      //!< port for access to symbol_table
 
     port_SC_Fifo_if<Packet_t>    subtask_reference_fifo;//!< read port for posting straight into subtask_reference_fifo

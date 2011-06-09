@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
+{-# LANGUAGE CPP #-}
+{-# OPTIONS_GHC -cpp -D_WORDSZ=32 #-}
 -- | TokenParser exports parseGToken, which parses a token 
 -- into a Label, Quote or Built-in.
 -- The Built-in is either Integer, Double or String
@@ -80,7 +81,10 @@ sign  =  do { char '-'
 
 				
 -- The lexer
-gannetdef = emptyDef
+gannetdef = emptyDef {
+	identLetter    = alphaNum <|> oneOf "_.:[]" -- dot for "method calls", : for types, [] for arrays of instances
+}
+
 lexer       = P.makeTokenParser gannetdef    
 
 strlit      = P.stringLiteral lexer

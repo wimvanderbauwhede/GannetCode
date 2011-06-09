@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP #-}
-{-# OPTIONS_GHC -cpp -D_WORDSZ=32 #-}
 -- |Fundamental Gannet types and utility functions for manipulating them.
 module Gannet.SBA.Types (
 -- * Types
@@ -38,6 +37,8 @@ maybeS,
 isSL,
 isS,
 extendGS,
+getGSNameStr,
+getStrFromToken,
 -- * Constants
 emptyST,
 emptySL,
@@ -55,6 +56,8 @@ debugGS,
 GRetVal(..),
 GSymbol
 ) where 
+
+import Gannet.SBA.Constants 
 import qualified Data.Map as Hash
 --------------------------------------------------------------------------------
 -- 
@@ -89,6 +92,8 @@ lengthTL (TokenList t) = length t
 lengthTL (Token t) = 0
 
 stringInToken :: TokenTree -> String
+stringInToken (Token (GannetTokenS (GannetLabelS str))) = str
+stringInToken (Token (GannetTokenL (GannetLabelS str))) = str
 stringInToken (Token t) = show t
 stringInToken (TokenList t) = ""
 
@@ -97,10 +102,20 @@ data GannetToken = GannetTokenB GannetBuiltin | GannetTokenQ String | GannetToke
     deriving (Ord,Eq)
 showGT :: GannetToken -> String
 showGT (GannetTokenB contents) = show contents
-showGT (GannetTokenL contents) = show contents
-showGT (GannetTokenS contents) = show contents
+showGT (GannetTokenL (GannetLabelS contents)) = contents
+showGT (GannetTokenS (GannetLabelS contents)) = contents
+showGT (GannetTokenL (GannetLabelI contents)) = showFQId contents
+showGT (GannetTokenS (GannetLabelI contents)) = showFQId contents
 showGT (GannetTokenQ contents) = contents
 instance Show GannetToken where show = showGT
+
+showToken :: GannetToken -> String
+showToken (GannetTokenB contents) = "GTB: <"++(show contents)++">\n"
+showToken (GannetTokenL contents) = "GTL: <"++(show contents)++">\n"
+showToken (GannetTokenS contents) = "GTS: <"++(show contents)++">\n"
+showToken (GannetTokenQ contents) = "GTQ: <"++(show contents)++">\n"
+
+showFQId num = (show $ getSNId num)++"."++(show $ getSCLId num)++"."++(show $ getSCId num)++"."++(show $ getOpcode num)
 
 emptyGT :: GannetToken
 emptyGT = GannetTokenL (GannetLabelS "")
@@ -119,10 +134,12 @@ instance Show GannetName where show = showGN
 
 #if WORDSZ==64     
 data GannetBuiltin = GannetBuiltinI Integer | GannetBuiltinF Double | GannetBuiltinS String
+	deriving (Ord,Eq)
 #elif WORDSZ==32
 data GannetBuiltin = GannetBuiltinI Integer | GannetBuiltinF Float | GannetBuiltinS String
+	deriving (Ord,Eq)
 #endif
-    deriving (Ord,Eq)
+
 showGB :: GannetBuiltin -> String
 showGB (GannetBuiltinS contents) = "\"" ++ contents ++ "\"" 
 showGB (GannetBuiltinI contents) = show contents
@@ -246,10 +263,29 @@ showGS s =
             | kind s == K_D =":<"++(show (mode s))++":"++(show (reg s))++">"
             | otherwise = ""
     in
-        (showGSK (kind s)) ++ ":" ++ (showGDT (datatype s)) ++ ":" ++ (show (ext s)) ++":" ++ (show (quoted s)) ++ ":" ++ (show (task s)) ++ ":" ++ (show (subtask s)) ++ ":" ++ (show n) ++ "\t\t\t\t\t\t\t\t;C:" ++ (show (count s))  ++ ";L:" ++ (show (lambda s))++mode_reg 
-
-
+        (showGSK (kind s)) ++ ":" ++ (showGDT (datatype s)) ++ ":" ++ (showX (ext s)) ++":" ++ (showQ (quoted s)) ++ ":" ++ (show (task s)) ++ ":" ++ (show (subtask s)) ++ ":" ++ (show n) ++ "\t\t\t\t\t\t\t\t;C:" ++ (show (count s))  ++ ";L:" ++ (show (lambda s))++mode_reg 
+showQ q
+    | q==1 ="Q"
+    | q==0 =" "
+showX x
+    | x==1 = "X"
+    | x==0 = " "
+        
 instance Show GannetSymbol where show = showGS
+
+getGSNameStr gs =
+	let
+		namegt=name gs
+		namestr = getStrFromToken namegt
+--		GannetTokenS (GannetLabelS namestr) = namegt
+	in
+		namestr
+		
+getStrFromToken (GannetTokenS (GannetLabelS namestr)) = namestr
+getStrFromToken (GannetTokenS (GannetLabelI numname)) = error $ "getStrFromToken: Service Token was already numerified"
+getStrFromToken (GannetTokenL (GannetLabelS namestr)) = namestr
+getStrFromToken (GannetTokenL (GannetLabelI numname)) = error $ "getStrFromToken: Label Token was already numerified"
+getStrFromToken gt = error $ "getStrFromToken: Not a Service or Label Token: "++(showToken gt)
 
 pow2 :: Integer -> Integer
 pow2 0 = 1

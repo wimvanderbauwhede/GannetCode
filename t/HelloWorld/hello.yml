@@ -1,0 +1,34 @@
+
+--- # Hello World Application Configuration
+System:
+  Version: 3.0
+  Libraries: [SBACore]
+  NServiceNodes: 10 # excluding gateway
+  ServiceNodes:
+    c1: [ 1, [SBACore.BEGIN] ]
+    c3: [ 2, [SBACore.LET] ]
+    c4: [ 3, [SBACore.IF] ]
+    io: [ 4, [SBACore.IO] ]
+    a: [ 5, [SBACore.ALU] ] 
+
+  Aliases:
+  # Alias Name (case sensitive): FQN
+    begin: c1.SBACore.BEGIN.begin
+    if: c4.SBACore.IF.if
+    return: c4.SBACore.IF.return
+    iftc: c4.SBACore.IF.if
+    let: c3.SBACore.LET.let
+    assign: c3.SBACore.LET.assign
+    update: c3.SBACore.LET.update
+    read: c3.SBACore.LET.read
+    display: io.SBACore.IO.display
+# These used to be "ALU_names"  
+    '+': a.SBACore.ALU.plus
+    '-': a.SBACore.ALU.minus
+    '*': a.SBACore.ALU.times
+    '/': a.SBACore.ALU.over
+    '<': a.SBACore.ALU.lt
+    '>': a.SBACore.ALU.gt
+    '==': a.SBACore.ALU.eq
+    '!': a.SBACore.ALU.not
+

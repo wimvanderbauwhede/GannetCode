@@ -12,6 +12,14 @@ import qualified Data.Map as Hash
 import Control.Monad.State
 import GannetPerl.AST
 import GannetPerl.EmitG
+{-
+The Gannet compiler requires FQNs that include the core id. So either
+I generate the YAML file or I read it but I need those IDs
+So for the moment I'ce decided to name the cores c<ServiceName>, e.g. cIO, cArray
+
+If we want multiple cores providing the same service, I have to fix this. TODO!
+-}
+
 
 -- the statement below generates instances for every node in the AST for the class and method defined in InstTypes
 $(genInstances ''Program)
@@ -67,7 +75,7 @@ data ArgTup = MkArgTup
 emitVarDecl e = do
 		let
 			rhs 
-				| vd_type e == scalarTypeAny = PureE $ PServiceCall (MkServiceCall "return" "" [] GPAny)
+				| vd_type e == scalarTypeAny = PureE $ PServiceCall (MkServiceCall "return" "" [] GPAny) -- (assign '$_ (return))
 				| vd_type e == arrayTypeAny = PureE $ PServiceCall (MkServiceCall "Array" "new" [] GPAny)  -- (assign '@_ (Array.new))
 				| vd_type e == hashTypeAny = PureE $ PServiceCall (MkServiceCall "Hash" "new" [] GPAny) -- (assign '%_ (Hash.new))							
 			assign_or_label 
@@ -79,7 +87,7 @@ emitVarDecl e = do
 				| isBuf (vd_type e) = q str
 				| otherwise = q str
 			typestr = "" -- (show (a_type e)) ++":"
-		earhs <- emit rhs				
+		earhs <- emit rhs -- FIXME: this gives <<loop>>, even when throwing an error in emitServiceCall			
 		return $ emitCallStr (assign_or_label ++ typestr) [maybe_q $ vd_name e, earhs]
 
 emitInstDecl e = do
@@ -262,6 +270,7 @@ emitPureExpr (PFor fl) = emit fl
 emitPureExpr (PForeach fl) = emit fl
 emitPureExpr (PWhile wl) = emit wl
 emitPureExpr (POpCall oc) = emit oc
+emitPureExpr (PDummyServiceCall dsc) = emit dsc
 emitPureExpr (PServiceCall sc) = emit sc
 emitPureExpr (PFunAppl fa) = emit fa
 emitPureExpr (PLambdaDef ld) = emit ld
@@ -279,7 +288,7 @@ emitLet l
         			| otherwise = ""	
 		in 
 			do
-				elbody <- (mapM emit (l_body l))
+				elbody <- mapM emit (l_body l)
 				let
 					eqlbody = map (\x->(maybequote++x)) elbody
 				return $ emitCallBlockStr "let" (filter (\s->(s/="" && s/="'" && s/="';<decl>")) eqlbody) 
@@ -376,36 +385,42 @@ emitFunAppl sc = do
 -- 
 -- for IO, test if the sc_name is in the handles map. If so, emit an IO call
 
+-- WV02052011: I removed references to config, as they resulted in an infinite loop. GannetPerl will have to do without.
 emitServiceCall sc = do
 	ctxt <- get	
 	let
-		mcstr = case length scargs of
-			0 -> "_"
-			otherwise -> let
-							mc:oargs=(sc_args sc) -- does not work for empty arglist!
-							mcstr =  case mc of
-								PureE (PVar (MkVar vname vtype)) -> vname
-								otherwise -> "_"
-						in mcstr			
-		maybeconf = case Hash.lookup mcstr (configinsts ctxt) of
-			Just (t,c) -> q $ (show c)++(emitCallQStr "config" [q (show c),"'1"])
-			Nothing -> ""
-		meth
-			| maybeconf == "" = (sc_op sc)
-			| otherwise = "confrun "
 		scargs 
-			| maybeconf == "" = sc_args sc
-			| otherwise = tail (sc_args sc)
-	escargs <- mapM emit scargs
+			| length (sc_args sc) == 0 = []
+			| otherwise = sc_args sc
+		meth = sc_op sc
+	escargs <- if (length scargs ==0) then return [] else (mapM emit scargs)
 	let			
 		args
 			| length scargs > 0 = unwords escargs
 			| otherwise = ""
 		emitstr 
-			| sc_op sc == "" = emitCallStr (sc_name sc) [maybeconf,args]
-			| otherwise = emitCallStr ((sc_name sc)++"."++ meth) [maybeconf,args]
+			| sc_op sc == "" = emitCallStr (sc_name sc) [args]
+			| otherwise = emitCallStr ("c"++(sc_name sc)++"."++(sc_name sc)++"."++ meth) [args] 
 	return emitstr								
 -- instance EmitG ServiceCall where emit = emitServiceCall
+
+emitDummyServiceCall sc = do
+	ctxt <- get	
+	let
+		mcstr = "_"		
+		maybeconf = case Hash.lookup mcstr (configinsts ctxt) of
+			Just (t,c) -> q $ (show c)++(emitCallQStr "config" [q (show c),"'1"])
+			Nothing -> ""
+		meth
+			| maybeconf == "" = (dsc_op sc)
+			| otherwise = "confrun "
+	let			
+		args = ""
+		emitstr 
+			| dsc_op sc == "" = emitCallStr (dsc_name sc) [maybeconf,args]
+			| otherwise = emitCallStr ((dsc_name sc)++"."++ meth) [maybeconf,args]
+	return emitstr			
+
 
 --emitVar = return . v_name
 {-

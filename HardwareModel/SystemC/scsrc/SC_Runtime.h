@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Runtime.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 29-Oct-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -24,7 +24,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -54,7 +54,11 @@ public:
 
 	// ---------------------------- Sub-Modules --------------------------------
 	SBA::TaskDescList      task_descriptions;  //!< List from C++ model
+#ifndef QUARC_NOC
 	SC_System              sba;               //!< ...
+#else
+	SC_SystemQuarcNoC              sba;               //!< System for Gannet with Quarc NoC integration
+#endif
 	SBA::Bytecode          bytecode;           //!< deque from C++ model
 
 	// ---------------------------- METHODS ------------------------------------

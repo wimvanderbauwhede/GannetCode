@@ -10,13 +10,31 @@ Homepage: www.gannetcode.org
 Category: Compilers
 Description: Gannet is a functional language to program data flows in Systems-on-Chip. The compiler generates the bytecode for the Gannet machine, a distributed reduction machine. For more info see <http://www.gannetcode.org>.
 Synopsis: Compiler for the Gannet System-on-Chip language
-Build-Depends: mtl, base, containers, parsec, pugs-HsSyck == 0.2
-GHC-Options: -fglasgow-exts 
--- Exposed-Modules: Gannet.Tokenizer, Gannet.Symbolizer, Gannet.Packetizer, Gannet.Bytecodizer
-Exposed-Modules: Gannet.SBA.Types Gannet.SBA.SystemConfiguration Gannet.State.SymbolTree Gannet.State.Context Gannet.State.Scope Gannet.Tokenizer Gannet.TokenParser Gannet.Packetizer Gannet.Symbolizer Gannet.Symbolizer.InferTypes Gannet.Numerifier Gannet.Symbolizer.Internals Gannet.Bytecodizer Gannet.Emitters.Puffin
 
-Executable: gannetc
-Main-is: Main.hs
-Hs-Source-Dirs: .
+Flag NEW
+  Description: To test new features
+  Default:     False
 
-Extensions: CPP
+Flag W32
+  Description: 32-bit Words
+  Default:     False
+
+Flag W64
+  Description: 64-bit Words
+  Default:     False
+
+-- ONLY FOR LIB!    Exposed-Modules: Gannet.SBA.Types Gannet.SBA.SystemConfiguration Gannet.State.SymbolTree Gannet.State.Context Gannet.State.Scope Gannet.Tokenizer Gannet.TokenParser Gannet.Packetizer Gannet.Symbolizer Gannet.Symbolizer.InferTypes Gannet.Numerifier Gannet.Symbolizer.Internals Gannet.Bytecodizer Gannet.Emitters.Puffin
+
+Executable gannetc
+    Build-Depends: mtl, base, containers, parsec, HsSyck >= 0.45, directory
+--    GHC-Options: -fglasgow-exts 
+    Main-is: Main.hs
+    Hs-Source-Dirs: .
+--    Extensions: CPP
+    if flag(W32) 
+        CPP-Options: -DWORDSZ=32
+    if flag(W64) 
+        CPP-Options: -DWORDSZ=64
+    if flag(NEW) 
+        CPP-Options: -DNEW
+    

@@ -81,7 +81,7 @@ ListItemTypes:
     
 Snippets:
     tile : |
-        Tile& sba_tile=*(sba_system.instances[address]);
+        Tile& sba_tile=*(sba_system.nodes[address]);
 
     system : |
         System& sba_system=*((System*)sba_system_ptr);
@@ -95,7 +95,7 @@ Snippets:
         ServiceCore& parent=*servicecore_ptr;
         System* sba_system_ptr=(System*)(servicecore_ptr->sba_system_ptr);
         System& sba_system=*sba_system_ptr;
-        Tile& sba_tile=*(sba_system.instances[servicecore_ptr->address]);
+        Tile& sba_tile=*(sba_system.nodes[servicecore_ptr->address]);
 
 # On-the-fly substitution rules, via eval(" s/key/value/ ")
 # use #nosubs to avoid these substitutions

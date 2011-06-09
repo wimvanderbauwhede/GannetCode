@@ -30,7 +30,7 @@
 #ifndef SBA_INTERFACE_H
 #define SBA_INTERFACE_H
 
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 namespace SC_SBA
 {
@@ -266,6 +266,8 @@ public:
     // RAM Write operation
     virtual void write(ADDR_T ,DATA_T) = 0;
 
+    // RAM Append operation (only for Word_List)
+    virtual void append(ADDR_T ,DATA_T) = 0;
     // RAM Read operation
     // Return by reference, so read operation can be used to write as well
     // (as used in the overloaded [] operator
@@ -441,7 +443,12 @@ public:
 
     // overloading the subscript '[]' operator
     virtual SBA::ServicePair& operator [] (SBA::Service)= 0;
-
+    // FIXME:for Dynamic loading, only used by ds_CONFIG
+    virtual string lib(unsigned int)=0;
+    virtual string symbol(unsigned int)=0;
+    virtual SBA::ServicePair& services (SBA::Service ) =0;
+    virtual SBA::DynConfigTuple& configurations (unsigned int ) =0;
+    virtual SBA::TimingTuple& timings (SBA::Service,unsigned int) =0;
 };//class SC_Config_if
 
 

@@ -1,0 +1,7 @@
+scsrc/ contains SystemC wrappers around core code generated from Ruby/C++ with the SYSC flag set to on. This code is as close to the original Ruby code as
+possible.
+gensrc/ contains generated C++ files used as sources for the cores of the SystemC models. A script in gensrc/ (split_sc_module_src.pl) splits these sources into
+their building blocks.
+
+src/ contains SystemC versions of all components of the SBA. This folder is obsolete!
+

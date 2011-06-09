@@ -12,19 +12,27 @@
                 cout << "" <<service<< ": clean_up:  ADDRESS: " <<arg_address<< ""<<endl;
             }
 #endif // VERBOSE
-            if (getStatus(symbol_table[arg_address])==DS_present and arg_address>NREGS+DATA_OF){
-                symbol_table[arg_address]=setStatus(symbol_table[arg_address],DS_cleared);
+             //symbol_table.lock();
+            Word arg_symbol=symbol_table[arg_address];
+            uint arg_status=getStatus(arg_symbol);
+            if (arg_status==DS_present or  arg_status==DS_eos ){
+              if (arg_address>NREGS+DATA_OF){
+                arg_symbol=setStatus(arg_symbol,DS_cleared);
                 data_address_stack.push(arg_address);
 #ifdef VERBOSE
                 if (debug_all or service==debug_service){
+                    cout << "" <<service<< ": clean_up " <<current_subtask<< ": push ADDRESS " <<arg_address<< " onto STACK"<<endl;
                     cout << "" <<service<< ": clean_up(): stack size/pointer " <<data_address_stack.size()<< ""<<endl;
                     cout << "" <<service<< ": clean_up: REMOVED " <<arg_address<< ""<<endl;
                 }
 #endif // VERBOSE
-
                 data_store.remove(arg_address);
-
-            } 
+              } else {
+                arg_symbol=setStatus(arg_symbol,DS_absent);
+              }
+              symbol_table[arg_address]=arg_symbol;
+            }
+             //symbol_table.unlock();
         } // of for        
         }
         

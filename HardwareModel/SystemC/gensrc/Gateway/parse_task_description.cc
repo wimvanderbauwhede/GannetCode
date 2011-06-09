@@ -7,8 +7,7 @@
                     core_status = CS_busy;
                     uint task_id=tasks_stack.pop();
                     vmif.iodescs[task_id]=ntdcs;
-                    Bytecode tdc=vmif.tdcs.shift();
-
+                    Bytecode                         tdc=vmif.tdcs.shift();
                     TaskDescription task_description(tdc,task_id);
                     Packet_List                 task_description_packet_list=task_description.Packets;
                      Word_List nullwl;
@@ -16,7 +15,7 @@
                     result_store.mput(task_id,nullwl);
 #if QUIT==1
                         exit(1);
-#endif // QUIT                
+#endif // QUIT              
                     for(Packet_List::iterator iter_=task_description_packet_list.begin();iter_!=task_description_packet_list.end();iter_++) {
                     	Packet_t task_description_packet=*iter_;
 #ifdef VERBOSE

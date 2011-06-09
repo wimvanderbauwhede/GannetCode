@@ -6,7 +6,7 @@
                  |
   File Name      | SC_transmit_packets_gw.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 26-Jan-2009. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -28,7 +28,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -53,7 +53,7 @@ class SC_transmit_packets_gw : public sc_module
 {
 public:
     // ---------------------------- PORTS --------------------------------------
-    port_SC_Fifo_if <PACKET_T>  tranceiver_tx_fifo; //!<
+    port_SC_Fifo_if <PACKET_T>  transceiver_tx_fifo; //!<
     port_SC_Fifo_if <PACKET_T>  tx_fifo;          //!<
 
     // ---------------------------- METHODS ------------------------------------

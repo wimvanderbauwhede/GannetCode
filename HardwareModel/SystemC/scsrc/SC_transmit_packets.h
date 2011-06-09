@@ -3,7 +3,7 @@
                  |
   File Name      | SC_transmit_packets.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 31-Oct-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -25,7 +25,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -50,7 +50,7 @@ public:
 	// ---------------------------- PORTS --------------------------------------
     //sc_port<SC_fifo_delayed_put_if<PACKET_T> >  tx_fifo    ; //!< delayed write port for accessing tx_fifo
     port_SC_Fifo_if<Packet_t>   tx_fifo;        //!< read port for access to tx_fifo
-    port_SC_Fifo_if<Packet_t>   tranceiver_tx_fifo; //!< write port for access to traceiver.tx_fifo
+    port_SC_Fifo_if<Packet_t>   transceiver_tx_fifo; //!< write port for access to traceiver.tx_fifo
 
     // ---------------------------- Sub-Modules --------------------------------
 

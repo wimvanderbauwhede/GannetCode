@@ -56,6 +56,9 @@ System:
     CONS: [LET, 3, 8, [0, 0]]
     APPEND: [LET, 3, 9, [0, 0]]
     LETTC: [LET, 3, 10, [0, 0]]
+    S_RETURN: [IF, 4, 31, [0, 0]]
+    S_IF: [IF, 4, 30, [0, 0]]
+    
   ALU_Names:
     '+': 'plus'
     '-': minus

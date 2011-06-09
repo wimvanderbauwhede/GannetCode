@@ -1,16 +1,16 @@
 -- | Types for storing scope and functions for manipulating them.
 module Gannet.State.Scope (
     VarMap,
-    DataStore,
+--    DataStore,
     ScopeTable,
     ScopeRecord(..),
     initScope,
     getScope,
     getGSfromScope,
     appendScope,
-    emptyScope,
-    emptyDataStore,
-    appendData
+    emptyScope
+--    emptyDataStore,
+--    appendData
 ) where
 import Gannet.SBA.Types
 import qualified Data.Map as Hash
@@ -225,11 +225,11 @@ emptyScope = Hash.empty -- ScopeTable
 --------------------------------------------------------------------------------
 -- Data Store
 --------------------------------------------------------------------------------
-type DataStore = Hash.Map GannetToken GannetBuiltin
-
-appendData :: GannetToken -> GannetBuiltin -> DataStore -> DataStore
-appendData var val store = Hash.insert var val store
-
-emptyDataStore :: DataStore
-emptyDataStore = Hash.empty
+--type DataStore = Hash.Map GannetToken GannetBuiltin
+--
+--appendData :: GannetToken -> GannetBuiltin -> DataStore -> DataStore
+--appendData var val store = Hash.insert var val store
+--
+--emptyDataStore :: DataStore
+--emptyDataStore = Hash.empty
 

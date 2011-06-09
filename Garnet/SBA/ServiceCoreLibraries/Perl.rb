@@ -14,20 +14,34 @@
 
 #include <fstream>
 #include <sstream>
-#include "Types.h" //skipcc
-#include "Packet.h" //skipcc
-#include "Base/ServiceCore.h" //skipcc
-#include "ServiceCoreLibrary.h" //skiph
-#include "System.h" //skiph
-#include "Tile.h" //skiph
-#include "ServiceCore.h" //skiph
-
+#include <string>
+#include "../Types.h" //skipcc
+#include "../Packet.h" //skipcc
+#include "../Base/ServiceCore.h" //skipcc
+#include "../System.h" //skiph
+#include "../Tile.h" //skiph
+#include "../ServiceCore.h" //skiph
+#include "SBAnew.h"
+#include "Perl.h" //skiph
 =end #inc 
 
 # This module contains the implementations of all Gannet-Perl services. 
-require "SBA/ServiceCoreLibraries/SBAnew.rb"
-class Perl < SBAnew
+require "SBA/ServiceCoreLibraries/SBAnew.rb" 
 
+
+#C++ using namespace std;
+
+#skipcc
+#C++ namespace SBA {
+#C++ namespace Perl {
+#endskipcc
+
+#skiph
+#C++ using namespace SBA; 
+#endskiph
+
+class Perl < SBAnew #skip
+#ifndef NO_SERVICES
 if WORDSZ==64    
     # Helper functions for FP ALU
     def word2dbl(result) #t double (Word)
@@ -85,18 +99,38 @@ Keep Vim happy
 #
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------     
-# To make the ALU type-aware (int or float), we need to get the types of the arguments.
-# So we need the labels of the arguments
-# But this is a silly approach: we should simply have an FP ALU separately!
+
+  # Helper for ALU integer division
+  def div(m,n) #t Int (Int;Int)
+      q=0 #t Int
+      # In case of pure integer arithmetic, division should be like this:
+      # q = m / n
+      sm=1 #t Int        
+      if m<0
+          sm=-1
+      end        
+      sn=1 #t Int
+      if n<0
+          sn=-1
+      end        
+      um=m*sm #t Int          
+      un=n*sn #t Int    
+      modmn= um % un #t Int
+      q=(um-modmn)/un
+      if 2*modmn>un
+          q+=1
+      end  
+      return q*sn*sm
+  end  
 
 def pl_ALU(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr/
     #core
 #iv        
-    puts "ALU CORE: processing subtask #{parent.current_subtask}"
+    puts "Perl ALU CORE: processing subtask #{parent.current_subtask}"
 #ev
     #C++ Word_List result_list;
     operation=parent.opcode #t Uint
-    addresses=paretn.addresses() #t MemAddresses
+    addresses=parent.addresses() #t MemAddresses
 # now if result is an extended Symbol, and assuming we us a single word for numbers,
 # we could just take the next element:
 
@@ -159,7 +193,7 @@ end
                 result=result*tres #C++ int_result*=int_tres;
             when M_ALU_over
                 puts "ALU CORE operation: /" if @v #skip
-                result=div(result,tres) #C++ int_result=div(int_result,int_tres);
+                result=div(result,tres) #C++ int_result/=int_tres;
                 # result=result/tres #/
             when M_ALU_lt
                 puts "ALU CORE operation: <" if @v #skip
@@ -211,7 +245,7 @@ puts "FP ALU CORE: processing subtask #{parent.current_subtask}"
 
 return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
 operation=parent.opcode #t Uint
-    addresses=paretn.addresses() #t MemAddresses
+    addresses=parent.addresses() #t MemAddresses
 
 # now if result is an extended Symbol, and assuming we us a single word for numbers,
 # we could just take the next element:
@@ -368,7 +402,8 @@ def pl_Array(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_p
     #C++ Word_List result_list;
     
 #    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
-    method=parent.opcode #t Uint
+    
+    method=parent.method()  #t Uint
     
     # now if result is an extended Symbol, and assuming we us a single word for numbers,
     # we could just take the next element:
@@ -379,71 +414,76 @@ def pl_Array(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_p
     #ev
     #C++ Word apw; void* apv; List< Word_List >* ap;
     if method==M_Array_new
-            aref = []
+            aref = [] #C++ ap = new List< Word_List >; 
+      result_list =[EXTSYM] #skip
+      result_list.push(aref) #C++ result_list = putPointer< List< Word_List > >(ap);
     elsif  method==M_Array_destroy
-        #C++ MemAddress apw_address=addresses[0];
-        #C++ Word apw=sba_tile.data_store.mget(apw_address)[1];
-        #C++ void* apv=(void*)apw;
-        #C++ List< Word_List >* ap= (List< Word_List >*) apv;
+        #C++ // MemAddress apw_address=addresses[0];
+        #C++ // Word apw=sba_tile.data_store.mget(apw_address)[1];
+        #C++ // Word apw=getWord(arg(0));      
+        #C++ //void* apv=(void*)apw;
+        #C++ // List< Word_List >* ap= (List< Word_List >*) apv;
+      #C++ ap= getPointer< List< Word_List > >(parent.arg(0));
         #C++ delete ap; 
     else 
-        aref_address=addresses[0] #t MemAddress
-        apw=sba_tile.data_store.mget(aref_address)[1] #t Word
-        aref=apw #skip
-        #C++ void* apv=(void*)apw;
-        #C++ List< Word_List >* ap= (List< Word_List >*) apv;
-        #C++ List< Word_List >& aref= *ap;
+#        aref_address=addresses[0] #t MemAddress
+#        apw=sba_tile.data_store.mget(aref_address)[1] #t Word
+#        apw=getWord(parent.arg(0)) #t Word
+#        aref=apw #C++  List< Word_List >& aref=*apw;
+        #C++ // void* apv=(void*)apw;
+        #C++ // List< Word_List >* ap= (List< Word_List >*) apv;
+      aref = getWord(parent.arg(0)) #C++ List< Word_List >* ap= getPointer< List< Word_List > >(parent.arg(0)); List< Word_List >& aref= *ap;
+
         case method
             when M_Array_at
-                idx_address=addresses[1] #t MemAddress
-                idx=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
-                result_list = aref[idx] #t Word_List&  
+                idx=getUInt(parent.arg(1)) #t uint
+                result_list = aref[idx] #t Word_List
             when M_Array_size
                 alength = aref.length #t uint
                 result_list.push(EXTSYM)
                 result_list.push(alength) 
             when M_Array_push
-                val_address=addresses[1]
-                val=sba_tile.data_store.mget(val_address)[1];
+                val=parent.arg(1) #t Word_List
                 aref.push(val)
             when M_Array_pop
                 result_list = aref.pop() 
             when M_Array_shift
                 result_list = aref.shift() 
             when M_Array_unshift
-                val_address=addresses[1]
-                val=sba_tile.data_store.mget(val_address)[1];
+                val=parent.arg(1) #t Word_List
                 aref.unshift(val)
-            when M_Array_set
-                idx_address=addresses[1] #t MemAddress
-                idx=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
-                val_address=addresses[2] #t MemAddress
-                value_list=sba_tile.data_store.mget(val_address) #t Word_List
+            when M_Array_set # a[idx]=val
+                idx=getUInt(parent.arg(1)) #t uint
+                value_list=parent.arg(2) #t Word_List
                 aref[idx]=value_list
             when M_Array_copy
                 # "Copy constructor"
-                acref_address=addresses[0] #t MemAddress
-                acpw=sba_tile.data_store.mget(acref_address)[1] #t Word
-                acref=acpw #skip
+                acref=getWord( parent,arg(0) ) #skip
                 aref=acref.dup #skip
-                arefsym = 0x7188 # FIXME 
-                result_list.push(arefsym)
-                result_list.push(aref)                             
+                arefsym = 0x7188 #skip # FIXME 
+                #C++ ap=getPointer< List< Word_List > >(parent.arg(0)) ;
+                #C++ // List< Word_List > apc=new List< Word_List >( ap );
+                result_list=[EXTSYM,aref] #skip
+                #C++ result_list.push(EXTSYM);
+                #C++ // result_list.push(  putPointer< List< Word_List > >(apc) ); #FIXME!
             when M_Array_fromRange
-                # "Constructor from Range"                  
+                # "Constructor from Range"                
+#skip                
                 rref_address=addresses[0] #t MemAddress
                 rpw=sba_tile.data_store.mget(acref_address)[1] #t Word
                 rref=rpw #skip
                 aref=rref.dup #skip
-                arefsym = 0x7188 # FIXME 
+                arefsym = 0x7188 #skip # FIXME 
                 result_list.push(arefsym)
                 result_list.push(aref)                             
+#endskip                
                 #C++ break;}
             else #C++ default:
                 raise "Unknown Perl Array CORE service: #{method}" 
                 #C++   exit(0);
         end #;    
     end
+    puts result_list.inspect
     parent.result( result_list )
 end # of pl_Array
 
@@ -456,7 +496,7 @@ def pl_Hash(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_pt
     #C++ Word_List result_list;
     
 #    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
-    method=parent.opcode #t Uint
+    method=parent.method() #t Uint
     
     # now if result is an extended Symbol, and assuming we us a single word for numbers,
     # we could just take the next element:
@@ -465,47 +505,49 @@ def pl_Hash(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_pt
     #iv        
     puts "Perl Hash (#{parent.service}) CORE: #{addresses.length} addresses"
     #ev
-    #C++ Word hpw; void* hpv; map< String, Word_List >* hp;
+    #C++ Word hpw; void* hpv; map< string, Word_List >* hp; 
     if method==M_Hash_new
-        href = []
-        hrefsym = 0x7188 # FIXME 
-        result_list.push(hrefsym)
-        result_list.push(href)             
+        href = [] #C++ hp=new map< string, Word_List >; 
+        hrefsym = 0x7188 #t Word  # FIXME: I think I need a special type for Hashes 
+        result_list=[EXTSYM] #skip        
+      result_list.push(href) #C++ result_list = putPointer< map< string, Word_List > >(hp);    
     elsif  method==M_Hash_destroy
-        #C++ MemAddress hpw_address=addresses[0];
-        #C++ Word hpw=sba_tile.data_store.mget(hpw_address)[1];
-        #C++ void* hpv=(void*)hpw;
-        #C++ map< String, Word_List >* hp= (map< String, Word_List >*) hpv;
-        #C++ delete ap; 
+        #C++ // MemAddress hpw_address=addresses[0];
+        #C++ // Word hpw=sba_tile.data_store.mget(hpw_address)[1];
+        #C++ // void* hpv=(void*)hpw;
+        #C++ // map< string, Word_List >* hp= (map< string, Word_List >*) hpv;
+        #C++ hp= getPointer< map< string, Word_List > >(parent.arg(0));
+        #C++ delete hp; 
     else 
-        href_address=addresses[0] #t MemAddress
-        hpw=sba_tile.data_store.mget(href_address)[1] #t Word
-        href=hpw #skip
-        #C++ void* hpv=(void*)hpw;
-        #C++ map< String, Word_List >* hp= (map< String, Word_List >*) hpv;
-        #C++ map< String, Word_List >& href= *hp;
+#        href_address=addresses[0] #t MemAddress
+#        hpw=sba_tile.data_store.mget(href_address)[1] #t Word
+#        href=hpw #skip
+        #C++ // void* hpv=(void*)hpw;
+        #C++ // map< string, Word_List >* hp= (map< string, Word_List >*) hpv;
+        #C++ // map< string, Word_List >& href= *hp;
+        href = getWord(parent.arg(0)) #C++ hp= getPointer<  map< string, Word_List > >(parent.arg(0)); map< string, Word_List >& href= *hp;
         case method
             when M_Hash_lookup
-                key_address=addresses[1] #t MemAddress
-                key=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
-                result_list = href[idx] #t Word_List&  
+          #TODO: implement getString !!!
+#                key=getString(parent.arg(1)) #t string 
+#                result_list = href[key] #t Word_List
             when M_Hash_insert
-                alength = aref.length #t uint
-                result_list.push(EXTSYM)
-                result_list.push(alength) 
             when M_Hash_delete
             when M_Hash_exists
             when M_Hash_size
+                hsize = href.length #t uint
+                result_list.push(EXTSYM)
+                result_list.push(hsize) 
             when M_Hash_keys 
             when M_Hash_values
             when M_Hash_set
-                idx_address=addresses[1] #t MemAddress
-                idx=getUInt(sba_tile.data_store.mget(idx_address)) #t uint
-                val_address=addresses[2] #t MemAddress
-                value_list=sba_tile.data_store.mget(val_address) #t Word_List
-                aref[idx]=value_list
+          #TODO: implement getString !!!
+#                key=getString(parent.arg(1)) #t string
+#                value_list=parent.arg(2) #t Word_List
+#                href[key]=value_list
             when M_Hash_copy
                 # "Copy constructor"
+#skip              
                 acref_address=addresses[0] #t MemAddress
                 acpw=sba_tile.data_store.mget(acref_address)[1] #t Word
                 acref=acpw #skip
@@ -513,8 +555,10 @@ def pl_Hash(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_pt
                 arefsym = 0x7188 # FIXME 
                 result_list.push(arefsym)
                 result_list.push(aref)                             
+#endskip                
             when M_Hash_fromList
-                # "Constructor from Range"                  
+                # "Constructor from Range"           
+#skip                     
                 rref_address=addresses[0] #t MemAddress
                 rpw=sba_tile.data_store.mget(acref_address)[1] #t Word
                 rref=rpw #skip
@@ -522,6 +566,7 @@ def pl_Hash(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_pt
                 arefsym = 0x7188 # FIXME 
                 result_list.push(arefsym)
                 result_list.push(aref)
+#endskip                
             when M_Hash_toList
                 #C++ break;}
             else #C++ default:
@@ -549,8 +594,12 @@ end
 #         
 # this is a dummy for unused services
 def none(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr/
-    return 0 #C++ Result res; res.push_back((Word)0); return res;
+#    return 0 #C++ Result res; res.push_back((Word)0); return res;
 end        
         
+end #skip
+#skipcc
+#C++ }} // namespaces       
+#endskipcc
 #endif // NO_SERVICES
-end # of SBA_SCLib 
+

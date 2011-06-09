@@ -17,41 +17,90 @@
             }
             
             MemAddress data_address=0;
-
             bool has_label=0;
-            DS_t data_status=DS_absent;
+            uint data_status=DS_absent;
              uint mode;
+            uint eosreq=2;
+            uint eos=0;
+            uint skip=0;
             if (getKind(var_label)==K_D){
                 uint reg_address=getReg(var_label);
-                mode=getMode(var_label);
-                data_address=reg_address;
 #ifdef VERBOSE
                 if (debug_all or service==debug_service){
-                    cout << "dispatch_data_packets(): Mode: CACHE: reg address: " <<reg_address<< " mode " <<mode<< ""<<endl;
+                    cout << "" <<service<< " dispatch_data_packets(): Mode: CACHE: symbol: " <<var_label<< " reg address: " <<reg_address<< ""<<endl;
                 }
 #endif // VERBOSE
-                if (getStatus(symbol_table[reg_address])==DS_present){
+                data_address=reg_address;
+                mode=getMode(var_label);
+                Word reg_symbol=symbol_table[reg_address];
+                data_status=getStatus(reg_symbol);
+#ifdef VERBOSE
+                if (debug_all or service==debug_service){
+                    cout << "" <<service<< " dispatch_data_packets(): Mode: CACHE: reg address: " <<reg_address<< " mode " <<mode<< " status " <<data_status<< ""<<endl;
+#ifdef SC_VERBOSE                    
+                      OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": " << name() << " STREAM request\n";
+#endif                     
+                }
+#endif // VERBOSE
+                if (mode==M_eos){
+#ifdef VERBOSE
+                    uint ds_eos=DS_eos;
+                    cout << "" <<service<< " dispatch_data_packets(): EOS REQUEST " <<reg_address<< ": " <<data_status<< "<>" <<ds_eos<< " " <<(data_status==DS_eos)<< ""<<endl;
+#endif // VERBOSE
                     has_label=1;
-#ifdef VERBOSE
-                    if (debug_all or service==debug_service){
-                        cout << "dispatch_data_packets(): Mode: CACHE: data address " <<data_address<< "";
-                         cout << " status "<<(int)data_status << endl;                        
+                    if (data_status==DS_eos                      ){
+                      eosreq=1;
+                    } else {
+                      eosreq=0;
                     }
-#endif // VERBOSE
+#ifdef SC_VERBOSE                     
+  OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": " << name() << " EOS request for "<<reg_address<<":"<<(int)data_status<<"=>"<<eos<<"\n";
+#endif                    
                 } else {
-                    request_table.push(reg_address,packet_label);
+
+                    if (data_status==DS_present){
+                        has_label=1;
 #ifdef VERBOSE
-                    if (debug_all or service==debug_service){
-                        cout << "dispatch_data_packets(): Mode: CACHE: queue request for reg " <<reg_address<< " (" <<register_set[reg_address].data_address<< ")"<<endl;
-                    }
+                        if (debug_all or service==debug_service){
+                            cout << "" <<service<< " dispatch_data_packets(): Mode: CACHE: reg address " <<reg_address<< " status DS_present"<<endl;
+                        }
 #endif // VERBOSE
-                }
-                data_status=getStatus(symbol_table[reg_address]);
-                if (mode==M_stream                ){
-                    if (register_set[reg_address].status==RDS_present){
-                        restart_subtask(reg_address);
-                        register_set[reg_address].status=RDS_absent;
+
+                        if (mode==M_stream       ){
+#ifdef VERBOSE
+                            if (debug_all or service==debug_service){
+                                cout << "" <<service<< " dispatch_data_packets(): Mode: STREAM: " <<reg_address<< " (" <<register_set[reg_address].data_address<< ")"<<endl;
+                            }
+#endif // VERBOSE
+                                symbol_table[reg_address]=setStatus(reg_symbol,DS_requested);
+                            
+#ifdef SC_VERBOSE                             
+  OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": " << name() << " EOS: set status for "<<reg_address<<" to DS_requested =>"<<eos<<"\n";
+#endif                            
+                                restart_subtask(reg_address);
+                            }
+                    } else if (data_status==DS_eos){
+                        eos=1;
+                        has_label=1;
+#ifdef VERBOSE
+                        if (debug_all or service==debug_service){
+                            cout << "" <<service<< " dispatch_data_packets(): Mode: CACHE: reg address " <<reg_address<< " status DS_eos"<<endl;
+                        }
+#endif // VERBOSE
+                    } else if (data_status==DS_requested or data_status==DS_absent){
+                        if (mode==M_stream){
+                            skip=1;
+                            has_label=1;
+                        } else {
+                            request_table.push(reg_address,packet_label);
+#ifdef VERBOSE
+                            if (debug_all or service==debug_service){
+                                cout << "" <<service<< " dispatch_data_packets(): Mode: CACHE: queue request for reg address " <<reg_address<< " (" <<register_set[reg_address].data_address<< ")"<<endl;
+                            }
+#endif // VERBOSE
+                        }    
                     }
+
                 }
 
             } else if (getKind(var_label)==K_L){
@@ -67,21 +116,46 @@
                 data_address=getSubtask(var_label);
             }
             
-            cout << "dispatch_data_packet(): has_Label=" <<has_label<< ""<<endl;
-             cout << "dispatch_data_packet(): data_status="<<(int)data_status<<"\n";
             if (has_label==1 ){
+
                 Length_t payload_length=0;
                 if (getReturn_to(getHeader(request))!=getName(packet_label)){
                 }
                  Word_List tdata;
-                tdata=getField(data_store.mget(data_address),offset,fsize);
+#ifdef VERBOSE
+                cout << "" <<service<< " dispatch_data_packet(): data_address=" <<data_address<< ", eosreq=" <<eosreq<< ""<<endl;
+#endif // VERBOSE
+                uint ctrl=0;
+                if (eosreq==2 and eos==0 and skip==0 ){
+                    tdata=getField(data_store.mget(data_address),offset,fsize);
+                } else if (eosreq!=2                 ){
+                    Bool_t tdatasym = mkBool(eosreq);
+#ifdef VERBOSE
+                    cout << "" <<service<< " dispatch_data_packets(): EOS REQUEST: " <<ppSymbol(tdatasym)<< " (" <<eosreq<< ")"<<endl;
+#endif // VERBOSE
+                    tdata.push(tdatasym);
+                } else if (eos==1){
+#ifdef VERBOSE
+                    cout << "" <<service<< " dispatch_data_packets(): data status for " <<data_address<< " is EOS"<<endl;
+#endif // VERBOSE
+                    ctrl=2;
+                } else if (skip==1){
+#ifdef VERBOSE
+                    cout << "" <<service<< " dispatch_data_packets(): data status for " <<data_address<< " is SKIP"<<endl;
+#endif // VERBOSE
+                    ctrl=6;
+                }
                 payload_length=tdata.size();
-                Header_t packet_header = mkHeader(P_data,0,0,payload_length, getReturn_to(getHeader(request)), NA,0,packet_label);
+                
+                Header_t packet_header = mkHeader(P_data,ctrl,0,payload_length, getReturn_to(getHeader(request)), NA,0,packet_label);
                 Word_List packet_payload=tdata;
                 Packet_t packet = mkPacket(packet_header,packet_payload);
 #ifdef VERBOSE
-                cout << ppPacket(packet)<<endl;
 #endif // VERBOSE
+
+#ifdef SC_VERBOSE                
+          OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<service<<" ("<<name()<<") send packet from dispatch_data_packet()\n";
+#endif                
                 if (getTo(packet_header) != service){
                     tx_fifo.push(packet);
                 } else {

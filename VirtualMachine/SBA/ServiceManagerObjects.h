@@ -110,7 +110,7 @@ RegisterEntry () :
 
 class State_Register {
 	private:
-	Word mem[STATE_REG_SZ];
+	MWord mem[STATE_REG_SZ];
 	public:
 	// maybe best to initialise all states to 0
 	State_Register () {
@@ -118,7 +118,7 @@ class State_Register {
 			mem[i]=0;
 		}
 	}
- 	inline Word& operator[] (const unsigned int i) {
+ 	inline MWord& operator[] (const unsigned int i) {
 		return mem[i];
  	}
 };
@@ -483,6 +483,7 @@ public:
 // tuple support
     uint offset;
     uint fsize;
+    MemAddress result_address;
 
 	Subtask_List_Item() :
 			status(STS_new),
@@ -499,7 +500,9 @@ public:
 			      waiting_for_ack(0),
 			      code_address(0),
 			      service_id(0),
-			      offset(0),fsize(0)
+			      offset(0),
+			      fsize(0),
+			      result_address(0)
 	            {
 #ifdef STATIC_ALLOC
 	            	arguments.size(MAX_NARGS);
@@ -692,6 +695,12 @@ public:
 	}
 	void fsize(const Subtask subtask, uint val) {
 		subtasks_list[subtask].fsize=val;
+	}
+	MemAddress result_address(const Subtask subtask) {
+		return subtasks_list[subtask].result_address;
+	}
+	void result_address(const Subtask subtask, MemAddress val) {
+		subtasks_list[subtask].result_address=val;
 	}
 
    Subtasks subtasks() {

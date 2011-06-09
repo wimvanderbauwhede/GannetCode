@@ -102,7 +102,7 @@ class SBA_Network #< public Base::Network
                     service_id=getTo(getHeader(packet)) #t Service
                     dest=@sba_system.services[service_id]['Addr'] #C++ ServiceAddress dest=sba_system.cfg.services[service_id].address;
             # Putting in the Bridge requires some extra logic
-               if service_id < SBA_BRIDGE_ADDR
+               if service_id < SBA_BRIDGE_ADDR # it must be the service id, not the address! So I should call it SBA_BRIDGE_ID
                     @tx_fifo[dest].push(packet)
                else
                    warn "Found HW service" #skip
@@ -114,11 +114,11 @@ class SBA_Network #< public Base::Network
                 #ev
             end
         end
-        if @bridge_rx_fifo.status==1
+        if @bridge_rx_fifo.status()==1
      #iv
                 print "\nNetwork Bridge Sending: \n"
                 #ev
-                while @bridge_rx_fifo.status==1
+                while @bridge_rx_fifo.status()==1
                     packet=@bridge_rx_fifo.shift #t Packet_t
                 #iv
                     print "Network:HEADER:",getTo(getHeader(packet)),"\n"

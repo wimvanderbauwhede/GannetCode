@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
-
+{-# LANGUAGE NoMonomorphismRestriction #-}
 {--
 TODO
 ----
@@ -29,7 +29,6 @@ module GannetC.Parser (
 ) where
 
 import GannetC.AST
-
 import Control.Monad (liftM)
 import Text.ParserCombinators.Parsec hiding (State)
 import Text.ParserCombinators.Parsec.Expr

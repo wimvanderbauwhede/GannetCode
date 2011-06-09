@@ -40,6 +40,8 @@ SC_IDP='SC_INCLUDE_DYNAMIC_PROCESSES'
 WORDSZ='WORDSZ=32'
 VERBOSE=''
 GEN_SYSC=''
+QUARC_NOC=''
+QUARC_FRAG='QUARC_FRAG=1'
 
 # Flags
 WARN='-Wall '
@@ -47,14 +49,17 @@ OPTSPEED    = '-O3 -fno-exceptions -fno-rtti '
 OPTSIZE = '-Os -fno-exceptions -fno-rtti ' 
 OPTTHREADS = '-O3 '
 OPTSYSC =  '-O3 '
+ARCH=''
 DEBUG = ''
 OPT = OPTSYSC
 
 for optkey,optval in ARGLIST:
     if optkey == 'scgen':
         GEN_SYSC='GEN_SYSC'    
+    if optkey == 'quarc' and optval == '1':
+        QUARC_NOC = 'QUARC_NOC'
     if optkey == 'v' and optval == '1':
-        VERBOSE = 'VERBOSE'
+        VERBOSE = 'SC_VERBOSE'
     if optkey == 'dbg' and optval == '1':        
         DEBUG='-g'                
 
@@ -62,11 +67,12 @@ OSX=0
 if commands.getoutput("uname") == "Darwin":
     OSX=1
     switches+=['DARWIN']
+    ARCH='-arch i386'
 
 FLAGS=''
 SWITCHES=''
-flags+=[WARN,DEBUG,OPT]
-switches+=[SYSC,SC_IDP,GEN_SYSC,SYSC_FIXME,NO_SOCKET,VERBOSE,WORDSZ]
+flags+=[WARN,DEBUG,OPT,ARCH]
+switches+=[SYSC,SC_IDP,GEN_SYSC,SYSC_FIXME,NO_SOCKET,VERBOSE,WORDSZ,QUARC_NOC,QUARC_FRAG]
 
 for flag in flags:
     if flag !='':
@@ -85,8 +91,11 @@ cxx='g++'
 #    if SC==1 and CYGWIN==0:
 #        cxx='g++-3.3.6'
 
-env = Environment(CXX = cxx, CXXFLAGS = FLAGS+SWITCHES)
-libs=['m','gannet','systemc']
+env = Environment(CXX = cxx, CXXFLAGS = FLAGS+SWITCHES, LINKFLAGS=ARCH)
+if OSX==0:
+    libs=['m','gannet','systemc'] #,'dl']
+else:
+    libs=['m','gannet','systemc']
     
 INCpaths=['.','..', SYSTEMC_INC,SYSTEMC_TLM]
 LIBpaths=['.','../lib',SYSTEMC_LIB]
@@ -105,9 +114,6 @@ if SC==1 and OSX==1:
 
 # Since using classes and methods from C++ model directly, so need to link in the compiled object files there. Assuming object files (for the same architecture) are already there. If there arent, this make file does not compile them (i.e. not linked with the scons srcipt that compiles the C++ code)
 
-#LINKOBJECTS = ../test/*.o 
-#gannet_cxx_objs=Glob('../scsrc/SBA/*.o')
-#env.Library('gannet', gannet_cxx_objs)
 prog=env.Program('gannet_sc',sources,LIBS=libs,LIBPATH=LIBpaths,CPPPATH=INCpaths)
-env.Install('../../bin',prog)
-env.Alias('install','../../bin') 
+env.Install('../../../bin',prog)
+env.Alias('install','../../../bin') 

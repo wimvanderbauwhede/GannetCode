@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Memory.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 21-Nov-2008. DComputing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -23,7 +23,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -67,6 +67,9 @@ public:
 
     /// Write operation (can be a list write)
     void mput(unsigned int address,DATA_T data);
+//    /// Append operation (can be a list write)
+//    void mpush(unsigned int address,DATA_T data);
+
     /// Read operation (can be list read)
     // returning by reference so that [] operator overload can be used to write as well as read.
     DATA_T& mget(unsigned int address);
@@ -116,10 +119,10 @@ DATA_T& SC_Store<DATA_T>::mget(unsigned int address)
 }
 
 //------------------------------------------------------------------------------
-//  SC_Store::mget()
+//  SC_Store::size()
 //------------------------------------------------------------------------------
 
-//* List Read operation
+//* List Size operation
 template <typename DATA_T >
 unsigned int SC_Store<DATA_T>::size(unsigned int address)
 {
@@ -185,6 +188,7 @@ class SC_Store_List    :
 public:
     /// Write operation (pushing data into a list object)
     void put(unsigned int address, DATA_T data);
+    void mpush(unsigned int address, DATA_T data);
     /// Read operation(popping data off a list object)
     DATA_T get(unsigned int address);
 
@@ -207,6 +211,20 @@ void SC_Store_List<DATA_T>::put(unsigned int address, DATA_T data) {
 template <typename DATA_T >
 DATA_T SC_Store_List<DATA_T>::get(unsigned int address) {
     return SC_Store_List::store[address].at(0);
+}
+
+//------------------------------------------------------------------------------
+//  SC_Store_List::mpush()
+//------------------------------------------------------------------------------
+
+//* List Append operation  (only for Word_List!!)
+template <typename DATA_T >
+void SC_Store_List<DATA_T>::mpush(unsigned int address,DATA_T data)
+{
+	for (SBA::Word_List::iterator iter_=data.begin();iter_!=data.end();iter_++) {
+		SBA::Word w=*iter_;
+        SC_Store_List::store[address].push_back(w);
+	}
 }
 
 
@@ -243,6 +261,8 @@ public:
 
     // RAM Write operation
     void write(ADDR_T, DATA_T);
+    // RAM Append operation (only for Word_List!!!)
+    void append(ADDR_T, DATA_T);
 
     // RAM Read operation
     // Return by reference, so read operation can be used to write as well
@@ -297,6 +317,22 @@ void SC_Memory_List<ADDR_T, DATA_T> :: write(ADDR_T addr, DATA_T data)
 //                << "Data of " << nwords <<" Words written to RAM " << name() << endl;
 
 }// funct: SC_Memory_List :: write()
+
+
+//------------------------------------------------------------------------------
+//  SC_Memory_List :: append() (only for Word_List!!!)
+//------------------------------------------------------------------------------
+template <typename ADDR_T, typename DATA_T>
+void SC_Memory_List<ADDR_T, DATA_T> :: append(ADDR_T addr, DATA_T data)
+{
+    mpush(addr, data);
+    //my_memory.write(addr, data);
+    	unsigned int nwords =data.size();// sizeof(data)>>2;
+    	 wait(nwords*_CLK_P, _CLK_U); // delay here, depending on data size
+//    	OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
+//                << "Data of " << nwords <<" Words written to RAM " << name() << endl;
+
+}// funct: SC_Memory_List :: append()
 
 //------------------------------------------------------------------------------
 //  SC_Memory_List :: read()
@@ -386,7 +422,7 @@ public:
 
     // RAM Write operation
     void write(ADDR_T, DATA_T);
-
+    void append(ADDR_T, DATA_T);
     // RAM Read operation
     // Return by reference, so read operation can be used to write as well
     // (as used in the overloaded [] operator
@@ -439,7 +475,11 @@ void SC_Memory<ADDR_T, DATA_T> :: write(ADDR_T addr, DATA_T data)
     //my_memory.write(addr, data);
     //wait((sizeof(data)*_CLK_P)>>2 , _CLK_U); // delay here, depending on data size
 }// funct: SC_Memory :: write()
-
+template <typename ADDR_T, typename DATA_T>
+void SC_Memory<ADDR_T, DATA_T> :: append(ADDR_T addr, DATA_T data)
+{
+    mput(addr, data);
+}
 //------------------------------------------------------------------------------
 //  SC_Memory::read()
 //------------------------------------------------------------------------------
@@ -480,6 +520,10 @@ bool SC_Memory<ADDR_T, DATA_T> :: is_free(ADDR_T addr)
     return (has(addr)?false:true);
     //return(my_memory.is_free(addr) );
 }// funct: SC_Memory :: is_free()
+// ============================================================================
+// Specialised class for SC_Store_List<Word_List>
+// ============================================================================
+
 
 }// namespace: SC_SBA
 

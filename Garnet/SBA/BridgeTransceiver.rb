@@ -98,11 +98,11 @@ class SBA_BridgeTransceiver
     #system
 
             
-        if @tx_fifo.status==1 # packets in FIFO 
+        if @tx_fifo.status()==1 # packets in FIFO 
         #iv
             print "\nBridge TRX TX:","Sending: \n"
             #ev
-            while @tx_fifo.status==1
+            while @tx_fifo.status()==1
                 packet=@tx_fifo.shift #t Packet_t
             #iv
                 puts "HEADER:", getTo(getHeader(packet))

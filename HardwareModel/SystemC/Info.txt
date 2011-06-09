@@ -2,8 +2,15 @@ To add e.g. the LookupTable or Request or in general add a module to Gannet-Syst
 
 * Create a wrapper around the original type in its own SC_*.h file
 * Create the interface in SC_SBA_Interfaces.h
-* Create the specialised ports in SC_Spec_Ports.h
-* Create the arbiter in its own SC_*Arbiter.h file if required
-* Add the class to SC_sba.h
+* Create the specialised ports in SC_SBA_Spec_Ports.h
+* Create the arbiter in its own SC_*_Arbiter.h file if required
+* Add the class to SC_SBA.h
 * Wire up
+
+The architecture is as follows: every SC_*.h file inherits from SC_*_if and instantiates one or more exports
+sc_export<SC_*_if >
+These exports have a corresponding specialised port port_SC_*_if used in modules that connect to it
+
+For a good example see SC_Subtask_list.h. 
+
 

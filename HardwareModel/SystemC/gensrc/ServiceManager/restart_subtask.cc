@@ -4,6 +4,7 @@
         }
 #endif // VERBOSE
         MemAddress subtask_address=register_set[regaddr].subtask_address;
+
         subtask_list.status(subtask_address,STS_new);
 
 #if VM==1

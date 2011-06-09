@@ -8,7 +8,7 @@
 
 --- # SystemConfiguration.rb
 System:
-  Version: 2.0
+  Version: 2.1
   Library: Perl
   NServiceNodes: 15 # excluding gateway  
   ServiceNodes: # Number from 1, the GW is 0; I guess GW can be implicit, as it's never used
@@ -21,15 +21,15 @@ System:
     c5: [ 5, [APPLY] ]   
     c6: [ 6, [LAMBDA] ]    
 # Object-based Services	
-    c7: [ 7, [IO] ]
-    c8: [ 8, [ALU] ] 
-    c9: [ 9, [Math] ]  
-    c10: [ 10, [FPU] ]
-    c11: [ 11, [Array] ]
-    c12: [ 12, [String] ]
-    c13: [ 13, [Hash] ]
-    c14: [ 14, [Range] ]
-    c15: [ 15, [PCRE] ]
+    cIO: [ 7, [IO] ]
+    cALU: [ 8, [ALU] ] 
+    cMath: [ 9, [Math] ]  
+    cFPU: [ 10, [FPU] ]
+    cArray: [ 11, [Array] ]
+    cString: [ 12, [String] ]
+    cHash: [ 13, [Hash] ]
+    cRange: [ 14, [Range] ]
+    cPCRE: [ 15, [PCRE] ]
 # Program-specific Services    
 #   c17: [ 17, [ ConwayLife ] ]
 
@@ -57,26 +57,29 @@ System:
 # New aliases, shorter names for FQN    
   Aliases:
   # Alias Name (case sensitive): FQN
+    begin: c1.BEGIN.begin
+    seq: c2.SEQ.seq
     if: c4.IF.if
-    return: c4.IF.if
-    returntc: c4.IF.if
-    iftc: c4.IF.if
+    return: c4.IF.return
+    returntc: c4.IF.returntc
+    iftc: c4.IF.iftc
     let: c3.LET.let
     assign: c3.LET.assign
     update: c3.LET.update
     read: c3.LET.read
     lettc: c3.LET.lettc
+    lambda: c6.LAMBDA.lambda
     apply: c5.APPLY.apply
     applytc: c5.APPLY.applytc
 # These used to be "ALU_names"    
-    '+': c8.ALU.plus
-    '-': c8.ALU.minus
-    '*': c8.ALU.times
-    '/': c8.ALU.over
-    '<': c8.ALU.lt
-    '>': c8.ALU.gt
-    '==': c8.ALU.eq
-    '!': c8.ALU.not
+    '+': cALU.ALU.plus
+    '-': cALU.ALU.minus
+    '*': cALU.ALU.times
+    '/': cALU.ALU.over
+    '<': cALU.ALU.lt
+    '>': cALU.ALU.gt
+    '==': cALU.ALU.eq
+    '!': cALU.ALU.not
 
   ServiceClasses:    
 # Gannet  
@@ -84,18 +87,18 @@ System:
     APPLY: [ apply, applytc ]
     IF: [ if, iftc, return, returntc ]
     S_IF: [ if, return ]
-    SEQ: [ seq ]
+    SEQ: [ seq, seqtc ]
     BEGIN: [ begin ]
     LAMBDA: [ lambda ]
 # Perl    
-    Array: [ new, at, size, push, pop, shift, unshift, set, copy, fromRange ]
-    Hash: [ new, copy,  keys, values, exists, delete, insert, lookup, toList, fromList ] 
+    Array: [ new, at, size, push, pop, shift, unshift, set, copy, fromRange, destroy ]
+    Hash: [ new, copy,  keys, values, exists, delete, insert, lookup, size, set, toList, fromList, destroy ] 
     Range: [ new, inc, done ]
     String: [ new, chomp, chop, ne, eq ]
     ALU: [ plus, minus, times, over, mod, rshift, lshift, and, or, not, xor, lt, gt, eq, lte, gte, ne ]
-    FPU: [ plus, minus, times, over, lt, gt, eq, lte, gte, ne ]
+    FPU: [ plus, minus, times, over, not, lt, gt, eq, lte, gte, ne ]
     Math: [ abs, atan2, cos, exp, hex, int, log, oct, rand, sin, sqrt, srand ]
-    IO: [ print, open, close, readline, write, eof ]
+    IO: [ print, open, close, readline, write, eof, display ]
     PCRE: [ new, match, subst ]
 # Program-specific	
 #   ConwayLife: [ tl, t, tr, r, br, b, bl, l ]

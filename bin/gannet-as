@@ -70,20 +70,21 @@ my $symbol_type_str = join( '|', keys(%Symbol_Types) );
 my %Packet_Types = %{ $ServiceConfiguration{'Packet_Types'} };
 my $packet_type_str = join( '|', keys(%Packet_Types) );
 
-my %Services  = %{ $SystemConfiguration{'Services'} };
+my %ServiceInstances  = %{ $SystemConfiguration{'ServiceInstances'} };
 my %Aliases   = %{ $SystemConfiguration{'Aliases'} };
+my %Services   = %{ $SystemConfiguration{'Services'} };# unused
 my %ALU_Names = %{ $SystemConfiguration{'ALU_Names'} };
 
 my %ServiceNames = ();
-for my $service_id ( keys %Services ) {
-#die Dumper(%Services);
-	my %entries=%{$Services{$service_id}};
+for my $service_id ( keys %ServiceInstances ) {
+#die Dumper(%ServiceInstances);
+	my %entries=%{$ServiceInstances{$service_id}};
 	for my $name (keys %entries) {
 		next if $name eq 'Addr';
 		my $scid=$entries{$name}->[0];
 		$ServiceNames{$name} = [$service_id, $scid];
 	}
-#my $name = $Services{$service_id}[2];
+#my $name = $ServiceInstances{$service_id}[2];
 #	$ServiceNames{$name} = $service_id;
 }
 $ServiceNames{'GW'} = [0,0]; # SBA.yml has 'GATEWAY', not 'GW'
@@ -255,7 +256,7 @@ sub lookup_name {
 
 		# none of the above, check if it's a service number
 	}
-	elsif ( exists( $Services{$name} ) ) {
+	elsif ( exists( $ServiceInstances{$name} ) ) {
 		return [$name,0];
 	}
 	elsif ( exists( $AliasIDs{$name} ) ) {

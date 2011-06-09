@@ -26,6 +26,8 @@ help= <<EOH
     -S, --sysc: generate SC_SystemConfiguration.h for SystemC
     -Y, --yaml [YAML SystemConfiguration to be used as input]
     -D, --dir: relative path to directory for generated files
+    -P, --procs: support processes+sockets
+    -N, --new: for new features testing
 
 EOH
 
@@ -36,9 +38,19 @@ opts=OptionParser.new()
 @@sysc=0
 @@prefix_SC=''
 @@dirpath='./'
-SBA_YML='SBA.yml'
 
+SBA_YML='SBA.yml'
+TO_YAML=0
+USE_THREADS=0
+
+VERBOSE=0
+opts.on("-v","--verbose") {VERBOSE=1;}
 opts.on("-S","--sysc") {@@sysc=1;@@prefix_SC='SC_'}
+DISTR=0
+opts.on("-P","--procs") {DISTR=1}
+
+WORDSZ=64
+opts.on("-W wordsz","--wordsz=wordsz",Integer) { |wordsz| WORDSZ=wordsz }
 opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| SBA_YML=yml_file }
 opts.on("-D dirpath","--dir=dirpath",String) {|dir_path| @@dirpath=dir_path }
 opts.on("-h","--help") {
@@ -47,18 +59,9 @@ exit
 }
 opts.parse(ARGV)
 
-NUM=1 # numerify
-NUMK=1
-WORDSZ=32 #64
-TO_YAML=0
-USE_THREADS=0
-VERBOSE=0
-
 require 'yaml'
-
 require "SBA/ServiceConfiguration.rb"
-require "SBA/SystemConfiguration.rb"
-  
+
 cxxh_file="#{@@dirpath}/#{@@prefix_SC}SystemConfiguration.h"
 if (@@sysc==1)
     sysc_consts_file="#{@@dirpath}/#{@@prefix_SC}SystemConfigurationConsts.h"
@@ -70,6 +73,112 @@ else
 	cfg = YAML.load(File.open(SBA_YML))
 end
 
+if cfg['System']['Version'].to_f >= 2.0
+  NEW=1
+else
+  NEW=0
+end 
+
+if cfg['System']['Version'].to_f >= 2.1
+  NEWER=1
+else
+  NEWER=0
+end 
+
+
+if NEWER==1
+       @@sclib=cfg['System']['Library']
+else
+  @@sclib='SBAnew'
+end
+  
+if NEW==1
+require "SBA/SystemConfigurationNew.rb"
+else
+require "SBA/SystemConfiguration.rb"
+end
+  
+
+# NEW CODE ====================================================================  
+if NEW==1
+    def cxx_serviceclasses(cfg)
+     if NEWER==1
+          require "SBA/ServiceCoreLibraries/#{@@sclib}.rb"        
+          sclibclass=Object.const_get(@@sclib) #.new()
+      end
+      
+        cxx_service_tuples=[] 
+        for service_id_str in cfg['System']['Services'].keys
+            scid_wrapper=cfg['System']['Services'][service_id_str] # BEGIN: [ 1, ls_BEGIN, 1 ]
+            scid=scid_wrapper[0].to_i 
+            wrapper=scid_wrapper[1]
+#            puts "KERNEL: #{wrapper}"
+            if SBAnew.method_defined?(:"#{wrapper}")
+#              puts "#{@@sclib} has no method #{wrapper}"
+              lsclib='SBAnew' #TODO: check the other classes              
+            else
+              lsclib=@@sclib
+            end  
+            # We must check somehow id a method exists in a given class
+            # So we load the class and test ...
+            if @@sysc==1
+                t_setup=0
+                t_proc=0  
+                timing_str=",#{t_setup},#{t_proc}"
+            else
+                timing_str=""                
+            end             
+            cxx_service_tuples.push("\tservices[#{scid}]=ServicePair( #{0},&#{@@prefix_SC}SBA::#{lsclib}::#{wrapper}#{timing_str} );" )      
+        end
+        return cxx_service_tuples
+    end    
+    
+    
+    def cxx_servicenodes(cfg)
+        cxx_servicenode_constants = []
+        # For compatibility, we need S_* and SC_*		
+        # S_ is the Service Node Id
+        for servicenode_name_str in cfg['System']['ServiceNodes'].keys
+            node_id = cfg['System']['ServiceNodes'][servicenode_name_str][0]
+            # This is a HACK! The node is named after the first service in the list!
+            service_name_str=cfg['System']['ServiceNodes'][servicenode_name_str][1][0]
+            cxx_servicenode_constants.push("const UINT S_#{service_name_str} = #{node_id};")
+        end
+        #  SC_ is the Service Class Id
+        for sc_str in cfg['System']['Services'].keys
+            scid = cfg['System']['Services'][sc_str][0]
+            cxx_servicenode_constants.push( "const UINT SC_#{sc_str} = #{scid};")
+        end   
+        return cxx_servicenode_constants.join("\n")        
+    end
+            
+   	def cxx_nservices(cfg)
+		cfg['System']['Services'].length
+	end
+
+def cxx_opcodes(cfg)
+    servicetypes= cfg['System']['Services']
+    interfaces = cfg['System']['ServiceClasses']
+    cxx_method_constants=[]
+    for st_key in interfaces.keys    
+        scid = servicetypes[st_key][0].to_i
+        scid_field = scid  << FS_SCId        
+        methodid=0
+        for m_key in interfaces[st_key]
+            cxx_method_constants.push("const UINT M_#{st_key}_#{m_key} = #{scid_field+methodid};")
+            methodid+=1
+        end 
+    end 
+    
+    return cxx_method_constants.join("\n")
+end  
+
+
+# END of NEW CODE ====================================================================  
+    
+else
+    
+# OLD CODE ====================================================================  
 # Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads,[Tsetup,Tproc]], Addr: Service NoC Address }  
 
 @@has_let=0
@@ -306,7 +415,10 @@ def cxx_constants(cfg)
     end 
     
     return cxx_service_core_constants.join("\n")+"\n\n"+cxx_service_constants.join("\n")+"\n\n"+cxx_alias_constants.join("\n")+"\n\n"+cxx_method_constants.join("\n")
-end    
+end  
+# END of OLD CODE ====================================================================  
+
+end # of NEW  
     
 cxxh=File.open(cxxh_file,"w")
     
@@ -340,8 +452,17 @@ cxxh.puts '
 #ifndef STATIC_ALLOC
 #include <map>
 #endif
-#include "ServiceCoreLibrary.h"
 '
+if NEW==0
+cxxh.puts '#include "ServiceCoreLibrary.h"'
+else
+  if NEWER!=1
+    cxxh.puts '#include "ServiceCoreLibraryNew.h"'
+  else
+    cxxh.puts '#include "ServiceCoreLibraries/'+@@sclib+'.h"'
+  end
+
+end
 else
 cxxh.puts '
 #include <map>
@@ -359,11 +480,20 @@ namespace #{@@prefix_SC}SBA {
 
 "
 if (@@sysc==0)
-cxxh.puts cxx_constants(cfg)
+if NEW==1
+    cxxh.puts cxx_opcodes(cfg)
+    cxxh.puts cxx_servicenodes(cfg)
+else
+	cxxh.puts cxx_constants(cfg)
+end
 end
 cxxh.puts '
 // Not elegant, but static arrays are a lot faster than linked lists!'
-cxxh.puts "const UINT NSERVICES = #{cxx_services(cfg).length()};"
+if NEW==1
+    cxxh.puts "const UINT NSERVICES = #{cxx_nservices(cfg)};"
+else 
+    cxxh.puts "const UINT NSERVICES = #{cxx_services(cfg).length()};"
+end
 
 cxxh.puts '
 class Config {
@@ -383,14 +513,16 @@ end
 cxxh.puts '
 	Config()
 	{
+#ifndef NEW	
 	unsigned int gw_address=0; // NSERVICES; // must be 0 from 16/12/2010 on (was the LAST address)
+#endif	
 '
 if @@sysc==0
 cxxh.puts '
     // for static allocation. By checking service_address we know if the slot is empty or not
 #ifdef STATIC_ALLOC
     for (uint i=0;i<MAX_NSERVICES;i++) {
-            services[i]=ServicePair(MAX_NSERVICES,&SBA::SCLib::none);
+            services[i]=ServicePair(MAX_NSERVICES,&SBA::'+@@sclib+'::none);
     }
 #ifndef NO_DRI    
     for (uint i=0;i<MAX_NDYNCONFIGS;i++) {
@@ -398,33 +530,41 @@ cxxh.puts '
     }    
 #endif // NO_DRI    
 #endif
-
-	services[0]= ServicePair(gw_address,&SBA::SCLib::sba_GATEWAY);
-'	
+'
+if NEW==0	
+cxxh.puts '	services[0]= ServicePair(gw_address,&SBA::SCLib::sba_GATEWAY);'
+end
 else
 cxxh.puts '
 	services[0]= ServicePair(gw_address,&SC_SBA::SCLib::sba_GATEWAY);
 '	
 end	
-cxxh.puts '
-/*
- * It is crucial that the addresses (first elt of ServicePair) are contiguous
- * The service ids (indices of the services array) do not need to be (services is a map)
- * 
- * Currently, any id > 32 will be sent to the bridge
- * 
- */	
-
-// services[service_id]=ServicePair(service_address,&SBA::SCLib::ls_LET);
-'
+#cxxh.puts '
+#/*
+# * It is crucial that the addresses (first elt of ServicePair) are contiguous
+# * The service ids (indices of the services array) do not need to be (services is a map)
+# * 
+# * Currently, any id > 32 will be sent to the bridge
+# * 
+# */	
+#
+#// services[service_id]=ServicePair(service_address,&SBA::SCLib::ls_LET);
+#'
 cxxh.puts '#ifndef NO_SERVICES'
-cxxh.puts cxx_services(cfg)
+if NEW==1
+    cxxh.puts cxx_serviceclasses(cfg)
+else
+    cxxh.puts cxx_services(cfg)
+end
 
 cxxh.puts '#endif // NO_SERVICES'
-
+if NEW==0
 cxxh.puts '#ifndef NO_DRI'
 cxxh.puts cxx_configurations(cfg)
 cxxh.puts '#endif // NO_DRI'
+else
+cxxh.puts '// NO DRI SUPPORT YET for NEW!'
+end	
 if @@sysc==1
   cxxh.puts sysc_timings(cfg)
 end
@@ -440,7 +580,7 @@ cxxh.puts "
 
 cxxh.close           
 
-
+# FOR SYSTEMC ================================================================= 
 if (@@sysc==1) 
 sysc_consts=File.open(sysc_consts_file,"w")
 sysc_consts.puts '
@@ -462,11 +602,16 @@ const UINT S_LET = 3;
 const UINT SC_LET = 0;    
 '
 end
-sysc_consts.puts cxx_constants(cfg)
+if NEW==1
+    sysc_consts.puts cxx_opcodes(cfg)
+else
+    sysc_consts.puts 
+end
 
 sysc_consts.puts '
 } // SC_SBA
 #endif /*_SC_SBA_SYSTEM_CONFIGURATION_CONSTS_H_*/
 '
 sysc_consts.close
+# END of FOR SYSTEMC ================================================================= 
 end

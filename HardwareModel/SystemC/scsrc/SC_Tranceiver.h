@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Tranceiver.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 17-Nov-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -14,8 +14,8 @@
 ********************************************************************************
 
   (c) 2008-2009 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>, Syed Waqar Nabi
-    
-  */
+
+*/
 
 
 
@@ -25,7 +25,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -49,7 +49,7 @@ namespace SC_SBA{
     /*!
        Has one thread that transmits packets whenever there are packets to transmit.
        It does not have a 'read' thread since the network proactively writes
-       directly to the tranceiver.
+       directly to the transceiver.
     */
 template <typename PACKET_T>
 class SC_Tranceiver : public sc_module
@@ -58,14 +58,14 @@ public:
     // ---------------------------- PORTS --------------------------------------
     // for writing to network.rx_fifo
     port_SC_Fifo_if <PACKET_T>   network_rx_fifo;
-    // the network writes directly into a Tile (i.e. the tranceiver's rx_fifo)
+    // the network writes directly into a Tile (i.e. the transceiver's rx_fifo)
     // through the provided export, so no port for reading from network
 
     // ---------------------------- EXPORTS ------------------------------------
-    // Network uses this export to directly write to the tile's tranceiver
+    // Network uses this export to directly write to the tile's transceiver
     sc_export<SC_Fifo_if<PACKET_T> > xpwr_rxfifo;    //!< Export for read/write to internal Rx FIFO
 
-    // this export is used by the service_managar/gateway to write to tranceiver for transmission
+    // this export is used by the service_managar/gateway to write to transceiver for transmission
     sc_export<SC_Fifo_if<PACKET_T> > xpwr_txfifo;    //!< Export for read/write to internal Tx FIFO
 
     // ---------------------------- Sub-Modules / Primitives -------------------
@@ -94,10 +94,6 @@ public:
         rx_fifo("rx_fifo"),
         service(s_)
     {
-        // *** Instantiaing ***
-
-        //tx_fifo = new SC_SBA_Fifo<PACKET_T>   ("tx_fifo", 20);
-        //rx_fifo = new SC_SBA_Fifo<PACKET_T>   ("rx_fifo", 20);
 
         // *** Bindings ***
 
@@ -111,7 +107,7 @@ public:
 
         // Put two packets inside the local rx_fifo for testing
         // using the non-time-consuming method
-        PACKET_T i;
+        //PACKET_T i;
 
         SC_THREAD(transmit_packets);
         // creation debug message..
@@ -133,15 +129,20 @@ void SC_Tranceiver <PACKET_T>:: transmit_packets()
             // blocking read from local tx_fifo. Non-empty tx_fifo indicates a packet ready
             // to be sent to network
             PACKET_T packet = tx_fifo.shift();
-#ifdef VERBOSE
+#ifdef SC_VERBOSE
             OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<service<<" SC_Tranceiver: transmitting packet to NoC"<< endl;
 #endif
+            /*
+            int to=(packet.front()>>8)&0xFF;
+            int return_to=packet.front()&0xFF;
+            int ctrl=(packet.front()>>26)&0x7;
+            OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<service<<" ("<<name()<<") To:"<<to<<"; Return-to:"<<return_to<<";Ctrl:"<<ctrl<<" Length:"<<packet.size()-3 <<endl;
+            */
             //			cout << "SC_Tranceiver: transmitting packet to NoC\n";
             // write this packet read from tx_fifo to network
             // the write is through port
             // the port will be connected to the appropriate export
             // that the network provides for storing this source tile's incomig data
-            // TODO: is the delay in first reading and then writing means it is doubled?
             network_rx_fifo.push(packet);
         }
     }// funct: SC_Tile :: do_proc()

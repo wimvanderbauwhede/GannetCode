@@ -1,4 +1,4 @@
-# ServiceCoreLibraryNew.rb
+# SBAnew.rb
 #   
 # :title: Gannet Service-based SoC project - Service Core Library 
 #    
@@ -13,27 +13,16 @@
 # -----------------------------------------------------------------------------
 
 =begin #inc
-
-#ifndef SYSC
 #include <dlfcn.h>
 #include <fstream>
 #include <sstream>
-#include "Types.h" //skipcc
-#include "Packet.h" //skipcc
-#include "Base/ServiceCore.h" //skipcc
-#include "ServiceCoreLibraryNew.h" //skiph
-#include "System.h" //skiph
-//#if SEQVM==0
-#include "Tile.h" //skiph
-#include "ServiceCore.h" //skiph
-//#else
-//#include "TileVM.h" //skiph
-//#include "ServiceCoreVM.h" //skiph
-//#endif
-// example static service 
-//#include "cs_DCT.h" //skipcc
-//#include "LoopService.h" //skipcc
-#endif
+#include "../Types.h" //skipcc
+#include "../Packet.h" //skipcc
+#include "../Base/ServiceCore.h" //skipcc
+#include "../System.h" //skiph
+#include "../Tile.h" //skiph
+#include "../ServiceCore.h" //skiph
+#include "SBAnew.h"
 =end #inc 
 
 =begin
@@ -43,11 +32,25 @@
 
 require "SBA/Packet.rb"
 
-#module SBA_SCLib
+# module SBA_SCLib
+# no more _SCLib
 
-class SBAnew #_SCLib
-  include SBA
-  
+#C++ using namespace std;
+
+#skipcc
+#C++ namespace SBA {
+#C++ namespace SBAnew {
+#endskipcc
+
+#skiph
+#C++ using namespace SBA; 
+#endskiph
+class SBAnew  #skip
+  include SBA #skip
+    def initialize
+        @v=true
+    end
+#ifndef NO_SERVICES    
 if WORDSZ==64    
     # Helper functions for FPU
     def word2dbl(result) #t double (Word)
@@ -98,7 +101,7 @@ end # WORDSZ
 =begin
 =end
     
-#ifndef NO_SERVICES
+
     # --------------------------------------------------------------------------
     # Helper functions for IO
     # --------------------------------------------------------------------------
@@ -250,7 +253,7 @@ end # WORDSZ
 #ev
         #C++ Word_List result_list;
 # FIXME: compiler reserves 0 opcode, runtime doesn't!
-        operation=(parent.opcode-1) + (parent.scid  << FS_SCId) #t Uint
+        operation=parent.method() #t Uint
 
 #iv        
         puts "ALU (#{parent.service}) CORE: #{parent.nargs()} addresses"
@@ -460,7 +463,10 @@ end # of ls_FPU
         parent.result( [] ) #C++ Word_List empty_list; parent.result(empty_list);
     else
         service=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
-        operation=getName(service) #t uint    
+        opcode=getOpcode(service) #t uint
+        scid=getSCId(service) #t uint
+        operation =opcode+(scid<< FS_SCId) #t uint  
+#        puts "OP:",operation,  M_IF_return,M_IF_returntc,M_IF_if
         valn=0 #t uint 
         if operation==M_IF_return or operation==M_IF_returntc
             #iv
@@ -492,106 +498,107 @@ end # of ls_FPU
             end
            
         end # RETURN or IF
-        valaddress=parent.addr(valn) #t MemAddress
-        result_list=parent.arg(valn) #t Word_List
-        result=result_list[0] #t Word
-        puts ppSymbol(result) if @v #skip        
-        label=sba_tile.service_manager.symbol_table[valaddress] #t Word
-        #iv
-        puts "IF CORE: LABEL:<#{label}>" 
-        print "IF CORE: KIND <"
-        print getKind(label) #C++ cout <<(int)getKind(label);
-        puts ">"
-        #ev
-        labelquoted=getQuoted(label) #t int
-        if labelquoted==1
-            # It's quoted, so it's an expression, variable, data or quoted expression.    
+        if parent.nargs()>0
+            valaddress=parent.addr(valn) #t MemAddress
+            result_list=parent.arg(valn) #t Word_List
+            result=result_list[0] #t Word
+            puts ppSymbol(result) if @v #skip        
+            label=sba_tile.service_manager.symbol_table[valaddress] #t Word
+            #iv
+            puts "IF CORE: LABEL:<#{label}>"         
+            print "IF CORE: KIND <"
+            print getKind(label) #C++ cout <<(int)getKind(label);
+            puts ">"
+            #ev
+            labelquoted=getQuoted(label) #t int
+            if labelquoted==1
+                # It's quoted, so it's an expression, variable, data or quoted expression.    
 =begin            
     Since we now don't unquote on store, refs are always quoted. We rely on the label to tell us what is stored    
 =end            
-            if getKind(result) == K_S or getKind(result) == K_A
-                # If it's an expression => Error
-                raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
-            elsif getKind(result) == K_L or getKind(result) == K_D
-                # If it's a variable or data => request & redirect result
-                # i.e. create a request packet
-                parent.core_return_type= P_request                               
-                sba_tile.service_manager.subtask_list.to(parent.current_subtask,getKind(result))                
-            elsif getKind(result) == K_B # or getKind(result) == K_Q                         
-                puts "BUILTIN"  if @v #skip
-                puts parent.ack_ok if @v #skip
-                # If it's a quoted expression =>  Just return it
-                parent.core_return_type=P_data                                
-            elsif getKind(result) == K_R   
+                if getKind(result) == K_S or getKind(result) == K_A
+                    # If it's an expression => Error
+                    raise "IF CORE: ERROR: IF arg can't be #{getKind(result)}"
+                elsif getKind(result) == K_L or getKind(result) == K_D
+                    # If it's a variable or data => request & redirect result
+                    # i.e. create a request packet
+                    parent.core_return_type= P_request                               
+                    sba_tile.service_manager.subtask_list.to(parent.current_subtask,getKind(result))                
+                elsif getKind(result) == K_B # or getKind(result) == K_Q                         
+                    puts "BUILTIN"  if @v #skip
+                    puts parent.ack_ok if @v #skip
+                    # If it's a quoted expression =>  Just return it
+                    parent.core_return_type=P_data                                
+                elsif getKind(result) == K_R   
 #                        puts "IF CORE REDIR"  if @v #skip
-                # CORE decides to redirect
-                # Now what? I thought the IF core _always_ redirects. ack_to is the label for the ACK
-                # So it contains the name of the IF service and the address of the argument, i.e valaddress
-                # See parse_subtask_packet, it's the same code
-                
-                # WV21082008: We need IFTC and RETURNTC: there's no need for an ACK in a tail-called loop
-                # as there is nothing to clean up anyway
-                send_ack_to=0 #t Word
-                if operation==M_IF_return or operation==M_IF_if
-                    puts "IF CORE wait for ACK"  if @v #skip
-                    send_ack_to=setName(label,S_IF) 
-                    send_ack_to=setSubtask(send_ack_to,valaddress)
-                    parent.ack_ok=0 # If a core redirects, it doesn't send an ACK
-                
-                    # Now fool the subtask:
-                    # set status of argument to "requested"
-                    sba_tile.service_manager.symbol_table[valaddress]=setStatus(label,DS_requested)                        
-                    # set status of subtask to "blocked"                       
-                    sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
-                    # for new status calculation
-                    sba_tile.service_manager.subtask_list.incr_nargs_absent(parent.current_subtask)
-                    # set "waiting for ACK" flag
-                    sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask,1)
-                    #iv
-                        puts "IF CORE: BLOCKED #{parent.current_subtask} for ACK: #{operation}"
-                    #ev                            
-                else
-                    sba_tile.service_manager.subtask_list.redir(parent.current_subtask,0)
-                    # WV 15042009: STS_processed leads to a race condition between activate and clean-up
-                    sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_inactive)                            
-                #iv
-                    puts "IF CORE: TAILCALL: #{operation}"
-                #ev
-                end
-                parent.core_status=CS_managed
-                packet_type=P_reference #t Packet_Type
-                prio=0 #t Ctrl_t
-                payload_length=1 #t Length_t
-                to=getName(result) #t To_t
-                return_to=sba_tile.service_manager.subtask_list.return_to(parent.current_subtask) #t Return_to_t
-                return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
-                redir=0 #t Redir_t                        
-                if operation==M_IF_return or operation==M_IF_if 
-                    redir=1
-                end
-                ref_packet_header= mkHeader(packet_type,prio,redir,payload_length,to,return_to,send_ack_to,return_as)
-                
-                ref_packet_payload=result_list #t Word_List 
-                ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
-                puts ppPacket(ref_packet) if @v #skip
-#iv                        
-                    puts "IF CORE: REDIR #{parent.current_subtask} TO #{getName(result)}" #C++ cout << "IF CORE: REDIR "<<parent.current_subtask<<" TO "<<(int)getName(result)<<endl; 
-#ev                        
-                parent.core_return_type= P_reference
-                sba_tile.service_manager.subtask_list.to(parent.current_subtask,getName(result))                
-                if to!=S_IF
-                    sba_tile.transceiver.tx_fifo.push(ref_packet)
-                else
-                #iv
-                    puts "IF CORE: LOCAL CALL"
-                #ev 
-                    if SEQVM==0                           
-                    sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
-                    else # SEQVM==1
-                    sba_tile.service_manager.activate_subtask(ref_packet)  
-                    end # SEQVM
+                    # CORE decides to redirect
+                    # Now what? I thought the IF core _always_ redirects. ack_to is the label for the ACK
+                    # So it contains the name of the IF service and the address of the argument, i.e valaddress
+                    # See parse_subtask_packet, it's the same code
                     
-                end
+                    # WV21082008: We need IFTC and RETURNTC: there's no need for an ACK in a tail-called loop
+                    # as there is nothing to clean up anyway
+                    send_ack_to=0 #t Word
+                    if operation==M_IF_return or operation==M_IF_if
+                        puts "IF CORE wait for ACK"  if @v #skip
+                        send_ack_to=setName(label,S_IF) 
+                        send_ack_to=setSubtask(send_ack_to,valaddress)
+                        parent.ack_ok=0 # If a core redirects, it doesn't send an ACK
+                    
+                        # Now fool the subtask:
+                        # set status of argument to "requested"
+                        sba_tile.service_manager.symbol_table[valaddress]=setStatus(label,DS_requested)                        
+                        # set status of subtask to "blocked"                       
+                        sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
+                        # for new status calculation
+                        sba_tile.service_manager.subtask_list.incr_nargs_absent(parent.current_subtask)
+                        # set "waiting for ACK" flag
+                        sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask,1)
+                        #iv
+                            puts "IF CORE: BLOCKED #{parent.current_subtask} for ACK: #{operation}"
+                        #ev                            
+                    else
+                        sba_tile.service_manager.subtask_list.redir(parent.current_subtask,0)
+                        # WV 15042009: STS_processed leads to a race condition between activate and clean-up
+                        sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_inactive)                            
+                    #iv
+                        puts "IF CORE: TAILCALL: #{operation}"
+                    #ev
+                    end
+                    parent.core_status=CS_managed
+                    packet_type=P_reference #t Packet_Type
+                    prio=0 #t Ctrl_t
+                    payload_length=1 #t Length_t
+                    to=getName(result) #t To_t
+                    return_to=sba_tile.service_manager.subtask_list.return_to(parent.current_subtask) #t Return_to_t
+                    return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask) #t Word
+                    redir=0 #t Redir_t                        
+                    if operation==M_IF_return or operation==M_IF_if 
+                        redir=1
+                    end
+                    ref_packet_header= mkHeader(packet_type,prio,redir,payload_length,to,return_to,send_ack_to,return_as)
+                    
+                    ref_packet_payload=result_list #t Word_List 
+                    ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
+                    puts ppPacket(ref_packet) if @v #skip
+#iv                        
+                        puts "IF CORE: REDIR #{parent.current_subtask} TO #{getName(result)}" #C++ cout << "IF CORE: REDIR "<<parent.current_subtask<<" TO "<<(int)getName(result)<<endl; 
+#ev                        
+                    parent.core_return_type= P_reference
+                    sba_tile.service_manager.subtask_list.to(parent.current_subtask,getName(result))                
+                    if to!=S_IF
+                        sba_tile.transceiver.tx_fifo.push(ref_packet)
+                    else
+                    #iv
+                        puts "IF CORE: LOCAL CALL"
+                    #ev 
+                        if SEQVM==0                           
+                        sba_tile.service_manager.subtask_reference_fifo.push(ref_packet)
+                        else # SEQVM==1
+                        sba_tile.service_manager.activate_subtask(ref_packet)  
+                        end # SEQVM
+                        
+                    end
 =begin
     So far, so good: RETURN send a ref packet, result will be redirected. Now, the final dest will send and ACK and this will
     arrive as P_data, containing a reference (quoted?). So how will RETURN know that this is an ACK?
@@ -607,25 +614,30 @@ end # of ls_FPU
         # The usual
     end
 =end
+                else
+                    raise "IF CORE: TROUBLE: don't know <#{getKind(result)}>"
+                end          
             else
-                raise "IF CORE: TROUBLE: don't know <#{getKind(result)}>"
-            end          
-        else
-            # It's unquoted, so it's a value. Just return it.
-            puts "Unquoted word, must be value"  if @v #skip
-            parent.core_return_type=P_data
-        end
-        #iv
+                # It's unquoted, so it's a value. Just return it.
+                puts "Unquoted word, must be value"  if @v #skip
+                parent.core_return_type=P_data
+            end        
+#iv
         if @v #skip
-        puts "IF CORE: <#{result}> #{ppSymbol(result)} " #skip
-        puts "IF CORE: )" #skip
+            puts "IF CORE: <#{result}> #{ppSymbol(result)} " #skip
+            puts "IF CORE: )" #skip
         else #skip
-        puts "IF CORE: (#{ppSymbol(result_list[0])})"
+            puts "IF CORE: (#{ppSymbol(result_list[0])})"
         end #skip
         puts "IF CORE: SUBTASK: #{parent.current_subtask}"
         puts "IF CORE: #{parent.core_return_type} TO: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)}"
-        #ev
+#ev
+    
         parent.result(result_list)
+    else
+        parent.result( [] ) #C++ Word_List empty_list; parent.result(empty_list);
+    end
+        
         end
     end # of ls_IF
 
@@ -730,8 +742,9 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         ppservice=service #C++ int ppservice=(int)service;
         print "LET (#{parent.service}) CORE: #{parent.current_subtask}: (#{ppservice}<>#{SC_LET}\n" 
 #ev        
-  
-        if service==M_LET_let or service==M_LET_lettc
+        method=parent.method()
+        puts "METHOD: #{method}",M_LET_assign
+        if method==M_LET_let or method==M_LET_lettc
 #iv
         print "LET (#{parent.service}) CORE: ",parent.current_subtask,"\n"
 
@@ -770,6 +783,9 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                     sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
                     # -create a ref packet and send it off
                     to=getName(numval) #t To_t
+                    puts "S_LET: #{S_LET}"
+                    puts "TO: #{to}" # is a FQA
+                    to=getSNId(to)
                     return_to=S_LET #t Return_to_t
                     var_label = setSubtask(label,address) #t Word
                     var_label = setName(var_label,S_LET)
@@ -801,7 +817,7 @@ So what happens if it's a tail call?
                         send_ack_to=setSubtask(send_ack_to,address)
                         parent.ack_ok=0 # If a core redirects, it doesn't send an ACK
                         # set "waiting for ACK" flag
-                        if service!=M_LET_lettc                       
+                        if method!=M_LET_lettc                       
                             sba_tile.service_manager.subtask_list.waiting_for_ack(parent.current_subtask,1)
                         end
                         return_as=sba_tile.service_manager.subtask_list.return_as(parent.current_subtask)                       
@@ -810,6 +826,7 @@ So what happens if it's a tail call?
                         ref_packet_payload=reslist #t Word_List 
                         ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
                         puts ppPacket(ref_packet) if @v #skip
+                        # FIXME: to is FQN, S_LET is only SNId!
                         if to!=S_LET
                           #sysc           OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": 3 LET CORE sends packet To:"<<to<<"\n"; 
                           # To:"<<to<<"; Return-to:"<<return_to<<";Ctrl:"<<ctrl<<endl;
@@ -941,6 +958,7 @@ So what happens if it's a tail call?
             for address in addresses #t MemAddresses
 #iv            
                     try_array=sba_tile.data_store.mget(address) #t Word_List
+                    puts try_array.inspect
                     print "LET (#{parent.service}) CORE: #{address}\t#{ppPayload(try_array)}\n"
 #ev
                     value_list.push(sba_tile.data_store.mget(address)) 
@@ -953,7 +971,7 @@ So what happens if it's a tail call?
             # 2. Use this address_label to store definition 
             print "<#{var_name}>" if @v #skip
             ###### ASSIGN ###### 
-            case service
+            case method
             when M_LET_assign 
                 # Take the addresses of Symbol and Data
                 puts "LET called as ASSIGN" if @v #skip
@@ -1602,7 +1620,8 @@ else # WORDSZ==32
 end # WORDSZ 
 #C++    Word_List fail; fail.push_back(builtin_symbol); fail.push_back(min1);
 #C++    FILE* fd;
-        if service==M_IO_open
+        method=parent.method() #t uint
+        if method==M_IO_open
             filename_address=addresses[1] #t MemAddress
             filename_bytes=sba_tile.data_store.mget(filename_address) #t Word_List
             filename=sym2str(filename_bytes) #t string
@@ -1618,7 +1637,7 @@ end # WORDSZ
             end
             parent.lookup_table.write(port,fd) #C++ parent.lookup_table.write(port,(Uint64)fd);
             parent.result(port_symbol)
-        elsif service==M_IO_close
+        elsif method==M_IO_close
             if parent.lookup_table.count(port)
             	fd=parent.lookup_table.read(port) #C++ fd=(FILE*)(parent.lookup_table.read(port));
             	fd.close() #C++ fclose(fd);
@@ -1626,7 +1645,7 @@ end # WORDSZ
             else
             	parent.result(fail)
             end        
-        elsif service==M_IO_readline 
+        elsif method==M_IO_readline 
             if addresses.length == 2
                 nbytes_address=addresses[1] #t MemAddress
                 nbytes=getValue(sba_tile.data_store.mget(nbytes_address)[0]) #t Word
@@ -1656,7 +1675,7 @@ end # WORDSZ
                 parent.result(emptysymbol)
             end
                 # or maybe we need a conditional outside the function
-        elsif service==M_IO_write
+        elsif method==M_IO_write
             data_address=addresses[1]  #t MemAddress       
             data_symbol = sba_tile.data_store.mget(data_address) #t Word_List
             #C++ string data;            
@@ -1694,7 +1713,7 @@ end # WORDSZ
                      parent.result(pass)
                  end
              end
-        elsif service==M_IO_eof
+        elsif method==M_IO_eof
             #C++ Word_List res;
             if fd.eof #s/fd.eof/feof(fd)/
                 res = [ONE] #C++ res.push_back(ONE); 
@@ -1702,7 +1721,7 @@ end # WORDSZ
                 res = [ZERO] #C++ res.push_back(ZERO);
             end
             parent.result( res )
-        elsif service==M_IO_display
+        elsif method==M_IO_display
         # just because DISPLAY is logically an IO function     
             result="" #skip
             for address in addresses #t MemAddresses
@@ -1724,7 +1743,7 @@ end # WORDSZ
             puts result #skip
             parent.result( pass ) # result
         else
-            raise "CORE IO does not support method #{service}"
+            raise "CORE IO does not support method #{method}"
         end
     end # of IO
    
@@ -1740,6 +1759,9 @@ def none(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/par
     #core
     parent.result( [0] ) #C++ Result res; res.push_back((Word)0); parent.result(res);
 end        
-end        
+end #skip
+#skipcc
+#C++ }} // namespaces       
+#endskipcc
 #endif // NO_SERVICES
-#end # of SBA
+

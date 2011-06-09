@@ -66,10 +66,8 @@ namespace SBA {
 		//typedef LookupTable Address_Lookup;
 //#endif
 		struct StringPair { // used in Gateway
-			string Taskfile;
-#if DATA==1
-			string Datafile;
-#endif // DATA
+			string taskfile;
+			string datafile;
 		};
 
 
@@ -78,9 +76,135 @@ namespace SBA {
  * shift/unshift operate at the front, push/pop at the back. So a proper FIFO uses only push/shift.
  * Of course all built-in deque methods are inherited as well.
  * Note that the deque<LType>:: qualifier is required for any inherited function
- *  with no arguments that depend on a template parameter
+ * with no arguments that depend on a template parameter
+ * WV11122010: It is not a good idea to inherit from an STL container
+ * So we should use a wrapper instead
  */
 #ifndef STATIC_ALLOC
+template <typename LType> class List {
+    private:
+        deque<LType> lst;
+        unsigned int wordsz;
+	public:
+//    	typedef LType* iterator;
+    	typedef std::_Deque_iterator<LType, LType&, LType*> iterator;
+		LType shift() {
+			LType t_elt=lst.front();
+			lst.pop_front();
+			return t_elt;
+		}
+
+		void unshift(LType& elt) {
+			lst.push_front(elt);
+		}
+		void unshift(const LType& elt) {
+			lst.push_front(elt);
+		}
+		void push(LType& elt) {
+			lst.push_back(elt);
+		}
+		void push(const LType& elt) {
+			lst.push_back(elt);
+		}
+		LType pop() {
+			LType t_elt=lst.back();
+			lst.pop_back();
+			return t_elt;
+		}
+
+		LType& front() {
+			return lst.front();
+		}
+		void pop_front() {
+			lst.pop_front();
+		}
+		void pop_back() {
+			lst.pop_back();
+		}
+		void push_back(LType& elt) {
+			lst.push_back(elt);
+		}
+		void push_back(const LType& elt) {
+			lst.push_back(elt);
+		}
+		unsigned int size() {
+			return lst.size();
+		}
+		unsigned int length() {
+			return lst.size();
+		}
+		void clear() {
+			lst.clear();
+		}
+		LType& at(const int idx) {
+		    return lst[idx];
+		}
+        const LType& operator[] (const int idx) const {	
+    	    return lst[idx];
+        }		
+        LType& operator[] (const int idx) {	
+    	    return lst[idx];
+        }		
+		List() : wordsz(sizeof(LType)) {};
+        
+		List(deque<LType>& d_) : wordsz(sizeof(LType))  {
+			lst.swap(d_);
+		};
+		List(char* buf,int len) : wordsz(sizeof(LType)) {
+    		int padding=len-nbytes*(len/wordsz);
+    		int padword= (padding>0)?1:0;
+    		char wordbytes[nbytes];
+		    for (int i=0;i<len/wordsz;i++) {
+		        wordbytes=buf+i*wordsz;
+		        void* wordbytes_v=(void*)wordbytes;
+		        LType elt=(LType)wordbytes_v;
+		        lst.push_back(elt);    
+		    }
+		    if (padding>0) {
+		        int rest=nbytes-padding;
+		        for (int j=0;j<wordsz;j++) {
+		            if (j<rest) {
+		            wordbytes[j]=buf[len/nbytes-1+j];
+		            } else {
+		            wordbytes[j]=0;
+		            }
+		        }
+		        void* wordbytes_v=(void*)wordbytes;
+		        LType elt=(LType)wordbytes_v;
+		        lst.push_back(elt);    		        
+		    }
+		}
+		
+		char* to_charbuf() {
+    		
+    		char* charbuf=(char*)malloc(wordsz*lst.size());
+    		int idx=0;
+    		for (iterator iter_=lst.begin();iter_!=lst.end();iter_++) {
+    		    LType elt = *iter_;
+    		    void* elt_v=(void*)elt;
+    		    char* wordbytes=(char*)elt_v;
+                for (unsigned int i=0;i<wordsz;i++) {
+                    charbuf[idx+i]=wordbytes[i];
+                }		    
+                idx+=wordsz;
+    		}
+    		return charbuf;
+		}
+		
+		unsigned int nbytes() {
+		    return wordsz*lst.size();
+		}
+		
+		iterator begin() {
+		    return (iterator)lst.begin();
+		}
+		
+		iterator end() {
+		    return  (iterator)lst.end();
+		    }
+
+}; // of List template
+/*
 template <typename LType> class List : public deque<LType> {
 	public:
 		LType shift() {
@@ -104,9 +228,68 @@ template <typename LType> class List : public deque<LType> {
 			this->swap(d_);
 		};
 }; // of List template
-
+*/
 // depth is ignored for dynamic alloc
-template <typename LType, Word depth> class Fifo : public deque<LType> {
+template <typename LType, Word depth> class Fifo  {
+    private:
+        deque<LType> fifo;
+        unsigned int _status;
+	public:
+        unsigned int status() {
+            return _status;
+        }
+        bool has_packets() {
+            return (_status==1);
+        }
+        LType front() {
+        return fifo.front();
+		}
+		void pop_front() {
+			fifo.pop_front();
+			if (fifo.size()==0) _status=0;
+		}
+
+		LType shift() {
+			LType t_elt=fifo.front();
+			fifo.pop_front();
+			if (fifo.size()==0) _status=0;
+			return t_elt;
+		}
+		void unshift(LType& elt) {
+			fifo.push_front(elt);
+			_status=1;
+		}
+		void push(LType& elt) {
+			fifo.push_back(elt);
+			_status=1;
+		}
+
+		void push_back(LType& elt) {
+			fifo.push_back(elt); // this throws an error in malloc
+			_status=1;
+		}
+
+		LType pop() {
+			LType t_elt=fifo.back();
+			fifo.pop_back();
+			if (fifo.size()==0) _status=0;
+			return t_elt;
+		}
+		unsigned int size() {
+			return fifo.size();
+		}
+
+		unsigned int length() {
+			return fifo.size();
+		}
+		void clear() {
+			fifo.clear();
+			_status=0;
+		}
+		Fifo() : _status(0) {};
+}; // of Fifo template
+
+template <typename LType, Word depth> class Fifo_OLD : public deque<LType> {
 	public:
 		unsigned int status;
 		LType shift() {
@@ -119,8 +302,9 @@ template <typename LType, Word depth> class Fifo : public deque<LType> {
 			push_front(elt);
 			status=1;
 		}
+		
 		void push(LType& elt) {
-			push_back(elt);
+            push_back(elt);
 			status=1;
 		}
 
@@ -132,17 +316,16 @@ template <typename LType, Word depth> class Fifo : public deque<LType> {
 		}
 
 		unsigned int length() {
-			return deque<LType>::size();
+            return deque<LType>::size();
 		}
+
 		void clear() {
 			deque<LType>::clear();
 			status=0;
 		}
-		Fifo() : status(0) {};
-}; // of Fifo template
 
-
-
+		Fifo_OLD() : status(0) {};
+}; // of Fifo_OLD template
 
 
 #else // STATIC_ALLOC
@@ -151,10 +334,16 @@ private:
 	LType mem[depth];
 	Word push_pointer;
 	Word shift_pointer;
+ 	unsigned int _status;
 public:
- 	unsigned int status;
-	Fifo () :  push_pointer(0), shift_pointer(0), status(0) {};
 
+	Fifo () :  push_pointer(0), shift_pointer(0), _status(0) {};
+ 	unsigned int status() {
+ 	  return _status;
+ 	}
+    bool has_packets() {
+        return (_status==1);
+    } 	
 	void push(LType w) {
 	    mem[push_pointer]=w;
 	    if (push_pointer==depth-1) {
@@ -168,7 +357,7 @@ public:
 	    	cout << "Overflow: "<<push_pointer<<">"<<depth-1<<"\n";
 	    }
 #endif //  VERBOSE
-	    status=1;
+	    _status=1;
 	}
 
 	LType shift() {
@@ -180,7 +369,7 @@ public:
 	        shift_pointer++;
 	    }
 	    unsigned int len=length();
-	    if (len==0) status=0;
+	    if (len==0) _status=0;
 	    return w;
 	}
 
@@ -198,7 +387,7 @@ public:
 	        push_pointer--;
 	    }
 	    unsigned int len=length();
-	    if (len==0) status=0;
+	    if (len==0) _status=0;
 	    return w;
 	}
 
@@ -210,7 +399,7 @@ public:
 	    } else {
 	        shift_pointer--;
 	    }
-	    status=1;
+	    _status=1;
 	}
 
 	bool empty() {
@@ -238,7 +427,7 @@ public:
 	void clear() {
 		push_pointer=0;
 		shift_pointer=0;
-		status=0;
+		_status=0;
 	}
 };
 // This is a static implementation of a STL-style list. Main differences:
@@ -478,6 +667,10 @@ public:
 	unsigned int  status() {
 			return (empty())?0:1;
 	}
+    bool has_packets() {
+        return (_status==1);
+    }
+	
 */
 	void clear() {
 		push_pointer=0;
@@ -574,20 +767,29 @@ public:
 		typedef Word_List Data;
 		typedef Word_List Value; // WV: or Word?
 		typedef Word_List Values;
-
+#if NEW==1
+		typedef Base::ServiceCore Core;
+//		typedef void (*FuncPointer)(Base::ServiceCore*);
+		typedef void (*FuncPointer)(Core*);
+#else
 		typedef Word_List (*FuncPointer)(Base::ServiceCore*,MemAddresses&);
-		//typedef Word_List (*SC_FuncPointer)(void*,Uint,Word_List&);
+#endif
+		typedef Word_List (*DynFuncPointer)(Base::ServiceCore*,void*,MemAddresses&);
+		//typedef void (*DynFuncPointer)(Base::ServiceCore*,void*,MemAddresses&);
 		typedef Word_List (*SC_FuncPointer)(void*,MemAddresses&);
+		typedef Word_List (*SC_DynFuncPointer)(void*,void*,MemAddresses&);
+
 		class ServicePair {
 			public:
 #ifndef SYSC
 			FuncPointer core;
-			ServiceAddress address;
+			ServiceAddress address; // WV10012011: I think this is obsolete
 			ServicePair() {};
 			ServicePair(ServiceAddress a_,FuncPointer fp_) : core(fp_), address(a_) {};
 #else
 			SC_FuncPointer core;
 			ServiceAddress address;
+            //WV10012011 this is obsolete: the core is modelled as a class with methods so we need the times for the methods, not for the class
 			uint t_setup;
 			uint t_proc_value;
 			ServicePair() {};
@@ -595,7 +797,35 @@ public:
 			ServicePair(ServiceAddress a_,SC_FuncPointer fp_,uint ts_, uint tp_ ) : core(fp_), address(a_), t_setup(ts_), t_proc_value(tp_) {};
 #endif
 		};
+		
+		class DynConfigTuple {
+		  public:
+		      string lib;
+		      string symbol;
+#ifdef SYSC
+		      uint configsz;
+				uint t_setup;
+				uint t_proc_value;
+#endif
+		      DynConfigTuple () {};
+#ifndef SYSC
+		      DynConfigTuple (string l_,string s_) : lib(l_),symbol(s_) {};
+#else
+		      DynConfigTuple (string l_,string s_,uint c_,uint ts_, uint tp_) : lib(l_),symbol(s_),configsz(c_),t_setup(ts_), t_proc_value(tp_) {};
+#endif
+		      
+		};
+#ifdef SYSC
+		class TimingTuple {
+			public:
+			uint t_setup;
+			uint t_proc_value;
+			TimingTuple() : t_setup(1), t_proc_value(0)  {};
+			TimingTuple(uint ts_, uint tp_ ) : t_setup(ts_), t_proc_value(tp_) {};
+		};
+		typedef map<uint, map<uint,TimingTuple> > Timings;
 
+#endif
         typedef deque<StringPair> TaskDescList; // WV27-82008: TODO: get rid of this
 
 #ifndef STATIC_ALLOC
@@ -629,14 +859,14 @@ private:
     mutable boost::mutex the_mutex;
     boost::condition_variable the_condition_variable;
 public:
- 	unsigned int status;
-	TRX_Packet_Fifo () :  status(0) {};
+ 	unsigned int _status;
+	TRX_Packet_Fifo () :  _status(0) {};
 
     void push(Packet_t const& data)
     {
         boost::mutex::scoped_lock lock(the_mutex);
         packets.push_back(data);
-        status=1;
+        _status=1;
         lock.unlock();
         the_condition_variable.notify_one();
     }
@@ -663,7 +893,7 @@ public:
 
         Packet_t t_elt=packets.front();
         packets.pop_front();
-		if (empty()) status=0;
+		if (empty()) _status=0;
 		return t_elt;
     }
 	void clear() {
@@ -678,31 +908,77 @@ class RX_Packet_Fifo
 private:
     std::deque<Packet_t> packets;
 
-    pthread_mutex_t the_mutex;    pthread_cond_t  the_condition_variable;
-
+    pthread_mutex_t the_mutex;
+    pthread_cond_t  the_condition_variable;
+ 	unsigned int _status;
 public:
- 	unsigned int status;
-	RX_Packet_Fifo () :  status(0) {
-        pthread_mutex_init(&the_mutex, NULL);        pthread_cond_init(&the_condition_variable, NULL); // was 0
-	};
-    ~RX_Packet_Fifo() {        pthread_cond_destroy(&the_condition_variable);        pthread_mutex_destroy(&the_mutex);    }
 
+	RX_Packet_Fifo () :  _status(0) {
+        pthread_mutex_init(&the_mutex, NULL);
+        pthread_cond_init(&the_condition_variable, NULL); // was 0
+	};
+    ~RX_Packet_Fifo() {
+        pthread_cond_destroy(&the_condition_variable);
+        pthread_mutex_destroy(&the_mutex);
+    }
+ 	unsigned int status() {
+ 	//FIXME: make this blocking?
+     	return _status;
+ 	} 
+
+    //WV07042011 rename this to receive_packet()
+    // has_packets() simply becomes 
+#if NEW==1
     bool has_packets() {
-      // we want to block until the status is true
+    	return (packets.size()>0);
+    }
+    void wait_for_packets() {
+#ifdef VERBOSE
+    cout << "BLOCK on wait_for_packets()\n";
+#endif
+    // we want to block until the status is true
       // so status() will block until it can return true
         while(packets.empty())
         {
             pthread_cond_wait(&the_condition_variable, &the_mutex);
         }
-      status=1;
-      return(1); // @status
+#ifdef VERBOSE
+    cout << "UNBLOCK on wait_for_packets()\n";
+#endif
+      _status=1;
 	}
-
+#else
+    bool has_packets() {
+#ifdef VERBOSE
+    cout << "BLOCK on has_packets()\n";
+#endif
+    // we want to block until the status is true
+      // so status() will block until it can return true
+        while(packets.empty())
+        {
+            pthread_cond_wait(&the_condition_variable, &the_mutex);
+        }
+#ifdef VERBOSE
+    cout << "UNBLOCK on has_packets()\n";
+#endif
+      _status=1;
+      return(true); // @status
+	}
+#endif // NEW==1
     void push(Packet_t const& data)
     {
         pthread_mutex_lock(&the_mutex);
         packets.push_back(data);
-        status=1;
+        _status=1;
+        pthread_mutex_unlock(&the_mutex);
+        pthread_cond_signal(&the_condition_variable); // only 1 thread should be waiting
+    }
+
+    void push_back(Packet_t const& data)
+    {
+        pthread_mutex_lock(&the_mutex);
+        packets.push_back(data);
+        _status=1;
         pthread_mutex_unlock(&the_mutex);
         pthread_cond_signal(&the_condition_variable); // only 1 thread should be waiting
     }
@@ -735,13 +1011,35 @@ public:
         pthread_mutex_lock(&the_mutex);
 
         if (packets.size()==1) {
-        	status=0;
+        	_status=0;
         }
         Packet_t t_elt=packets.front();
         packets.pop_front();
         pthread_mutex_unlock(&the_mutex);
 
 		return t_elt;
+    }
+
+    Packet_t front() {
+#ifdef VERBOSE
+        cout << "front()\n";
+#endif
+//        pthread_mutex_lock(&the_mutex);
+        Packet_t t_elt=packets.front();
+//        pthread_mutex_unlock(&the_mutex);
+		return t_elt;
+    }
+
+    void pop_front() {
+#ifdef VERBOSE
+        cout << "pop_front()\n";
+#endif
+//        pthread_mutex_lock(&the_mutex);
+        packets.pop_front();
+//        pthread_mutex_unlock(&the_mutex);
+#ifdef VERBOSE
+        cout << "DONE pop_front() \n";
+#endif
     }
 
 	void clear() {
@@ -755,6 +1053,7 @@ public:
 
 #ifndef STATIC_ALLOC
 		typedef map<Service,ServicePair> Services;
+		typedef map<uint,DynConfigTuple> Configurations;
 #else // STATIC_ALLOC
 		class Services {
 		private:
@@ -766,6 +1065,16 @@ public:
 				return mem[i];
  			}
 		};
+		class Configurations {
+		private:
+			DynConfigPair mem[MAX_NDYNCONFIGS];
+		public:
+			Configurations () {}
+			// Note that the return value must be a ref to be able to assign to it
+ 			inline DynConfigPair& operator[] (const unsigned int i) {
+				return mem[i];
+ 			}
+		};		
 
 #endif 	 // STATIC_ALLOC
 
@@ -787,9 +1096,8 @@ template <uint size> class Store {
 
 	public:
 #ifdef STATIC_ALLOC
-
        	//* List Write operation
-	void mput(unsigned int address,Word_List data) {
+	void (unsigned int address,Word_List data) {
 		storage[address]=data;
 	}
 
@@ -821,7 +1129,7 @@ template <uint size> class Store {
 
 
 #else // not STATIC_ALLOC
-
+/*
 	/// List Write operation
 	void mput(unsigned int address,Word_List data);
 	/// List Read operation
@@ -839,17 +1147,103 @@ template <uint size> class Store {
 	void put(unsigned int address,Word data);
 	/// Read operation
 	Word get(unsigned int address);
-#ifndef STATIC_ALLOC_
+
 	/// Check if address is in use
 	bool has(unsigned int address);
-#endif
+
 	/// Remove address. This could mean setting the "in_use" bit to 0 or setting the whole word to 0
 	void remove(unsigned int address);
 	/// For monitoring
 	unsigned int utilized(void);
+*/
+       	// * List Write operation
+	void mput(unsigned int address,Word_List data) {
+		storage[address]=data;
+	}
+
+   	// * List Append operation
+	void mpush(unsigned int address,Word_List data) {
+		for (Word_List::iterator iter_=data.begin();iter_!=data.end();iter_++) {
+			Word w=*iter_;
+			storage[address].push_back(w);
+		}
+		/*
+		 If SBA::List was a list we could use merge; if it was a vectore we could use reserve and insert
+		*/
+	}
+
+	// * List Read operation
+	Word_List mget(unsigned int address) {
+		return storage[address];
+	}
+
+	// *  Write operation
+	void put(unsigned int address,Word data) {
+		storage[address].pop_back();
+		storage[address].push_back(data);
+	}
+
+	// *  Read operation
+	Word get(unsigned int address) {
+		return storage[address].at(0);
+	}
+ 	// * Check if address is in use
+	bool has(unsigned int address) {
+		return (storage.count(address)==1);
+	}
+	// * Remove address. This could mean setting the "in_use" bit to 0 or setting the whole word to 0
+	void remove(unsigned int address) {
+		map_iter iter=storage.find(address);
+		if (iter!=storage.end()) {
+			storage.erase(iter);
+		}
+	}
+
+	// * For monitoring
+	unsigned int utilized(void) {
+		return storage.size();
+	}
+
 #endif // STATIC_ALLOC
 
 }; // end of Store class definition
+
+//Pointer manipulation functions
+// Return a pointer of type PType
+template <typename PType> PType* getPointer(Word_List wl) {
+	Word w = wl[1]; // Pointers are stored a Ext UInt
+	void* vp = (void*)w;
+	PType* tp=(PType*)vp;
+	return tp;
+}
+// The above unwrap function does not work for objects
+template <class OType> OType& getObjRef(Word_List wl) {
+	Word w = wl[1];
+	void* vp = (void*)w;
+	OType* tp=(OType*)vp;
+	OType& tt=*tp;
+	return tt;
+}
+// stow a pointer of type PType
+template <typename PType> Word_List putPointer(PType *tp) {
+	Word_List wl;
+	void* vp = (void*)tp;
+	Word ivp =(Word)vp;
+	wl.push_back(EXTSYM);
+	wl.push_back(ivp);
+	return wl;
+}
+// The above wrap function does not work for objects
+template <class OType> Word_List putObject(OType t) {
+	Word_List wl;
+	OType *tp = new OType(t); // copy
+	void* vp = (void*)tp;
+	Word ivp =(Word)vp;
+	wl.push_back(EXTSYM);
+	wl.push_back(ivp);
+	return wl;
+}
+
 
 } // SBA
 #endif /*_SBA_TYPES_H_*/

@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Gateway.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        |26-Jan-2009. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -23,7 +23,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -47,8 +47,8 @@ class SC_Gateway : public sc_module
 {
 public:
     // ---------------------------- PORTS --------------------------------------
-    port_SC_Fifo_if     <Packet_t>          tranceiver_rx_fifo;//!< read/write port for tranceiver rx fifo
-    port_SC_Fifo_if     <Packet_t>          tranceiver_tx_fifo;//!< read/write port for tranceiver tx fifo
+    port_SC_Fifo_if     <Packet_t>          transceiver_rx_fifo;//!< read/write port for transceiver rx fifo
+    port_SC_Fifo_if     <Packet_t>          transceiver_tx_fifo;//!< read/write port for transceiver tx fifo
     port_SC_Memory_if   <ADDR_T, DATA_T>    result_store;    //!< for accessing result_store in the tile
     port_SC_reg_if		<uint	>       	io_mech;
 
@@ -88,15 +88,15 @@ public:
     SC_Fifo             <Packet_t, PACKET_FIFO_SZ>  request_fifo;
 
 
-    SC_RegArbiter       <SBA::Core_Status>          arb_core_status;    //!< Arbiter managing contention on core_status
-//    SC_FifoArbiter      <Packet_t>                  arb_rx_fifo;      //!< write contention on rx_fifo
-    SC_FifoArbiter      <Packet_t>                  arb_request_fifo;   //!< write contention on request_fifo
-    SC_StackArbiter                                 arb_tasks_stack;    //!< contention on tasks_stack
+    SC_Register_Arbiter       <SBA::Core_Status>          arb_core_status;    //!< Arbiter managing contention on core_status
+//    SC_Fifo_Arbiter      <Packet_t>                  arb_rx_fifo;      //!< write contention on rx_fifo
+    SC_Fifo_Arbiter      <Packet_t>                  arb_request_fifo;   //!< write contention on request_fifo
+    SC_Stack_Arbiter                                 arb_tasks_stack;    //!< contention on tasks_stack
 
-    //SC_RegArbiter       <SBA::Counter>              arb_task_counter;   //!< Redundant? Check.
-    //SC_FifoArbiter      <PACKET_T>                  arb_tx_fifo;        //!< write contention on tx_fifo
-    //SC_RegArbiter       <bool>                      arb_finished;       //!< contention on port for accessing "finished" boolean in the tile.
-    //SC_MemArbiter       <ADDR_T, DATA_T>            arb_result_store; //!< contention on port for accessing "result_store" in the tile
+    //SC_Register_Arbiter       <SBA::Counter>              arb_task_counter;   //!< Redundant? Check.
+    //SC_Fifo_Arbiter      <PACKET_T>                  arb_tx_fifo;        //!< write contention on tx_fifo
+    //SC_Register_Arbiter       <bool>                      arb_finished;       //!< contention on port for accessing "finished" boolean in the tile.
+    //SC_Memory_Arbiter       <ADDR_T, DATA_T>            arb_result_store; //!< contention on port for accessing "result_store" in the tile
     // ---------------------------- METHODS ------------------------------------
     void do_proc();
     // overload sc_module.kind() to return a more appropriate class name
@@ -144,7 +144,7 @@ public:
 /*
         // RECEIVE PACKETS
         // ---------------
-        receive_packets.tranceiver_rx_fifo  .bind(tranceiver_rx_fifo);          // propagate up and out for connection to tranceiver
+        receive_packets.transceiver_rx_fifo  .bind(transceiver_rx_fifo);          // propagate up and out for connection to transceiver
         receive_packets.rx_fifo             .bind(arb_rx_fifo.xpw_master1);   // connect to rx_fifo through arbiter
 
         // TODO: See if arbiter is needed to connect to request_fifo. Apparently only one master
@@ -153,9 +153,9 @@ public:
         receive_packets.request_fifo        .bind(arb_request_fifo.xpw_master1);//
         //receive_packets.request_fifo        .bind(request_fifo);//
 
-        // TRANSMIT PACKETS - FIXME: OBSOLETE  - Direct connection to tranceiver now
+        // TRANSMIT PACKETS - FIXME: OBSOLETE  - Direct connection to transceiver now
         // ----------------
-        transmit_packets.tranceiver_tx_fifo .bind(tranceiver_tx_fifo);      // propagate up and out for connection to tranceiver
+        transmit_packets.transceiver_tx_fifo .bind(transceiver_tx_fifo);      // propagate up and out for connection to transceiver
 
         // TODO: Is an arbiter redundant here? B/c if this only reading, and the one other master
         // parse_task_Descriptiononly writing, then no need of arbiter
@@ -167,7 +167,7 @@ public:
         parse_task_description.result_store   .bind(result_store); //!< propagate up and out to seek connection
         parse_task_description.tasks_stack      .bind(arb_tasks_stack.xpw_master1);//!<
         //parse_task_description.tx_fifo          .bind(tx_fifo.xpwr_2); // connect to local tx_fifo directly
-        parse_task_description.tx_fifo          .bind(tranceiver_tx_fifo); // connect to local tx_fifo directly
+        parse_task_description.tx_fifo          .bind(transceiver_tx_fifo); // connect to local tx_fifo directly
         parse_task_description.core_status      .bind(arb_core_status.xpwr_master1);//!<
         parse_task_description.io_mech          .bind(io_mech);//propagate upwards
         //TODO: See if any other master for task_counter. Apparently not, but still
@@ -186,7 +186,7 @@ public:
         // --------------------
         store_result_packets.tasks_stack      .bind(arb_tasks_stack.xpw_master2);//!<
 //        store_result_packets.rx_fifo          .bind(arb_rx_fifo.xpw_master2);     //!<
-        store_result_packets.rx_fifo          .bind(tranceiver_rx_fifo);     //!<
+        store_result_packets.rx_fifo          .bind(transceiver_rx_fifo);     //!<
         store_result_packets.core_status      .bind(arb_core_status.xpwr_master2);//!<
         store_result_packets.io_mech      	  .bind(io_mech);//!< propagate upwards
         store_result_packets.service          .bind(service);

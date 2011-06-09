@@ -1,4 +1,4 @@
-{-# LANGUAGE PolymorphicComponents #-}
+{-# LANGUAGE PolymorphicComponents, NoMonomorphismRestriction #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module GannetC.GannetParsec where
@@ -16,9 +16,9 @@ module GannetC.GannetParsec where
 -- for a description of how to use it.
 -- 
 -----------------------------------------------------------------------------
-import Data.Char ( digitToInt )
+import Data.Char ( digitToInt) -- , isHexDigit, isOctDigit )
 
-import Text.ParserCombinators.Parsec hiding (State)
+import Text.ParserCombinators.Parsec hiding (State) --, hexDigit, octDigit, char)
 import Text.ParserCombinators.Parsec.Token hiding (decimal)
 
 -- Need to parse PCRE escapes, this is difficult as the current parser
@@ -215,3 +215,11 @@ number base baseDigit
         ; seq n (return n)
         }
 
+-- with ghc 7.0.2, somehow I have to copy and paste these from Text.Parsec.Char (parsec-3.1.1)
+-- hide them from Text.ParserCombinators.Parsec
+-- and explicitly import isHexDigit from Data.Char
+
+-- seems a bug to do with XMonomorphismRestriction ...
+--hexDigit = satisfy isHexDigit    <?> "hexadecimal digit"
+--octDigit            = satisfy isOctDigit    <?> "octal digit"
+--char c              = satisfy (==c)  <?> show [c]

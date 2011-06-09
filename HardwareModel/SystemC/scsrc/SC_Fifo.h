@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Fifo.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 21-Dec-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -25,7 +25,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //==============================================================================
 //  CLASS: SC_Fifo
@@ -106,11 +106,19 @@ But I see no way to achieve that.
 template <typename DATA_T, SBA::Word depth>
 DATA_T SC_Fifo<DATA_T, depth> :: shift()
 {
+#ifdef VERBOSE
+        OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
+                << "Trying to shift data item off Fifo " << name() << endl;
+#endif
     DATA_T item = my_fifo.get();
     //wait( (sizeof(item)*_CLK_P)>>2 , _CLK_U);
     // WV: to avoid double counting, it makes more sense to spend no time on shift
     // to be on the safe side we spend 1 cycle
     wait( _CLK_P , _CLK_U);
+#ifdef VERBOSE
+        OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
+                << "Shifted data item off Fifo " << name() << endl;
+#endif
     return (item);
 }// funct: SC_Fifo :: shift()
 
@@ -142,13 +150,16 @@ void SC_Fifo<DATA_T, depth> :: push(DATA_T& item)
 {
 #ifdef VERBOSE
     OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
-            << "Data item " << " pushed onto Fifo " << name() << endl;
+            << "Data item "<< item << " to be pushed onto Fifo " << name() << endl;
 #endif
 //    wait( (sizeof(item)*_CLK_P)>>2 , _CLK_U);
     wait( _CLK_P , _CLK_U);
     my_fifo.put(item);
     wait( ( ( sizeof(item)>>2 )-1 )*_CLK_P , _CLK_U);
-
+#ifdef VERBOSE
+    OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
+            << "Data item " << "pushed onto Fifo " << name() << endl;
+#endif
 }// funct: SC_Fifo :: push()
 
 /*
@@ -180,7 +191,7 @@ void SC_Fifo<DATA_T, depth> :: clear()
 }// funct: SC_Fifo :: clear()
 
 // ============================================================================
-// Specialised clas template for Packet_t
+// Specialised class template for Packet_t
 // ============================================================================
 
 template < SBA::Word depth>
@@ -241,11 +252,19 @@ public:
     template <SBA::Word depth>
     Packet_t SC_Fifo<Packet_t, depth> :: shift()
     {
+#ifdef VERBOSE
+        OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
+                << "Trying to shift data item off Fifo " << name() << endl;
+#endif
     	Packet_t item = my_fifo.get();
         //wait( (sizeof(item)*_CLK_P)>>2 , _CLK_U);
         // WV: to avoid double counting, it makes more sense to spend no time on shift
         // to be on the safe side we spend 1 cycle
         wait( _CLK_P , _CLK_U);
+#ifdef VERBOSE
+        OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
+                << "Shifted data item off Fifo " << name() << endl;
+#endif
         return (item);
     }// funct: SC_Fifo :: shift()
 

@@ -14,34 +14,38 @@ from GannetBuilder import build
 classname = 'gannet'
 binname='gannetvm'
 
+# below Bytecode
+# ../SBA/Types.cc
+
 sources=Split("""
 ../GannetSocket/Debug.cc
 ../GannetSocket/Socket.cc
 ../GannetSocket/DataTransfer.cc
 ../GannetSocket/Server.cc
 ../SBA/Bytecode.cc
-../SBA/Types.cc
 ../SBA/ServiceConfiguration.cc
 ../SBA/Packet.cc
+../SBA/ServiceCore.cc
 ../SBA/ServiceCoreLibrary.cc
 ../SBA/Memory.cc
 ../SBA/LookupTable.cc
 ../SBA/TaskDescription.cc
 ../SBA/Tile.cc
 ../SBA/ServiceManager.cc
-../SBA/ServiceCore.cc
 ../SBA/GatewayTile.cc
 ../SBA/Gateway.cc
 ../SBA/Interface.cc
 ../SBA/Transceiver.cc
-../SBA/Bridge.cc
-../SBA/BridgeCore.cc
-../SBA/BridgeTransceiver.cc
-../SBA/Network.cc
 ../SBA/System.cc
 ../SBA/Runtime.cc
 ../SBA/Timings.cc
 """)
 #../SBA/cs_DCT.cc
+# WV16/12/2010
+# We don't use the Bridge nor the Network. For SystemC we now have the Quarc; for the VM we don't need it
+#../SBA/Bridge.cc
+#../SBA/BridgeCore.cc
+#../SBA/BridgeTransceiver.cc
+#../SBA/Network.cc
 
 build(classname,binname,sources)

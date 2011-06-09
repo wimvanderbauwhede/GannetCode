@@ -5,13 +5,20 @@
 #endif // VERBOSE
         while (true) {
             Packet_t data_packet=data_fifo.shift();
+            uint ctrl=getCtrl_p(data_packet);
 #ifdef VERBOSE
-            if (debug_all or service==debug_service){
-                 cout << ppPacket(data_packet) <<"\n";
-            }
+               
+                   cout <<  "" <<service<< " store_data(): Ctrl=" <<ctrl<< ""<<endl;
+              
+#endif // VERBOSE
+#ifdef VERBOSE
+                if ((ctrl&1)==1){
+                   cout <<  "" <<service<< " store_data(): got ACK"<<endl;
+                }
 #endif // VERBOSE
 
             Word label= getReturn_as(getHeader(data_packet));
+
             MemAddress data_address=getSubtask(label) & F_DataAddress;
 
 #ifdef VERBOSE
@@ -19,18 +26,20 @@
                 cout << "" <<service<< " store_data() ADDRESS: " <<data_address<< ""<<endl;
             }
 #endif // VERBOSE
-            if (getStatus(symbol_table[data_address])!=DS_present){
+            
+            Word data_symbol=symbol_table[data_address];
+            uint data_status=getStatus(data_symbol);
 #ifdef VERBOSE
-                if (debug_all or service==debug_service){
-                    cout << "" <<service<< " store_data() STATUS: ";
-                     cout << (int)getStatus(symbol_table[data_address])<<"\n";
-                }
+            if (debug_all or service==debug_service){
+                cout << "" <<service<< " store_data() STATUS: ";
+                cout << data_status<<endl;
+            }
 #endif // VERBOSE
-
-                if (getLength_p(data_packet)==0){
-                    symbol_table[data_address]=setStatus(symbol_table[data_address],DS_present);
-                } else { 
-
+            
+            if (data_status!=DS_present and data_status!=DS_eos){
+                
+                
+                    
                     Payload_t data_packet_payload=getPayload(data_packet);
                     
                     uint fsize=0;
@@ -53,35 +62,71 @@
                         data_store.mput(data_address,current_content);
                     }
                     
-                    symbol_table[data_address]=setStatus(symbol_table[data_address],DS_present);
-                    if ((data_address<DATA_OF+NREGS)){
-                        register_set[data_address].status=RDS_present;
-                    }                    
-                    
 #ifdef VERBOSE
                     if (debug_all or service==debug_service){
-                        cout << "" <<service<< " store_data() address " <<data_address<< " STATUS: "<<endl;
-                         cout << (int)getStatus(symbol_table[data_address])<<"\n";
+                        cout << "" <<service<< " store_data() address " <<data_address<< " STATUS: " <<data_status<< ""<<endl;
                     }
 #endif // VERBOSE
-                } 
-                Subtask subtask=getSubtask(symbol_table[data_address]);
+
+                Subtask subtask=getSubtask(data_symbol);
 #ifdef VERBOSE
-                                if (debug_all or service==debug_service){
-                                    cout << "" <<service<< " store_data() SUBTASK: " <<subtask<< ""<<endl;
-                                }
+                    if (debug_all or service==debug_service){
+                        cout << "" <<service<< " store_data() SUBTASK: " <<subtask<< ""<<endl;
+                    }
 #endif // VERBOSE
+                
+                
+
+                if ((data_address<DATA_OF+NREGS)){
+                    register_set[data_address].status=RDS_present;
+                }             
+                       
+                uint skip=0;
+                uint eos=0;
+                uint eosctrl=ctrl&6;
+                if (eosctrl==6 ){
+                    skip=1;
+                } else if (eosctrl==2){
+                    eos=1;
+                    symbol_table[data_address]=setStatus(data_symbol,DS_eos);
+#ifdef VERBOSE
+                    if (debug_all or service==debug_service){
+                        cout << "" <<service<< " store_data() EOS on " <<data_address<< ""<<endl;
+                    }
+#endif // VERBOSE
+                } else {
+                    symbol_table[data_address]=setStatus(data_symbol,DS_present);
+                }
+                
                             subtask_list.lock();                      
-                if (subtask_list.status(subtask)!=STS_deleted){
+                if (subtask_list.status(subtask)!=STS_deleted                    ){
                     subtask_list.decr_nargs_absent(subtask);
 #ifdef VERBOSE
                     if (debug_all or service==debug_service){
                         cout << "" <<service<< " store_data() SUBTASK " <<subtask<< " in list"<<endl;
                     }
 #endif // VERBOSE
-
-                    if (subtask_list.nargs_absent(subtask)==0){
-                        subtask_list.status(subtask,STS_pending);
+#ifdef VERBOSE
+                    cout << "" <<service<< " store_data() nargs_absent=" <<subtask_list.nargs_absent(subtask)<< " eos=" <<eos<< " skip=" <<skip<< ""<<endl;
+#endif // VERBOSE
+                    if (subtask_list.nargs_absent(subtask)==0 or eos==1 or skip==1){
+                        if (eos==0 and skip==0){
+                            subtask_list.status(subtask,STS_pending);
+                        } else if (eos==1){
+#ifdef VERBOSE
+                            if (debug_all or service==debug_service){
+                                cout << "" <<service<< " store_data() EOS: setting subtask status from " <<subtask_list.status(subtask)<< " to STS_eos"<<endl;
+                            }
+#endif // VERBOSE
+                            subtask_list.status(subtask,STS_eos);
+                        } else if (skip==1){
+#ifdef VERBOSE
+                            if (debug_all or service==debug_service){
+                                cout << "" <<service<< " store_data() SKIP: setting subtask status from " <<subtask_list.status(subtask)<< " to STS_skip"<<endl;
+                            }
+#endif // VERBOSE
+                            subtask_list.status(subtask,STS_skip);
+                        }
                         pending_subtasks_fifo.push(subtask);
 #ifdef VERBOSE
                         if (debug_all or service==debug_service){
@@ -100,9 +145,7 @@
                         OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": " << "" <<service<< " store_data() done for " <<data_address<< " of subtask " <<subtask<< "" <<endl; 
                     }
 #endif // VERBOSE
-            } 
+                }
                             subtask_list.unlock();
-
-            } 
-                       
+            }
         } // of while        

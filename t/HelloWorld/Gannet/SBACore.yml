@@ -1,0 +1,31 @@
+
+--- # SBA Core Library Configuration
+System:
+  Version: 3.0
+  Library: SBACore
+     
+  Services: # last value is control bit (1=control, 0=computational)
+    BEGIN: [ 1, ls_BEGIN, 1 ]
+    SEQ: [ 2, ls_SEQ, 1 ]
+    LET: [ 3, ls_LET, 1 ]
+    IF: [ 4, ls_IF, 1 ]
+    APPLY: [ 5, ls_APPLY, 1 ]
+    LAMBDA: [ 6, ls_LAMBDA, 0 ]
+    IO: [ 7, ls_IO, 0 ]
+    ALU: [ 8, ls_ALU, 0 ]
+    Math: [ 9, ls_Math, 0 ]
+    FPU: [ 10, ls_FPU, 0 ]
+    S_IF: [ 11, ls_S_IF, 1 ]
+      
+  ServiceClasses:
+    LET: [ let, assign, read, update, lettc ]
+    APPLY: [ apply, applytc ]
+    IF: [ if, iftc, return, returntc ]
+    S_IF: [ if, return ]
+    SEQ: [ seq, seqtc ]
+    BEGIN: [ begin, begintc ]
+    LAMBDA: [ lambda ]
+    IO: [ open, close, readline, write, eof, display ]
+    Math: [ rand ]
+    ALU: [ plus, minus, times, over, lt, gt, eq, not ]
+    FPU: [ plus, minus, times, over, lt, gt, eq, not ]

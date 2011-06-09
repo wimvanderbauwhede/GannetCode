@@ -1,6 +1,9 @@
-{-# OPTIONS_GHC -cpp -DWORDSZ=32 #-}
+{-# LANGUAGE CPP #-}
 -- | Infer the type of the return value of a service
 -- Unused at the moment, work in progress.
+
+-- WV20110609 for old config handling, revert to before r4987 and undef NEW
+
 module Gannet.Symbolizer.InferTypes (
     inferTypes,
     inferTypeBySymbol,
@@ -13,6 +16,7 @@ module Gannet.Symbolizer.InferTypes (
     bindLambdaArg,
     reconcileTypes,
     testService,
+    newtestService, -- NEW: rename!!!
     notQuote,
     updateVar,
     lookupVar    
@@ -24,9 +28,6 @@ import Gannet.State.Context
 import Gannet.Numerifier
 
 import qualified Data.Map as Hash
-
-
-
 
 -- ----------------------------------------------------------------------------
 {- | Infer type based on name of service    
@@ -56,7 +57,7 @@ cons: Reference *
 append: Reference *
 length: Number *
 
-buffer: Look at argument. Most likely Data (raison d'être)
+buffer: Look at argument. Most likely Data (raison d'ï¿½tre)
 stream: Look at argument of the buffer. Most likely Data
 peek: Look at argument of the buffer. Most likely Data
 get: Look at argument of the buffer. Most likely Data
@@ -241,35 +242,27 @@ inferLambdaArgType ctxt gs
 --    where
 --        env =(,,ctxt)
         
+{-
+- check if "aname" is a serice instance
+- if not, is it an operator? 
+	- if it is, return the service
+	- otherwise, it might be an alias
+		- if so return the type of the service (this is weak, it implies that all aliases have the same return type!
+		- if not, we might check if it's a method call; but that is no use unless we have the type info => FIXME? TODO?
+-}        
 inferTypeBySymbol :: GannetToken -> GSymbolKind -> GDataType -> GRetVal
 inferTypeBySymbol (GannetTokenS (GannetLabelS aname)) K_S _ =
-                let
---                        (GannetTokenS gl) = name gs
---                        GannetLabelS aname = gl
-                        (sname,retval) = case Hash.lookup aname services of
-                                Just _ -> (aname, inferTypeByService aname)
-                                Nothing -> case Hash.lookup aname alunames of 
-                                        Just alias -> case Hash.lookup alias aliases of
-                                                Just (aaname,_,_) -> (aaname, GSV (K_B,T_i))
-                                                Nothing -> (aname, GSV (K_B,T_i))
-                                        Nothing -> case Hash.lookup aname aliases of
-                                                Just (asname,_,_) -> (asname, inferTypeByService aname)
-                                                Nothing -> (aname, GData)                                                                        
-                in
-                        retval     
+	GAny
 -- next line is added because numerification breaks the type inference
 -- Of course this totally breaks the type inference :-(
 -- what I need is a reverse lookup from service number to service name
 inferTypeBySymbol (GannetTokenS (GannetLabelI gli)) K_S _ = GSV (K_B,T_i) -- AD HOC
 inferTypeBySymbol (GannetTokenB (GannetBuiltinI gi)) _ _ = GSV (K_B,T_i)
 inferTypeBySymbol (GannetTokenB (GannetBuiltinF gf)) _ _ = GSV (K_B,T_f)
-inferTypeBySymbol (GannetTokenB (GannetBuiltinS gs)) _ _ = GSV (K_B,T_s)
-
-                                             
+inferTypeBySymbol (GannetTokenB (GannetBuiltinS gs)) _ _ = GSV (K_B,T_s)                                             
 inferTypeBySymbol (GannetTokenL gl) skind stype
     | (skind == K_L)||(skind == K_A)||(skind == K_R) = GSV (skind,stype)
     | otherwise =  GSV (K_Unknown,T_x)
-
 inferTypeBySymbol _ skind stype
     | (skind == K_L)||(skind == K_A)||(skind == K_R) = GSV (skind,stype)
     | otherwise =  GSV (K_Unknown,T_x)    
@@ -298,17 +291,14 @@ inferTypeByService sname =
             | otherwise = GAny
     in 
         retval
---            | snum == numServiceGL "list" num = GSV (K_Lref,T_x) 
--- infer the GDataType based on the arguments of a service
 
+-- NEW: looks like we only need to modify testService to make this FQN
 inferGDTbyArgs :: SymbolTree -> SymbolTree -> GDataType
 inferGDTbyArgs st st2 
-    | (length $ getSL st) == 0 = T_x
-    | testService slh "alu" 
+    | (length $ getSL st) == 0 = T_x   
+    | foldl1 (||) (map (newtestService slh) ["let","lettc","begin","seq"]) 
         = reconcileTypes (datatype nlabel) (datatype gs) 
-    | ( testService slh "let"  ) || (testService slh  "begin"  )
-        = reconcileTypes (datatype nlabel) (datatype gs) 
-    | (testService slh "return"  ) || (testService slh "apply"  ) || (testService slh "applytc"  )
+    | foldl1 (||) (map (newtestService slh) ["return","returntc","apply","applytc"] ) 
         = let
             ms = head $ reverse $ getSL st
           in
@@ -317,20 +307,20 @@ inferGDTbyArgs st st2
                 _ -> datatype nlabel
 -- the next bit sets the type on the ASSIGN expression. I does however not set the type on the
 -- variable. The problem is that this requires both a change to st and to ctxt                
-    | testService slh "assign" 
+    | newtestService slh "assign" 
         = if (((kind gs) /= K_L) && ((kind gs) /= K_Q)) then reconcileTypes (datatype nlabel) (datatype gs) else datatype nlabel
 -- (if p t f) => the type is that of t or f
 -- so we check the last elt. If the one before it is a K_S, ignore.       
 -- there is a small problem here: if will get the type of the last expression
 -- unless that is T_x. So if that is T_i and the orig is T_f, there is a conflict 
-    | testService slh "if" 
+    | newtestService slh "if"  || newtestService slh "iftc"
         = let
             ms = head $ reverse $ getSL st
           in
             case ms of
                 Symbol lgs -> if ((kind lgs) /= K_S)  then reconcileTypes (datatype nlabel) (datatype gs) else datatype nlabel
                 _ -> datatype nlabel
-    | testService slh "lambda" 
+    | newtestService slh "lambda" 
         = if ((kind gs) /= K_A) then reconcileTypes (datatype nlabel) (datatype gs) else datatype nlabel
     | otherwise = datatype nlabel
     where
@@ -422,6 +412,20 @@ T_d   nt  T_d ??  ??  ??
 T_i   nt  ??  T_i T_f ??
 T_f   nt  ??  T_f T_f ??
 T_s   nt  ??  ??  ??  T_s
+
+> d: Data, i.e. Any			000
+> i: Integer	 			001 -- 64-bit signed integer
+> f: Float					010
+> c: Char					011
+> L: List of Data			100
+> I: List of Integers		101
+> F: List of Floats		101 (not that "Floats" are actually Doubles!
+> s: String, List of Char	111				
+
+data GDataType =  T_d | T_i | T_f | T_c | T_L | T_I | T_F | T_s | T_q | T_x | T_Error  
+
+NOTE 27/01/2011
+We don't need to do this here: this should happen in the HLL compiler!
 -}
 reconcileTypes :: GDataType -> GDataType -> GDataType 
 reconcileTypes ct nt
@@ -437,19 +441,24 @@ reconcileTypes ct nt
     | nt == T_d = ct
     | otherwise = T_Error -- error $ "Types " ++ (show nt) ++ " and " ++ (show ct) ++ " are incompatible"
 
+
 -- This is a utility function solely used in the type checking code
+-- NEW: sname and nlname are now FQN's, so typically the test is against the service class and method
+-- e.g. "assign" becomes x.LET.assign; means any name stored in the slh should be a FQN
+-- initially I'll use the Aliases to determing the FQN for all these
+-- so we always test against FQNs
+newtestService:: SymbolListHeader -> String -> Bool
+newtestService slh sname = (nlscln==sscln)&&(nlscn==sscn)&&(nlmn==smn)
+    where
+        nlabel = label slh 
+        nlname = getGSNameStr nlabel 
+        nl=splitTQN $ lookupFQN nlname
+        s=splitTQN $ lookupFQN sname
+        nlnn:nlscln:nlscn:nlmn:[] = nl
+        snn:sscln:sscn:smn:[] = s
+
 testService :: SymbolListHeader -> String -> Bool
-testService slh sname =
---    if nlname==(numServiceGT "applytc" num)
---        then
---            error ( (show nlname) ++ "<>" ++ (show (numServiceGT "applytc" num)) ++ ":" ++ (show (nlname == (numServiceGT "applytc" num))))
---        else
-
--- WV12082008: try to postpone numerification until Packetizer
--- FIXME: just create the GT from the string!
---        nlname == (numServiceGT sname num)         
-        nlname == (numServiceGT sname False)         
-
+testService slh sname = nlname == GannetTokenL (GannetLabelS sname)         
     where
         nlabel = label slh 
         nlname = name nlabel 

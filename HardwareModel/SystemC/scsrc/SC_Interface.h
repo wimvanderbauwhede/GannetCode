@@ -3,7 +3,7 @@
                  |
   File Name      | SC_Interface.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 09-Feb-2009. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -24,7 +24,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 #ifndef NO_SOCKET
 #include "../../C++/GannetSocket/Server.h"
@@ -161,7 +161,8 @@ Bytecode SC_Interface::read_bytecode(uint status){ //H
         } else {
             if (tasks.size()>0){
                  StringPair tdc_file=tasks.front();tasks.pop_front();
-                 Bytecode bycl=read_bytecode(tdc_file.Taskfile);tdcs.push(bycl);
+                 Bytecode bycl=read_bytecode(tdc_file.taskfile);tdcs.push(bycl);
+                 // datafile is extracted in SC_System constructor
                 return 1;
             } else {
                 return 0;
@@ -170,56 +171,57 @@ Bytecode SC_Interface::read_bytecode(uint status){ //H
     }
 
  //==============================================================================
- //  send()
- //==============================================================================
- void SC_Interface::send(Word_List& result,uint taskid) {
- 	OSTREAM << "DONE: "<< sc_time_stamp() << "\n";
-     //OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "
-     //<<name()<<": DONE\n";
- #ifndef NO_SOCKET
-         if (io_mech==0 ){
-             uint fd=iodescs[taskid]; // part of Interface obj
-         } else {
- #endif
-                 if (result.size()>1                    ){
-                     Word_List result_payload=result;
- #ifdef VERBOSE
-                     cout << "RESULT (VMIF): ( ";
- #endif // VERBOSE
-                     if (result.size()==2){
-                         deque<Int> int_result=to_signed_int_list(result_payload);
-                         bool first=true;
-                         const Int lo= -0x22FFFFFFL;
-                         const Int hi = 0xDD000000L;
-                         for(deque<Int>::iterator iter_=int_result.begin();iter_!=int_result.end();iter_++) {
-                         	Int elt=*iter_;
-                             if ((elt > lo and elt < hi) or not first){
-                             cout << elt  << " ";
-                             first=false;
-                             }
-                         }
-                     } else {
-                     	for(Word_List::iterator iter_=result.begin();iter_!=result.end();iter_++) {
-                     	                        	Word elt=*iter_;
-                     	                            cout << elt  << "\n";
-                     	                        }
+//  send()
+//==============================================================================
+void SC_Interface::send(Word_List& result, uint taskid) {
+	OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": DONE\n";
+	//OSTREAM << "DONE: "<< sc_time_stamp() << "\n";
+#ifndef NO_SOCKET
+	if (io_mech == 0) {
+		uint fd = iodescs[taskid]; // part of Interface obj
+	} else {
+#endif
+		if (result.size() > 1) {
+			Word_List result_payload = result;
+#ifdef VERBOSE
+			OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": RESULT (VMIF): ( ";
+#endif // VERBOSE
+			if (result.size() == 2) {
+				deque<Int> int_result = to_signed_int_list(result_payload);
+				bool first = true;
+				const Int lo = -0x22FFFFFFL;
+				const Int hi = 0xDD000000L;
+				for (deque<Int>::iterator iter_ = int_result.begin(); iter_
+						!= int_result.end(); iter_++) {
+					Int elt = *iter_;
+					if ((elt > lo and elt < hi) or not first) {
+						OSTREAM << elt << " ";
+						first = false;
+					}
+				}
+			} else {
+				for (Word_List::iterator iter_ = result.begin(); iter_
+						!= result.end(); iter_++) {
+					Word elt = *iter_;
+					OSTREAM << elt << "\n";
+				}
 
-                     }
- #ifdef VERBOSE
-                     cout << ")";
- #endif // VERBOSE
-                     cout << "\n";
-                 } else {
-                         deque<Int> int_result_list=to_signed_int_list(result);
-                         Int int_result=int_result_list[0];
-                         cout << "RESULT: " <<int_result<< ""<<endl;
-                 }
+			}
+#ifdef VERBOSE
+			OSTREAM << ")";
+#endif // VERBOSE
+			OSTREAM << "\n";
+		} else {
+			deque<Int> int_result_list = to_signed_int_list(result);
+			Int int_result = int_result_list[0];
+			OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp()
+					<< ": RESULT (VMIF): " << int_result << "" << endl;
+		}
 
-
- #ifndef NO_SOCKET
-     }
- #endif
- } // send()
+#ifndef NO_SOCKET
+	}
+#endif
+} // send()
 
 } /* namespace: SC_SBA */
 

@@ -3,7 +3,7 @@
                  |
   File Name      | SC_store_subtask_code.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 31-Oct-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -25,7 +25,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -131,7 +131,7 @@ void SC_store_subtask_code <ADDR_T, DATA_T> :: do_proc() {
         //}
 #endif // VERBOSE
         bool is_subtask_packet = (getPacket_type(getHeader(subtask_code_packet))==P_subtask);
-        if (is_subtask_packet or code_status[code_address]&1==1) { // 00=Absent,01=ActReq, 10=Present
+        if (is_subtask_packet or (code_status[code_address]&1)==1) { // 00=Absent,01=ActReq, 10=Present
 #ifdef VERBOSE
             OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() <<": "<<service<<" store_subtask_code(): activate "<<code_address<<" now!\n";
 #endif

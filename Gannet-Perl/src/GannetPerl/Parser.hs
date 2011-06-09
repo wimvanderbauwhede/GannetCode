@@ -20,7 +20,6 @@ import GannetPerl.PerlServices
 import qualified GannetPerl.GannetParsec as GP
 
 import Control.Monad (liftM)
-
 import Text.ParserCombinators.Parsec hiding (State)
 import Text.ParserCombinators.Parsec.Expr
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -110,6 +109,7 @@ atomicPureE =
         <|> boolExpr     
         <|> stringExpr 
         <|> regExpr
+        <|> try emptyListConst    
         <|> returnExpr
         <|> try arrayIndex
         <|> try instAlloc
@@ -126,11 +126,11 @@ atomicPureE =
         <|> bareCommand 
         <|> varExpr 
         <|> arefConst
-        <|> hrefConst
+        <|> hrefConst            
         <|> fileReadExpr
         <|> parens pureExpr
 		<?> "atomicPureE"
-
+       
 instAllocArgs = do
         reserved "new"
         insttype <- instanceType
@@ -244,6 +244,11 @@ hrefConst = do
 	elts <- braces (commaSepEnd pairExpr)
 	return $ PServiceCall (MkServiceCall "Hash" "new" (map PureE elts) GPAny)
 
+emptyListConst = do
+    char '('
+    char ')'
+    return  $ PServiceCall (MkServiceCall "Array" "new" [] GPAny)
+    
 pair = symbol "=>"
 pairExpr = do
 			k <- keyExpr
@@ -487,6 +492,14 @@ assignExpr = do
             		rhs' = transformList (vartype GPAny) rhs            		
                 return $ BindE $ BAssign (MkAssign (vartype GPAny) varname rhs') -- FIXME: if assignment returns bool, this should be bool
 
+---- FIXME: parens PureExpr makes the parser stop on empty (), before it gets to initExpr, because try actually succeeds!
+--initExpr = do
+--        reserved "my"
+--        (vartype,varname) <- varIdentifierPair
+--        reservedOp "="
+--        emptyParens -- can be (), [], {} or even <>; for now only () -> must work for @ and %
+--        return $ MkVarDecl varname (vartype GPAny)
+
 {-
 We need list assignments and updates as well:
 
@@ -513,6 +526,58 @@ varDeclOrVar = do
 	many (reserved "my")
 	(vt,vn) <- scalarIdentifierPairAny
 	return 
+-}
+
+{-
+We also need array element updates, e.g.
+
+$a[$i][$j]=rand();
+
+This is non-trivial: in Perl we don't know the size of the array so 
+we can't linearise it. 2-D arrays are arrays of arrays, so the 
+question is what this looks like in Gannet.
+
+A new array is created as a Word_List or vector<Word>, and we return the 
+pointer. 
+The only way to create a multi-dimensional array is to cast the pointers to Word.
+The problem is this:
+
+my @a=() => (assign 'a (Array.new)) => Word_List* wlp= new Word_list;
+$a[$i][$j] = rand() => 
+(Array.set (Array.get a) i (Array.new)) ; But only if (Array.at (Array.get a) i) is undefined
+(Array.set (Array.get (Array.at (Array.get a) i)) j (rand))
+
+How can we express that ap[i] is undefined? I don't want to use
+exceptions if I can help it.
+A simple solution is to require declaration like in Ruby.
+Maybe this works: 
+- get the length of the array. If i>length it must be new  -- and in fact
+all intermediate positions must be created as well!
+
+Basically, in C++ we have something like
+
+uint len = ap.length();
+if (i>=len) {
+for (int k=len;k<=i;k++) {
+ap[k]=new Word_List ; // unless ap[i] did already exist.
+}
+} 
+ap[i][j]=rand();
+
+
+I would prefer to be able to do something like
+
+(Array.at a i j k ...) 
+
+How do we lookup without hardcoding the number of brackets?
+It's some kind of recursion: get the array reference, deref it
+
+and
+
+(Array.set a i j k ... val)
+
+Same here, but take into account the code from above. Tricky!
+
 -}
                 
 isInstAlloc (PInstAlloc ( MkInstAlloc insttype instargs)) = True
@@ -869,6 +934,10 @@ data DeclExpr =
             | DTypeDecl TypeDef
 --}
 
+emptyParens = do
+    char '('
+    char ')'
+
 varExpr = do 
 		(vartype,x) <- varIdentifierPair
 		return (PVar (MkVar x (vartype GPAny)))
@@ -960,7 +1029,7 @@ semiOrBlockSepEndBy1 p = do
 			PureE (PFor _) -> noSemi x p
 			PureE (PForeach _) -> noSemi x p
 			PureE (PWhile _) -> noSemi x p
-			PureE (PLet _) -> noSemi x p
+ 			PureE (PLet _) -> noSemi x p
 			PureE (PCond _) -> noSemi x p
 			otherwise -> do				                            
 				semi -- find a sep. So this needs to become conditional: if p was braces, we just go on without sep
@@ -1167,4 +1236,6 @@ charLiteral     = P.charLiteral lexer
 dot 			= P.dot lexer
 comma			= P.comma lexer
 semi			= P.semi lexer
-
+ 
+-- with ghc 7.0.2, I had to define char in GP and hide it from Text.ParserCombinators.Parsec
+--char = GP.char

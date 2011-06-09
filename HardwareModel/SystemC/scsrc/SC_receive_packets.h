@@ -3,7 +3,7 @@
                  |
   File Name      | SC_receive_packets.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 31-Oct-2008. DComputing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -24,7 +24,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 //------------------------------------------------------------------------------
 // NAMESPACES
 //------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ class SC_receive_packets : public sc_module
 {
 public:
     // ---------------------------- PORTS --------------------------------------
-    port_SC_Fifo_if<Packet_t>   transceiver_rx_fifo; //!< read port for tranceiver rx fifo
+    port_SC_Fifo_if<Packet_t>   transceiver_rx_fifo; //!< read port for transceiver rx fifo
 
     port_SC_Fifo_if<Packet_t>   data_fifo;                 //!< write port
     port_SC_Fifo_if<Packet_t>   subtask_code_fifo;         //!< write port

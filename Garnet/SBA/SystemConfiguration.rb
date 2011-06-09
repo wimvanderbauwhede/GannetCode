@@ -80,7 +80,11 @@ service_id => ServiceConfig.new({scid1=>[method,service_name_str,nthreads],scid2
                 core_method_name=entries[2]
                 nthreads=entries[3].to_i
                 #Services[service_id][scid]=[method,service_name_str,nthreads]
+#if NEWER==1                
+#                ServiceInstances[service_id][scid]=[SBA.method(:"#{core_method_name}"),service_name_str,nthreads]
+#else                
                 ServiceInstances[service_id][scid]=[SBA_SCLib.method(:"#{core_method_name}"),service_name_str,nthreads]
+#end                
                 ServiceTypes[sctype]=scid  # FIXME: possible conflict: inst1: [T1,0], inst2: [T2,1], inst3: [T2,0], inst4: [T1,1]      
             elsif service_name_str=='Addr'
                 noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']

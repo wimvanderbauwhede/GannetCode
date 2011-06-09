@@ -16,9 +16,10 @@ module GannetPerl.GannetParsec where
 -- for a description of how to use it.
 -- 
 -----------------------------------------------------------------------------
-import Data.Char ( digitToInt )
+import Data.Char ( digitToInt) --, isHexDigit, isOctDigit )
+-- import Text.Parsec.Char ( hexDigit, octDigit )
 
-import Text.ParserCombinators.Parsec hiding (State)
+import Text.ParserCombinators.Parsec hiding (State) --, hexDigit, octDigit, char)
 import Text.ParserCombinators.Parsec.Token hiding (decimal)
 
 -- Need to parse PCRE escapes, this is difficult as the current parser

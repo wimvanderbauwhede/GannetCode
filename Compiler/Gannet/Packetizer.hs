@@ -1,9 +1,13 @@
+{-# LANGUAGE CPP #-}
 -- | Functions for turning a SymbolTree into a Gannet PacketList.
 -- Functions for emitting human-readable and bytecode strings.
+
+-- WV20110609 for old config handling, revert to before r4987 and undef NEW
+
 module Gannet.Packetizer (
     packetize,
     gplToWords,
-    writeData    
+--    writeData    
 ) where
 import Gannet.SBA.Types
 import Gannet.SBA.SystemConfiguration
@@ -33,8 +37,7 @@ appendLambdaRefs pl lrefs num = Hash.fromList (map (\(r,p)->appendIfLambda r p l
 
 appendIfLambda :: GannetSymbol ->  GannetPacket -> LambdaRefs -> Bool -> (GannetSymbol,GannetPacket)
 appendIfLambda pref p lrefs num
-    | name pref /= numServiceGT "lambda" num = (pref,p)
---    | otherwise = error $ "LREFS:"++(show lrefs)++";\nPREF:"++(show pref)++"\n"
+    | newtestServiceGT (name pref) "lambda" num = (pref,p) -- NEW
     | otherwise = case Hash.lookup (subtask pref) lrefs of
             Just reflist -> (pref,appendRefs p reflist) -- WV17122008: never comes here so (subtask pref) is never in lrefs 
             _           -> (pref,p)
@@ -49,12 +52,20 @@ appendRefs p reflist =
         (gph{plength=(plength gph)+(length reflist_norootref)},gppl++reflist_norootref)      
         
 
-
+{-
+unwrapPLOLD :: State PacketList LambdaRefs -> PacketList -> (PacketList,LambdaRefs)
+unwrapPLOLD lst pl0 =
+    let
+        State lf=lst
+        (lrefs,pl) = lf pl0
+    in 
+        (pl,lrefs)
+-}
 unwrapPL :: State PacketList LambdaRefs -> PacketList -> (PacketList,LambdaRefs)
 unwrapPL lst pl0 =
     let
-        (State lf)=lst
-        (lrefs,pl) = lf pl0
+--        State lf=lst
+        (lrefs,pl) = runState lst pl0 
     in 
         (pl,lrefs)
 
@@ -71,8 +82,8 @@ updatePL pl st r scopes lrefs num =
             | to_apply slh /= False = appendLRef nnref lrefs
             | otherwise = lrefs
         p_to 
-            | to_apply slh /= False = numServiceGL "apply" num
-            | otherwise = numService (lto slh) num
+            | to_apply slh = newnumServiceGL (getGSNameStr (label slh)) num
+            | otherwise = newnumService (lto slh) num -- NEW: this is the nodeId, so use lookupNodeIdFromFQN
         pn = case Hash.lookup r pl of
             Just p -> 
                 let 
@@ -94,17 +105,19 @@ updatePL pl st r scopes lrefs num =
                             (nph{plength=plen2},nppl2)
             Nothing -> (emptyGH,[nnref])
         pl2 = Hash.insert r pn pl
-        p_ret = numServiceGL "gateway" num 
+        p_ret  -- = numServiceGL "gateway" num -- silly!
+            | num = GannetLabelI 0
+            | otherwise =  GannetLabelS "gateway"
         -- WV12082008: this works, but why does numerify not work?
         refnamestr = (\ref -> let (GannetTokenL (GannetLabelS namestr)) = name ref in namestr) nref
---        refnamestr=show $ name nref
-        nnref2=nref{name=numServiceGT refnamestr num}
+        nnref2=nref{name=newnumServiceGT refnamestr num}
         ph = MkGannetHeader P_code 0 0 0 p_to p_ret nullGS nnref        
     in
         (lrefs1,Hash.insert nnref (ph,[]) pl2)
 
 appendPL :: SymbolTree -> GannetSymbol -> ScopeTable -> LambdaRefs -> Bool -> State PacketList LambdaRefs 
-appendPL x r scopes lrefs num = State (\pl->(updatePL pl x r scopes lrefs num))        
+--appendPL x r scopes lrefs num = State (\pl->(updatePL pl x r scopes lrefs num))        
+appendPL x r scopes lrefs num = state (\pl->(updatePL pl x r scopes lrefs num))        
         
 {-
 This one takes a PacketList and a key, and a GannetSymbol to be added at the
@@ -140,17 +153,36 @@ updateP pl x r =
                 Nothing -> (emptyGH,extendGS gs)
     in
         Hash.insert r pn pl    
-
+-- appendP (Symbol (numerify xgs num scopes)) r1l lambdarefs num
 appendP :: SymbolTree -> GannetSymbol -> LambdaRefs -> Bool -> State PacketList LambdaRefs 
-appendP x r lrefs num = State (\pl->(updateLRefs x r lrefs num,updateP pl x r))
+--appendP x r lrefs num = State (\pl->(updateLRefs x r lrefs num,updateP pl x r))
+appendP x r lrefs num = state (\pl->(updateLRefs x r lrefs num,updateP pl x r))
 
 updateLRefs ::  SymbolTree -> GannetSymbol -> LambdaRefs -> Bool -> LambdaRefs
 updateLRefs  x r lrefs num
---    | kind gs == K_S && name gs == numServiceGT "lambda" num = Hash.insert (subtask r) r lrefs
-     | kind gs == K_S && name gs == numServiceGT "lambda" num = Hash.insert (subtask gs) [] lrefs
+
+-- if gs is numerified, we need to compare the 
+     | kind gs == K_S && isLambda gs num = Hash.insert (subtask gs) [] lrefs -- NEW: main question is if this is numeric or string
      | otherwise = lrefs 
     where
         Symbol gs = x
+
+isLambda gs num =
+    let
+        gt = name gs
+    in
+        if num
+            then
+                let
+                    (_,lsclid,lscid,lopcode) = lookupFQNIds "lambda"
+                    mlnum = (\(GannetTokenS (GannetLabelI mlnum))->mlnum) gt
+                    mlsclid = getSCLId mlnum
+                    mlscid = getSCId mlnum
+                    mlopcode = getOpcode mlnum
+                in
+                    lsclid==mlsclid && lscid==mlscid && lopcode==mlopcode    
+            else
+                ("LAMBDA","lambda")==lookupPQN ((\(GannetTokenS (GannetLabelS lstr))->lstr) gt) True        
 
 
 appendLRef :: GannetSymbol -> LambdaRefs -> LambdaRefs      
@@ -226,6 +258,8 @@ gpToWords gp numeric
 addNL :: GannetSymbol -> String
 addNL gs = (show gs)++"\n"
 
+-- For FQN, we should have a new showFQN function
+
 --gsToBC :: GannetSymbol -> [Char]
 --gsToBC gs = bytecodize gs
 
@@ -237,22 +271,22 @@ what we need to do is
 -}
 -- | Either turn the contents of the DataStore into a pretty-print string or into a string for writing to a .data file.
 -- This functionality is deprecated.
-writeData :: Context -> String
-writeData ctxt = 
-    let
-        datalist = datastore ctxt
-        labels = Hash.keys datalist
-        ndata = length labels        
-        num = numeric ctxt
-        scopes = scope ctxt
-        numkeys = map (\gt->(numData gt num scopes)) labels
-        datavals = map (\lb->(case Hash.lookup lb datalist of Just v -> v)) labels
-        datapairs = zip numkeys datavals
-        datapairstr 
-            | num = foldl (\x y ->(x ++ (pair2str y))) ((show ndata)++"\n") datapairs
-            | otherwise = show datalist
-    in
-        datapairstr
+--writeData :: Context -> String
+--writeData ctxt = 
+--    let
+--        datalist = datastore ctxt
+--        labels = Hash.keys datalist
+--        ndata = length labels        
+--        num = numeric ctxt
+--        scopes = scope ctxt
+--        numkeys = map (\gt->(numData gt num scopes)) labels
+--        datavals = map (\lb->(case Hash.lookup lb datalist of Just v -> v)) labels
+--        datapairs = zip numkeys datavals
+--        datapairstr 
+--            | num = foldl (\x y ->(x ++ (pair2str y))) ((show ndata)++"\n") datapairs
+--            | otherwise = show datalist
+--    in
+--        datapairstr
 
 
 pair2str     :: (Integer,GannetBuiltin) -> String
@@ -339,7 +373,10 @@ remapSubtask gs ctxt subtaskmap =
             Just (sid,st_r) -> (gs{subtask=st_r},ctxt,subtaskmap)
             Nothing -> 
                 let
-                    sid = lookupServiceId (name gs)
+                    sid = case name gs of
+                         GannetTokenS (GannetLabelI gsnum) -> getSNId gsnum
+                         GannetTokenL (GannetLabelI gsnum) -> getSNId gsnum 
+                         otherwise -> lookupNodeIdFromFQN (getStrFromToken (name gs))
                     maddr = case Hash.lookup sid (addrcounters ctxt) of
                                 Just a -> a
                                 Nothing -> -1

@@ -3,7 +3,7 @@
                  |
   File Name      | SC_GatewayTile.h
 -----------------|--------------------------------------------------------------
-  Project        | SystemC Model of GANNET Hardware
+  Project        | SystemC Model of the Gannet SoC Platform
 -----------------|--------------------------------------------------------------
   Created        | 26-Jan-2008. Computing Science, University of Glasgow
 -----------------|--------------------------------------------------------------
@@ -23,7 +23,7 @@
 //------------------------------------------------------------------------------
 // INCLUDES
 //------------------------------------------------------------------------------
-#include "SC_sba.h"
+#include "SC_SBA.h"
 
 //------------------------------------------------------------------------------
 // NAMESPACES
@@ -51,7 +51,7 @@ public:
     port_SC_reg_if<uint	>       io_mech;
 
     // ---------------------------- EXPORTS ------------------------------------
-    // Export provided (to network) for writing to Rx FIFO of this tile's tranceiver
+    // Export provided (to network) for writing to Rx FIFO of this tile's transceiver
     sc_export<SC_Fifo_if<Packet_t> > xpwr_rxfifo;    //!<
 
 	// ---------------------------- Sub-Modules --------------------------------
@@ -59,7 +59,7 @@ public:
     SC_Register     <SBA::ServiceAddress>       address;
 
     SC_Gateway      <ADDR_T, DATA_T>            gateway;
-    SC_Tranceiver   <Packet_t>                  tranceiver;
+    SC_Tranceiver   <Packet_t>                  transceiver;
     SC_Memory_List  <ADDR_T, DATA_T>            result_store;    //!< Lists (SBA::Word_List) stored, so using the appropriate List memory class
     SBA::TaskDescList                           task_descriptions; //!< SystemC type? (Does it correspond to a hardware data store element?)
 
@@ -87,7 +87,7 @@ public:
 	                           s_          ,
 	                           a_          ,
 	                           tds_        ),
-	   tranceiver          ("tranceiver",s_),
+	   transceiver          ("transceiver",s_),
 	   result_store      ("result_store"),
        task_descriptions   (tds_)
 	   //finished            ("finished")
@@ -101,14 +101,14 @@ public:
         // ************ Bindings ************
         // ----------------------------------
 
-        // propagate upwards the write export to tranceiver.rx_fifo (for access by network)
+        // propagate upwards the write export to transceiver.rx_fifo (for access by network)
         // i.e. bind the Tile's export to the export of Tranceiver
-        xpwr_rxfifo.bind  (tranceiver.xpwr_rxfifo);
+        xpwr_rxfifo.bind  (transceiver.xpwr_rxfifo);
 
         // GATEWAY
         // -------
-        gateway.tranceiver_rx_fifo  .bind(tranceiver.xpwr_rxfifo);
-        gateway.tranceiver_tx_fifo  .bind(tranceiver.xpwr_txfifo);
+        gateway.transceiver_rx_fifo  .bind(transceiver.xpwr_rxfifo);
+        gateway.transceiver_tx_fifo  .bind(transceiver.xpwr_txfifo);
         gateway.result_store      .bind(result_store.xpwr_1);
         gateway.io_mech				.bind(io_mech);//propagate upwards the port access to io_mech
         //gateway.result_store_2    .bind(result_store.xpwr_2);
@@ -117,7 +117,7 @@ public:
 
         // TRANCEIVER
         // ----------
-        tranceiver  .network_rx_fifo.bind(network_rx_fifo);
+        transceiver  .network_rx_fifo.bind(network_rx_fifo);
 	}
 	// ---------------------------- Primitive Members --------------------------
 };/* class: SC_GatewayTile */
