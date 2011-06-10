@@ -51,7 +51,7 @@ module SBA_SystemConfiguration
         else
             raise "Can't find Library File #{lib}.rb"
         end                    
-        sclibs[i]=Object.const_get(lib).new()
+        sclibs[i]=Object.const_get(lib).new(VERBOSE)
         i+=1
     end
 
@@ -195,7 +195,7 @@ for libservice in services
         sclid+=1
     end
     # For compatibility, we need S_* and SC_*
-    puts servicenodes.inspect
+#    puts servicenodes.inspect
     for node_id in servicenodes.keys
         servicenode_name_str = servicenodes[node_id]['Name']
         if servicenode_name_str=~/\.LET$/

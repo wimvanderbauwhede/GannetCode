@@ -185,7 +185,9 @@ if DISTR==0
         for node_id in 1..@nservicenodes
             service_address=node_id
 		    @nodes[service_address]=SBA_Tile.new(self,node_id,service_address)
+		    if VERBOSE==1
             puts "\nInstantiating service #{node_id} (#{service_address})"
+		    end
         end		
 else # DISTR
         node={}
@@ -227,7 +229,7 @@ end # VM
   
         if (@gw_instance.finished==false) 
 #iv     		            
-                print "Running Tiles\n";
+                puts "Running Tiles" if @verbose #skip
 #ev         
 #                puts @nodes
             i=0 #skip
@@ -235,7 +237,7 @@ end # VM
                 next if service_node == nil #skip   
 #C++                 Tile& service_node=*nodes[i];            
 #iv
-                    puts "Running Tile #{i}: service id:#{service_node.service}; address: #{service_node.address}" 
+#                    puts "Running Tile #{i}: service id:#{service_node.service}; address: #{service_node.address}" 
 #ev                    
 if VM==0
                 if true and (service_node.status or (@network.tx_fifo[service_node.address].length>0))
@@ -243,17 +245,17 @@ if VM==0
                     service_node.run(self) #s/self//	
                 end		
 else # VM==1
-                puts "STATUS #{service_node.service} (#{service_node.address}): #{service_node.status} or #{service_node.transceiver.rx_fifo.status()}" #C++ cout << "STATUS " <<service_node.service<< " (" <<service_node.address<< "): " << service_node.status <<" or "<< service_node.transceiver.rx_fifo.status() << endl;
+#                puts "STATUS #{service_node.service} (#{service_node.address}): #{service_node.status} or #{service_node.transceiver.rx_fifo.status()}" #C++ cout << "STATUS " <<service_node.service<< " (" <<service_node.address<< "): " << service_node.status <<" or "<< service_node.transceiver.rx_fifo.status() << endl;
                 if true and (service_node.status or service_node.transceiver.rx_fifo.status())
-					puts service_node.address
-                puts "STATUS #{service_node.service} (#{service_node.address}): #{service_node.status or (@network.tx_fifo[service_node.address].length>0)}" #C++ cout << "STATUS " <<service_node.service<< " (" <<service_node.address<< "): " << endl;
+#					puts service_node.address
+#                puts "STATUS #{service_node.service} (#{service_node.address}): #{service_node.status or (@network.tx_fifo[service_node.address].length>0)}" #C++ cout << "STATUS " <<service_node.service<< " (" <<service_node.address<< "): " << endl;
                     service_node.run(self) #s/self//	
                 end	
 end # VM                
                 i=i+1 #skip
             end         
 #iv
-        print "\n";            
+#        print "\n";            
 #ev
         else
             @finished=1;

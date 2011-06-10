@@ -185,7 +185,9 @@ Bytecode Interface::read_bytecode(uint status){ //H
                 if result.length>1                    
                     result_payload=result #t Word_List
                     #iv
-                                        print "RESULT (VMIF): ( " 
+                    if VERBOSE==1 #skip
+                                        print "RESULT (VMIF): ( "
+                    end #skip 
                     #ev                    
                     if FP==0
                         int_result=to_signed_int_list(result_payload) #t deque<Int>
@@ -195,11 +197,15 @@ Bytecode Interface::read_bytecode(uint status){ //H
                              
                             if first and elt == 0xcd000100
                             #iv   
+                                if VERBOSE==1 #skip
                                 print "0x#{sprintf('%x',elt)} " if @v #skip
                                 #C++ cout << "0x" << hex << elt << " ";
+                                end #skip 
                             #ev                                    
                             else
+                                if VERBOSE==1 #skip
                                 print elt, " " #C++ cout << dec << elt << " ";
+                                end #skip 
                             end
                             first=false
                         end
@@ -211,14 +217,20 @@ Bytecode Interface::read_bytecode(uint status){ //H
 #                                  print "0x#{sprintf('%x',elt)} "  #C++ cout << "0x" << hex << elt << " ";
                                   first=false
                               else
+                                  if VERBOSE==1 #skip
                                   print elt, " " #C++ cout << dec << elt << " ";
+                                  end #skip 
                               end
                         end
                     end # FP
 #iv
+                    if VERBOSE==1 #skip
                     print ")" 
+            end #skip 
 #ev                    
-                    print "\n"         
+                    if VERBOSE==1 #skip
+                    print "\n"
+        end #skip          
                 elsif result.length==0
                     puts "RESULT (VMIF): []"           
                 else

@@ -167,6 +167,9 @@ end
 def setNSymbols(word,field) #t Word (Word;Word)
     return (word & FN_NSymbols) + (field << FS_NSymbols)
 end
+def getNPadBytes(word) #t uint (Word)
+    return (word & F_NPadBytes) >> FS_NPadBytes
+end
 
 def getInt(words) #t Int (Word_List)   
     #C++ Int int_result; Word result;    
@@ -233,28 +236,24 @@ end # WORDSZ
     
 end
 
+def getChar(words) #t char (Word_List)
+    val = getInt(words[0]) #t uint
+    ch = val & 0xFF #C++ char ch=(char)(val & 0xFF);
+    return ch
+end
+
 def getString(words) #t string (Word_List)
     # Strings _must_ be extended, never mind 4-byte strings!
-    nsyms = getNSymbols(words[0])
-    for i in 1..nsyms
-        # we have NBYTES bytes per symbol, get them an put them into a string
-        for j in 0..NBYTES-1
-            byte=(words[i]>>(j*8))&256
-            char=
-    end
-end    
-
-def sym2str(sym) #t string (Word_List)
-    header = sym.shift #t Word 
+    header = words.shift #t Word 
     nwords=getNSymbols(header) #t uint    
-    padding=getPadding(header) #t uint
+    padding=getNPadBytes(header) #t uint
 
 =begin #C++
     string str;
     str.reserve(nwords*NBYTES-padding);
     for(uint i=0;i<nwords;i++) {    
         uint npad=(i==nwords-1)?padding:0;
-        Word strword=sym.front();sym.pop_front();
+        Word strword=words.shift();
         for (uint j=0;j<NBYTES-npad;j++) {
             char byte=(char)((strword>>8*(NBYTES-j-1))&255);
             str+=byte;
@@ -267,17 +266,19 @@ def sym2str(sym) #t string (Word_List)
 
 #skip        
 if WORDSZ==64
-    # 8 bytes, we don't do Unicode
-    str=sym.pack("Q"*nwords)       
+    # 8 bytes, we don't do Unicode    "
+    # Endianness issue!
+    str=words.reverse.pack("Q"*nwords)
+    str=str.reverse
 else # WORDSZ==32
     # 4 bytes, idem
-    str=sym.pack("N"*nwords)
+    str=words.pack("N"*nwords)
 end # WORDSZ       
     # here we should remove any NULL bytes from the string. The problem is that we don't know how many
     # so I have to scan the string from the back
-    if padding>0
-        str=str[0..str.length-1-padding]
-    end
+#    if padding>0
+#        str=str[0..str.length-1-padding]
+#    end
 #endskip        
     return str
 end

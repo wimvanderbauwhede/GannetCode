@@ -441,10 +441,17 @@ FS_Value=0
 FW_Value=0xffff_ffff
 FB_Value=32
     
-# Identical to the Name field FIXME: we need padding!!
+# Identical to the Name field 
 F_NSymbols=0x0000_0000_ffff_ffff
 FN_NSymbols=0xffff_ffff_0000_0000
 FS_NSymbols=0
+
+# First 4 bits of the Subtask field
+F_NPadBytes = 0x0000_000f_0000_0000
+F_NNPadBytes = 0xffff_fff0_ffff_ffff
+FS_NPadBytes=32
+FW_NPadBytes=0xf
+FB_NPadBytes=4
 
 # For Packet header
 # Header Word1: 8 | 5|3 | 16 | 16 | 16
@@ -755,6 +762,13 @@ FB_Value=16
 F_NSymbols=0x00_00_00_ff
 FN_NSymbols=0xff_ff_ff_00
 FS_NSymbols=0
+
+# First 4 bits of the Subtask field
+F_NPadBytes = 0x00_00_0f_00
+F_NNPadBytes = 0xff_ff_f0_ff
+FS_NPadBytes=8
+FW_NPadBytes=0xf
+FB_NPadBytes=4
 
 # We have Subtask == Mode|1Bit|Reg|DataAddress (2|1|3|10) == Mode|1Bit|Reg|2Bits|NArgs
 

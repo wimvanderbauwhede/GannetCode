@@ -1,7 +1,9 @@
 ; hello.yml
 (begin
 (let
-    '(assign 'str '42)
+    '(assign 'v '42)
+    '(display v)
+    '(assign 'str "Hello, world!")
     '(display str)
 )
 ;(* '1

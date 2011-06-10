@@ -70,8 +70,8 @@ opts.on("-i","--int-only") {FP=0}
 opts.on("-f","--float-only") {FP=2}
 opts.on("-q","--quit") {QUIT=1;VERBOSE=1}
 opts.on("-y","--yaml") {TO_YAML=1}
-SBA_YML='SBA.yml'
-opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| SBA_YML=yml_file }
+tSBA_YML='SBA.yml'
+opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| tSBA_YML=yml_file }
 task_data=""
 opts.on("-D datafile","--data-file",String) {|data_file| task_data = data_file }
 opts.on("-h","--help") {
@@ -130,17 +130,21 @@ end
 if td_file != 'NONE'
     maybe_yml_file=find_configpath(td_file)
     if File.exist?(maybe_yml_file)
+        if VERBOSE==1
         print "Found YAML-file #{maybe_yml_file}\n"
+        end
         ymlfile=maybe_yml_file
-        if SBA_YML=='SBA.yml'
+        if tSBA_YML=='SBA.yml'
             SBA_YML=ymlfile
         end                    
     else
         maybe_yml_file.sub!(/^.*\//,'')
         if File.exist?( "#{gannet_dir}/SystemConfigurations/#{maybe_yml_file}") 
+            if VERBOSE==1
             print "Found YAML-file #{maybe_yml_file}\n"
+            end
             ymlfile="#{gannet_dir}/SystemConfigurations/#{maybe_yml_file}"
-            if SBA_YML=='SBA.yml'
+            if tSBA_YML=='SBA.yml'
                 SBA_YML=ymlfile
             end                    
         end

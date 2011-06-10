@@ -123,7 +123,7 @@ For a HW core in the SW ServiceManager, we have CS_managed until
             @opcode=@sba_tile.service_manager.opcode 
 
 #                @sba_tile.service_manager.results_store=@sba_system.services[@scid][0].call(@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
-                @sba_system.services[@sclid-1][@scid][0].call(@sba_tile,self) #skip                    
+            @sba_system.services[@sclid-1][@scid][0].call(@sba_tile,self) #skip                    
     #C++        FuncPointer fp=sba_system.cfg.services[scid].core;
 #    #C++        sba_tile.service_manager.results_store=(*fp)((Base::ServiceCore*)this,sba_tile.service_manager.arg_addresses);
     #C++        (*fp)((Base::ServiceCore*)this);
@@ -252,7 +252,7 @@ end #skip
         #tile
         result_addr=@sba_tile.service_manager.subtask_list.result_address(@sba_tile.service_manager.current_subtask) #t MemAddress        
         @sba_tile.data_store.mput(result_addr,wl)         
-        puts "Stored #{wl[0]} @ #{result_addr}"
+#        puts "Stored #{wl[0]} @ #{result_addr}"
     end
     
     def put(addr,wl) #t void (MemAddress;Word_List)

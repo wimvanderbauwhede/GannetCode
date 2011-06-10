@@ -348,9 +348,7 @@ showGSK k
 --                0     1     2     3     4(0)  5(1)  6(0)  7(1)  8(0)
 --data GDataType =  T_i | T_f | T_s | T_b | T_d | T_l | T_L | T_q | T_x | T_Error
 {- | Gannet DataTypes
-New proposal, for 64-bit of course. For 32-bit, we only have one bit, 2 bits for K_B 
-So for 32-bit we can encode d,i,f,c but what we can do is say that
-if it's extended, we use L,I,F,S
+New proposal, for 64-bit of course. 
 > d: Data, i.e. Any			000
 > i: Integer	 			001 -- 64-bit signed integer
 > f: Float					010
@@ -363,6 +361,10 @@ if it's extended, we use L,I,F,S
 > q: Quote -- only used by the compiler -- 8
 > x: Unknown -- only used by the compiler -- 9, becomes 1
 > Error: only used by the compiler
+
+For 32-bit, we only have one bit, 2 bits for K_B 
+So for 32-bit we can encode d,i,f,c but what we can do is say that
+if it's extended, we use L,I,F,S
 -}
 
 
@@ -424,9 +426,12 @@ extendGS gs
                 GannetBuiltinS gstr ->
                     let 
                         (strlength,padding)= nwords gstr
-                        npad=GannetTokenB (GannetBuiltinI padding)
+                        gtstrlength=GannetTokenB (GannetBuiltinI strlength)
 --                        strl=GannetTokenB (GannetBuiltinI strlength)
-                        gsn=gs{ext=1,name=npad,subtask=strlength}                        
+-- WV20110610: this is sub-optimal for 64-b, the string length is limited by the Subtask field
+-- it would be better to use dedicated fields: the padding is at most 7 so 3 bits is enough
+-- for 32-bits, using name for the length means max. 1024 characters, but atm. I don't care. 
+                        gsn=gs{ext=1,name=gtstrlength,subtask=padding}                        
                         strlist= map extGSstr (splitInWords gstr []) 
                     in 
                         gsn:strlist

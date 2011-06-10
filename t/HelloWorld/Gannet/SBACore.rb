@@ -47,8 +47,8 @@ require "SBA/Packet.rb"
 #endskiph
 class SBACore  #skip
   include SBA #skip
-    def initialize
-        @v=true
+    def initialize(verbose)
+        @v=(verbose==1)
     end
 #ifndef NO_SERVICES    
 if WORDSZ==64    
@@ -136,7 +136,7 @@ else # WORDSZ==32
         # 4 bytes, idem
         wordstr=str.unpack("N"*nwords) 
 end # WORDSZ  
-        puts wordstr.inspect 
+#puts wordstr.inspect 
         sym=[sheader]+wordstr 
 #endskip
         return sym
@@ -439,7 +439,9 @@ end # of ls_FPU
         n_args=parent.nargs() #t uint        
         result=parent.arg(n_args-1)         
         #iv
+		if @v #skip
         puts "#{parent.service} CORE: Passing on #{result}" #C++ cout << parent.service<< " CORE: Passing on result\n";
+		end #skip
         #ev
         parent.result(result)
     end # of BEGIN
@@ -735,23 +737,27 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         addresses=parent.addresses() #t MemAddresses&
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
         
-        puts parent.current_subtask if @v #skip
-    	  service=getName(service_word) #t Name_t
+		puts parent.current_subtask if @v #skip
+		service=getName(service_word) #t Name_t
         parent.core_return_type=P_data
 #iv
         ppservice=service #C++ int ppservice=(int)service;
+		if @v #skip
         print "LET (#{parent.service}) CORE: #{parent.current_subtask}: (#{ppservice}<>#{SC_SBACore_LET}\n" 
+		end #skip
 #ev        
         method=parent.method()
-        puts "METHOD: #{method}",M_SBACore_LET_assign
+#        puts "METHOD: #{method}",M_SBACore_LET_assign
         if method==M_SBACore_LET_let or method==M_SBACore_LET_lettc
 #iv
-        print "LET (#{parent.service}) CORE: ",parent.current_subtask,"\n"
+			if @v #skip
+	        print "LET (#{parent.service}) CORE: ",parent.current_subtask,"\n"
 
             print "LET (#{parent.service}) CORE: ", "TO: ", sba_tile.service_manager.subtask_list.to(parent.current_subtask),"\n"            
             print "LET (#{parent.service}) CORE: ", "RETURN TO: ", sba_tile.service_manager.subtask_list.return_to(parent.current_subtask),"\n"
             print "LET (#{parent.service}) CORE: ", "RETURN AS: ", sba_tile.service_manager.subtask_list.return_as(parent.current_subtask),"\n"
             print "LET (#{parent.service}) CORE: ", "CALLED AS: ", sba_tile.service_manager.subtask_list.called_as(parent.current_subtask),"\n"
+			end #skip
 #ev            
             last=false #t bool
             nargs=parent.n_args #t uint        
@@ -761,7 +767,9 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                 last=(argct==0)
                 label=sba_tile.service_manager.symbol_table[address] #t Word     
             #iv
+				if @v #skip
                 print "LET (#{parent.service}) CORE: ", "LABEL:", label," last?",last,"\n"             
+				end #skip
             #ev
                 
                 if getQuoted(label)==1
@@ -778,13 +786,15 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                     end
                     # - reset the task status to STS_blocked
                     #iv
+						if @v #skip
                         puts "LET (#{parent.service}) CORE: BLOCKED #{parent.current_subtask}"             
+						end #skip
                     #ev                    
                     sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
                     # -create a ref packet and send it off
                     to=getName(numval) #t To_t
-                    puts "S_LET: #{S_SBACore_LET}"
-                    puts "TO: #{to}" # is a FQA
+#                    puts "S_LET: #{S_SBACore_LET}"
+#                    puts "TO: #{to}" # is a FQA
                     to=getSNId(to)
                     return_to=S_SBACore_LET #t Return_to_t
                     var_label = setSubtask(label,address) #t Word
@@ -880,7 +890,9 @@ So what happens if it's a tail call?
                 # OK, we received an ACK, time to clean up
                 puts "LET CORE: got ACK" if @v #skip
 #iv
+				if @v #skip
                 puts "LET CORE: ACK REDIR: #{sba_tile.service_manager.subtask_list.redir(parent.current_subtask)}"
+				end #skip
 #ev                
                 # The problem is that the core must return something. But no other service is expecting a packet. So that's useless.
                 # So I'll use the waiting_for_ack flag to decide not to send any result packet, by setting the core status to "managed"
@@ -900,7 +912,9 @@ So what happens if it's a tail call?
             
             for labeladdr in addresses #t MemAddresses
 #iv
+				if @v #skip
                 puts "LET-ASSIGN\tFound #{labeladdr}"
+				end #skip
 #ev                
                 var_label_l=sba_tile.data_store.mget(labeladdr) #t Word_List
                     if var_label_l.length>0        
@@ -957,9 +971,11 @@ So what happens if it's a tail call?
             #C++ #endif
             for address in addresses #t MemAddresses
 #iv            
+			if @v #skip
                     try_array=sba_tile.data_store.mget(address) #t Word_List
-                    puts try_array.inspect
+					puts try_array.inspect
                     print "LET (#{parent.service}) CORE: #{address}\t#{ppPayload(try_array)}\n"
+			end #skip 
 #ev
                     value_list.push(sba_tile.data_store.mget(address)) 
             end  
@@ -978,7 +994,9 @@ So what happens if it's a tail call?
                 sym_address=addresses[0] #t MemAddress
                 data_address=addresses[1] #t MemAddress
                 #iv
+				if @v #skip
                 puts "ASSIGN addresses: #{sym_address} => #{data_address}"
+				end #skip
                 #ev
                 # Get the varname from the symbol
                 var_label=sba_tile.service_manager.symbol_table[sym_address] #t Word
@@ -1001,20 +1019,27 @@ So what happens if it's a tail call?
                     word=setStatus(word,DS_present)
                     puts "ASSIGN: NAME: #{var_name}=>ADDRESS:#{var_address}" if @v #skip
 #iv
+					if @v #skip
                     puts "ASSIGN: STS=#{sba_tile.service_manager.subtask_list.status(parent.current_subtask)}"
+					end #skip
 #ev                    
                     sba_tile.lookup_table.write(getName(word),word)
                 # Store variable definition
                     var_value=sba_tile.data_store.mget(data_address) #t Word_List
 #iv
+					if @v #skip
                     puts "ASSIGN: storing",ppPayload(var_value), "@ #{var_address}"
+					end #skip
 #ev                    
                     sba_tile.data_store.mput(var_address,var_value)
                     result=word
 #iv                                
                 else
+					if @v #skip
+
                     # Some trouble: we're overwriting a presumably immutable variable!!                    
                     puts " [WARNING: overwriting <#{var_label}> (",ppPayload(sba_tile.data_store.mget(var_address)),")] "                                
+					end #skip
 #ev                        
                 end
                 parent.result([result]) #C++ Word_List result_list; result_list.push_back(result); parent.result(result_list);
@@ -1072,7 +1097,9 @@ So what happens if it's a tail call?
                     var_value=sba_tile.data_store.mget(var_address) #t Word_List
                     result_list=var_value
 #iv                    
-                    puts "READ: returning",ppPayload(result_list)
+                    if @v #skip
+					puts "READ: returning",ppPayload(result_list)
+					end #skip
 #ev                    
                 else
                     # TROUBLE: ASSIGN has not yet returned. In the brave new world, where we do 
@@ -1087,10 +1114,11 @@ So what happens if it's a tail call?
 #C++        default: std::cerr<< "Service "<<service<< " has no implementation\n";exit(0);
             end # of non-LET services case block
            
-#            print  ") in #{var_address} => "		
-#iv            
+#iv           
+			if @v #skip
             print  ") => "		
             print ppSymbol(result),"\n"
+			end #skip
 #ev            
             parent.core_return_type=P_data	            
             sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_cleanup)
@@ -1601,7 +1629,8 @@ No, we must do it like in IF or LET
         #core
         addresses=parent.addresses() #t MemAddresses&
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word        
-        puts parent.current_subtask #skip
+	
+		#puts parent.current_subtask #skip
     	service=getName(service_word) #t Name_t
         parent.core_return_type=P_data
     # we use the lookup_table to map ports to file descriptors
@@ -1722,11 +1751,37 @@ end # WORDSZ
             end
             parent.result( res )
         elsif method==M_SBACore_IO_display
+
         # just because DISPLAY is logically an IO function
             result="" #skip
             for address in addresses #t MemAddresses
                 data=sba_tile.data_store.mget(address) #t Word_List
-                result+=">>>#{data.inspect}\n" #skip
+#skip				
+				case getDatatype(data[0])
+					when T_i
+						if @v
+							result+=">>>Int: "
+						end
+						result+="#{getInt(data)}" 
+					when T_f
+						if @v
+							result+=">>>Float: "
+						end
+						result+="#{getFloat(data)}" 
+					when T_c
+						if @v
+							result+=">>>Char: "
+						end
+						result+="#{getChar(data)}" 
+					when T_s
+						if @v
+							result+=">>>String: "
+						end
+						result +="#{getString(data)}" 
+					else
+    		            result+=">>>#{data.inspect}\n" 
+				end
+#endskip				
 =begin #C++
 #ifndef STATIC_ALLOC
                  	for(Word_List::iterator ai=data.begin(); ai!=data.end(); ++ai) {
@@ -1743,7 +1798,8 @@ end # WORDSZ
 =begin
 =end
             end    			
-            puts result #skip
+			# This is the actual display line! Don't comment!
+			puts result #skip
             parent.result( pass ) # result
         else
             raise "CORE IO does not support method #{method}"

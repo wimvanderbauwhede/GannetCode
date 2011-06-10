@@ -160,6 +160,7 @@ gs_to_bytes gs =
         stl :: Word8
         stl
         	| kind gs /= K_B = fromIntegral $ mod st 256
+            | kind gs == K_B && datatype gs == T_s = fromIntegral st -- used for padding so < 256 
         	| otherwise = 0 -- FIXME: ugly hack!!
         sth= fromIntegral $ div (st - fromIntegral stl) 256    
         sname :: Integer

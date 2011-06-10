@@ -211,14 +211,14 @@ if VM==0
 else # VM==1
 if DISTR==0    
                 if dest==@sba_system.gw_address # GW
-                 puts "TRANSMITTING from #{@service} to GW (#{dest})"
+#                 puts "TRANSMITTING from #{@service} to GW (#{dest})"
                     @sba_system.gw_instance.transceiver.rx_fifo.push(packet)              
                 else 
                     if service_id < SBA_BRIDGE_ADDR #skip
-                    puts "TRANSMITTING from #{@service} to #{dest}"
+#                    puts "TRANSMITTING from #{@service} to #{dest}"
                         @sba_system.nodes[dest].transceiver.rx_fifo.push(packet) #C++ sba_system.nodes[dest]->transceiver.rx_fifo.push(packet);
                     else  #skip
-                     puts "TRANSMITTING from #{@service} to BRIDGE because #{service_id} >= #{SBA_BRIDGE_ADDR}"  #skip                     
+#                     puts "TRANSMITTING from #{@service} to BRIDGE because #{service_id} >= #{SBA_BRIDGE_ADDR}"  #skip                     
                         warn "Found HW service" #skip
                         @sba_system.bridge.transceiver.rx_fifo.push(packet) #skip
                     end  #skip

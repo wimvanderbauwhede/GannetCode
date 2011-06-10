@@ -536,7 +536,7 @@ void demux(Packet packet) {
             #ev
         end
         #iv
-        print "\n"
+        print "\n" if @v #skip
         #ev
         #ifdef CYCLES_INT
         #C++      ticks t2=getticks();
@@ -949,7 +949,7 @@ so we have:
                 end
                 tdata=[] #C++ Word_List tdata;
                 #iv
-                puts "#{@service} dispatch_data_packet(): data_address=#{data_address}, eosreq=#{eosreq}"
+#                puts "#{@service} dispatch_data_packet(): data_address=#{data_address}, eosreq=#{eosreq}"
                 #ev
                 ctrl=0 #t uint
                 if eosreq==2 and eos==0 and skip==0 # send_empty_packet==0
@@ -985,7 +985,7 @@ so we have:
                 packet_payload=tdata #t Word_List
                 packet=mkPacket(packet_header,packet_payload)
                 #iv
-                puts "#{@service} dispatch_data_packet(): PACKET: #{ppPacket(packet)}" #skip
+#                puts "#{@service} dispatch_data_packet(): PACKET: #{ppPacket(packet)}" #skip
                 #ev
 
                 #ifdef SC_VERBOSE
@@ -1194,7 +1194,8 @@ so we have:
 
                     if getKind(elt)== K_L
 #                        raise "FIXME!"
-                        store=S_LET # FIXME: with the new FQN approach, there is not such thing as S_LET
+# WV20110609: try to comment out next line, should work!
+#                        store=S_LET # FIXME: with the new FQN approach, there is not such thing as S_LET
                         # We can have a LET at every node
                         # So I think I should store the variable "name" in the Subtask and the node of the LET in the Name
                         # Basically, I think we should be able to do this based on the node of ASSIGN
@@ -1269,9 +1270,13 @@ so we have:
                                     puts "Quoted Extended Builtin"
                                 end
                                 #ev
-                                for i in 1..getSubtask(elt) #C++ for (int i=0;i<getSubtask(elt);i++) {
-                                    elt_sym=subtask.shift #C++ Word elt_sym=subtask.front(); subtask.pop_front();
-                                    elt_val.push(elt_sym)
+                                if getNSymbols(elt)==1                                    
+                                    elt_val.push(subtask.shift)
+                                else
+                                    for i in 1..getNSymbols(elt) #C++ for (int i=0;i<getNSymbols(elt);i++) {
+                                        elt_sym=subtask.shift #C++ Word elt_sym=subtask.front(); subtask.pop_front();
+                                        elt_val.push(elt_sym)
+                                    end
                                 end
                             else
                                 # NEW
@@ -1398,7 +1403,9 @@ end
         # als VM==1
         if to != @service
             #iv
-            puts "#{@service} send_ack(): Sending packet via NoC: #{to}<>#{@service}"
+            if @debug_all or @service==@debug_service
+                puts "#{@service} send_ack(): Sending packet via NoC: #{to}<>#{@service}"
+            end
             #ev
             #ifdef SC_VERBOSE
             #sysc          OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": "<<service<<" ("<<name()<<") send packet from send_ack()\n";
