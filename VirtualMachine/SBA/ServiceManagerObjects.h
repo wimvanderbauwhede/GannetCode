@@ -468,6 +468,7 @@ public:
 	uint mode; // 2 bits
 	uint reg; // 3 bits
 	Subtask_Argument_List arguments;
+	char argmodes[MAX_NARGS];
 	Symbol_t called_as;
 
 	Service to;
@@ -565,6 +566,10 @@ public:
 
 	Subtask_Argument_List& arguments(const Subtask subtask) { // but not const
 		return subtasks_list[subtask].arguments;
+	}
+
+	Subtask_Argument_List& argmodes(const Subtask subtask) { // but not const
+		return subtasks_list[subtask].argmodes;
 	}
 
 	Subtask_Status status (const Subtask subtask) {

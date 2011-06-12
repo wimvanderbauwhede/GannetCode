@@ -211,14 +211,14 @@ end # of SBA_Subtask_Argument_List
 # i.e. 10*8, leaves 6*8 to have 4*32
 # We must redo this carefully, using 10 bits for the Subtask
 class Subtask_List_Item 
-    attr_accessor :status,:nargs,:mode,:arguments,:called_as,:to,:return_to,:return_as,:ack_to,:waiting_for_ack,
+    attr_accessor :status,:nargs,:mode,:arguments,:argmodes,:called_as,:to,:return_to,:return_as,:ack_to,:waiting_for_ack,
         :redir,:code_address,:reg,:nargs_absent,:service_id,:offset,:fsize,:result_address
     def initialize
         @status=STS_new # 3 bits of 1st byte of 1st Word
         @nargs_absent=MAX_NARGS # WV: only for VM
         @nargs=0 # Number of arguments, between 0 and 16, so 5 bits (of 1st byte of 1st Word). 
         @mode=0 #2 bits. Stream=1.Acc=2. Cache=3? else 0
-	    @arguments=[]
+	    @arguments=[] #        
         @called_as='' # Symbol, 2nd Word
         @to='' # 2 bytes, 5th&6th byte of 1st Word
         @return_to='' # 2 bytes, 7th&8th byte of 1st Word
@@ -237,7 +237,21 @@ class Subtask_List_Item
         @offset=0 # Assuming max. 256 Words payload => 1 byte
         @fsize=0 # Assuming max. 256 Words payload => 1 byte
 # support for results returned to memory
-        @result_address=0              
+        @result_address=0
+# support for pass-by-value
+=begin
+        Pass-mode:
+        we use 2 bits:
+        00 = pass by address
+        01 = non-ext K_B
+        10 = 2nd word of ext K_B
+        11 = unused
+        for 01 and 10, the next 6 bits are (Kind&0x7)|Datatype
+We could add this as a tuple in @arguments but that wastes a lot of space
+Instead, I use an array of char
+=end    
+        @argmodes=[]                
+                                            
     end    
 
 end # of Subtask_List_Item 
@@ -285,7 +299,16 @@ class SBA_Subtask_List
             @subtasks_hash[subtask].arguments=val.shift
         end        
     end
-    
+
+    def argmodes(subtask,*val)    
+        if val.length==0
+            return @subtasks_hash[subtask].argmodes
+        else
+            @subtasks_hash[subtask].argmodes=val.shift
+        end        
+    end
+
+
     def set(subtask,attr_name,attr_value)
         @subtasks_hash[subtask][attr_name]=attr_value
     end           

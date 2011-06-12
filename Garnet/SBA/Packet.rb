@@ -139,6 +139,11 @@ end
 def getSubtask(word) #t Subtask_t (Word)
 	return (word & F_Subtask) >> FS_Subtask
 end
+
+def getDataAddress(word) #t MemAddress (Word)
+    return ((word & F_Subtask) >> FS_Subtask) & FW_DataAddress    
+end
+
 def setSubtask(word,field) #t Word (Word;Word)
 	return (word & FN_Subtask) + (field << FS_Subtask)
 end

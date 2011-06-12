@@ -991,6 +991,7 @@ So what happens if it's a tail call?
             when M_SBACore_LET_assign 
                 # Take the addresses of Symbol and Data
                 puts "LET called as ASSIGN" if @v #skip
+#WV20110612: this could be pass-by-value
                 sym_address=addresses[0] #t MemAddress
                 data_address=addresses[1] #t MemAddress
                 #iv
@@ -999,6 +1000,7 @@ So what happens if it's a tail call?
 				end #skip
                 #ev
                 # Get the varname from the symbol
+#WV20110612: for pass-by-value, we pass the symbol, so we would not need the code below				
                 var_label=sba_tile.service_manager.symbol_table[sym_address] #t Word
                 puts "ASSIGN SYMBOL: #{ppSymbol(var_label)}" if @v #skip
                 var_name=getName(var_label) #t Name_t
@@ -1754,8 +1756,9 @@ end # WORDSZ
 
         # just because DISPLAY is logically an IO function
             result="" #skip
-            for address in addresses #t MemAddresses
-                data=sba_tile.data_store.mget(address) #t Word_List
+            for argn in 0..parent.nargs()-1 #t uint
+				data=parent.arg(argn) #t Word_List
+				puts data.inspect
 #skip				
 				case getDatatype(data[0])
 					when T_i

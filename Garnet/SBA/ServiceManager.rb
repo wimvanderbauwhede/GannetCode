@@ -620,10 +620,8 @@ void demux(Packet packet) {
             end
             #ev
 
-            label= getReturn_as(getHeader(data_packet)) #t Word
-            #FIXME: create getDataAddress
-            data_address=getSubtask(label) & FW_DataAddress #t MemAddress
-
+            label= getReturn_as(getHeader(data_packet)) #t Word            
+            data_address=getDataAddress(label) #t MemAddress
             #iv
             if @debug_all or @service==@debug_service
                 puts "#{@service} store_data() ADDRESS: #{data_address}"
@@ -761,7 +759,7 @@ void demux(Packet packet) {
                     end
                     #iv
                     if @debug_all or @service==@debug_service
-                        puts "#{@service} store_data() done for #{data_address} of subtask #{subtask}" #sysc
+                        puts "#{@service} store_data() done for #{data_address} of subtask #{subtask}" #sysc                        
                     end
                     #ev
                 end # not STS_deleted
@@ -1089,6 +1087,23 @@ so we have:
                 end
             else
 
+=begin                
+        Local results:
+        
+        - for each subtask, check if it's return node id is the same as the current node id
+        - if that is the case, use the return value address as the address for the result
+        
+        - compute as usual
+        - in core_control
+        return_as = @subtask_list.return_as(parent_subtask)
+        if getSNId(return_as )==@service            
+            data_address=getDataAddress(return_as ) #t MemAddress                
+            @subtask_list.result_address(parent_subtask,data_address)
+        else
+            # allocate as before
+        end                
+=end                
+                
             # Allocate memory for the result. Store in the "result" subtask field
             # Could it be that the memory was already allocated? Yes.
                 if @subtask_list.result_address(parent_subtask)==0
@@ -1127,11 +1142,19 @@ so we have:
                 # for this to work properly we need a bit in the subtask record to indicate if the arg is an address (0) or a value (1)
                 pass_by_value = 0 #t uint
                 if getKind(elt)!=K_C
-                    # NEW					if (not (getKind(elt)==K_B && getExt(elt)==0) )
-                    data_address=@data_address_stack.pop
-                    # NEW						else
-                    # NEW							pass_by_value=1
-                    # NEW					end
+                    argmode=0 #t unsigned char
+                    #WV20110612: I think we can do this for K_L, K_A as well, maybe for
+                    # K_C and K_D as well but I forgot what these do.
+                    if getKind(elt)==K_B && getExt(elt)==0
+                        argmode=1
+#                        pass_by_value = 1
+                    elsif getKind(elt)==K_B && getExt(elt)==1 && getNSymbols(elt)==1
+                        argmode=2
+#                        pass_by_value = 1
+                    end    
+                    if pass_by_value==0                        
+                        data_address=@data_address_stack.pop
+                    end
                     #                    puts "#{@service} parse_subtask(#{parent_subtask}): pop ADDRESS #{data_address} off STACK" #skip
                 else
                     data_address= getReg(elt)
@@ -1156,12 +1179,18 @@ so we have:
                 #WV03122009: no need to write to symbol table here, it's done inside the next if-then
                 #                @symbol_table[data_address]=arg_symbol
                 #ifndef STATIC_ALLOC
-                if pass_by_value==0
+                if argmode==0 or pass_by_value==0
                     @subtask_list.arguments(parent_subtask).push(data_address)
-                else
+                elsif argmode==1 and pass_by_value==1
                     @subtask_list.arguments(parent_subtask).push(elt)
-                end
+                elsif argmode==2 and pass_by_value==1
+                    raise "BOOM!"
+                    @subtask_list.arguments(parent_subtask).push(subtask.shift)                    
+                end 
+                argmode+=((getKind(elt)&0x7)<<5)+((getDatatype(elt)&0x7)<<2)               
+                @subtask_list.argmodes(parent_subtask).push(argmode)
                 #else
+                #FIXME: not OK for pass-by-value!
                 #C++ subtask_list.arguments(parent_subtask)[i]=data_address;
                 #endif
                 i=i+1
@@ -2014,35 +2043,37 @@ end
         #ev
         if nargs>0
             for iter_ in 0..nargs-1 #t uint
-                arg_address=@arg_addresses[iter_] #t MemAddress
-                #iv
-                if @debug_all or @service==@debug_service
-                    puts "#{@service}: clean_up:  ADDRESS: #{arg_address}"
-                end
-                #ev
-                #sysc //symbol_table.lock();
-                arg_symbol=@symbol_table[arg_address] #t Word
-                arg_status=getStatus(arg_symbol) #t uint
-                if arg_status==DS_present or  arg_status==DS_eos
-                    if arg_address>NREGS+DATA_OF
-                        arg_symbol=setStatus(arg_symbol,DS_cleared)
-                        @data_address_stack.push(arg_address)
-                        #iv
-                        if @debug_all or @service==@debug_service
-                            puts "#{@service}: clean_up #{@current_subtask}: push ADDRESS #{arg_address} onto STACK"
-                            puts "#{@service}: clean_up(): stack size/pointer #{@data_address_stack.size()}"
-                            puts "#{@service}: clean_up: REMOVED #{arg_address}"
-                        end
-                        #ev
-                        @sba_tile.data_store.remove(arg_address)
-                    else
-                        # I think for a register address we still must set the status to 'absent'
-                        # What about RDS_
-                        arg_symbol=setStatus(arg_symbol,DS_absent)
+                if @subtask_list.argmodes(@current_subtask)[iter_]==0
+                    arg_address=@arg_addresses[iter_] #t MemAddress
+                    #iv
+                    if @debug_all or @service==@debug_service
+                        puts "#{@service}: clean_up:  ADDRESS: #{arg_address}"
                     end
-                    @symbol_table[arg_address]=arg_symbol
-                end # if DS_present or DS_eos
-                #sysc //symbol_table.unlock();
+                    #ev
+                    #sysc //symbol_table.lock();
+                    arg_symbol=@symbol_table[arg_address] #t Word
+                    arg_status=getStatus(arg_symbol) #t uint
+                    if arg_status==DS_present or  arg_status==DS_eos
+                        if arg_address>NREGS+DATA_OF
+                            arg_symbol=setStatus(arg_symbol,DS_cleared)
+                            @data_address_stack.push(arg_address)
+                            #iv
+                            if @debug_all or @service==@debug_service
+                                puts "#{@service}: clean_up #{@current_subtask}: push ADDRESS #{arg_address} onto STACK"
+                                puts "#{@service}: clean_up(): stack size/pointer #{@data_address_stack.size()}"
+                                puts "#{@service}: clean_up: REMOVED #{arg_address}"
+                            end
+                            #ev
+                            @sba_tile.data_store.remove(arg_address)
+                        else
+                            # I think for a register address we still must set the status to 'absent'
+                            # What about RDS_
+                            arg_symbol=setStatus(arg_symbol,DS_absent)
+                        end
+                        @symbol_table[arg_address]=arg_symbol
+                    end # if DS_present or DS_eos
+                    #sysc //symbol_table.unlock();
+                end
             end # of for
         end
 

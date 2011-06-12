@@ -234,9 +234,31 @@ end #skip
         return @sba_tile.service_manager.arg_addresses
     end    
     def arg(argn) #t Word_List (uint)
+        puts "ARGN: #{argn}"
         #tile
-        addr=@sba_tile.service_manager.arg_addresses[argn] #t MemAddress
-        words=@sba_tile.data_store.mget(addr) #t Word_List
+        argmode = @sba_tile.service_manager.subtask_list.argmodes(@sba_tile.service_manager.current_subtask)[argn] & 0x3 #t uint
+        puts argmode
+        words =[] #C++  Word_List words;
+        if argmode == 0
+            addr=@sba_tile.service_manager.arg_addresses[argn] #t MemAddress
+            puts @sba_tile.data_store.inspect            
+            words=@sba_tile.data_store.mget(addr)            
+        elsif argmode ==1 or argmode == 2            
+            if argmode == 2    
+                hword=EXTSYM
+                hword=setKind(hword,(argmode>>5)&0x3)
+                hword=setDatatype(hword,(argmode>>2)&0x3)
+                words.push(hword)
+            end
+            words.push(@sba_tile.service_manager.arg_addresses[argn])
+        else 
+            raise "ARGMODE must be 0,1 or 2"
+        end
+        puts ">>"
+        puts @sba_tile.service_manager.arg_addresses.inspect()
+        puts @sba_tile.service_manager.subtask_list.arguments(@sba_tile.service_manager.current_subtask).inspect()
+        puts words.inspect()
+        puts "<<"
         return words
     end
     def addr(argn) #t MemAddress (uint)
