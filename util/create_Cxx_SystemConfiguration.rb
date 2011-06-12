@@ -16,6 +16,7 @@
 #
 # ==============================================================================
 
+#WV20110608: if you want the old behaviour back, revert to r4986 and set NEW=0 and NEWER=0
 if ENV.has_key?('GANNET_DIR')
     $LOAD_PATH.push("#{ENV['GANNET_DIR']}/Garnet/")
 else    
@@ -62,74 +63,59 @@ opts.parse(ARGV)
 require 'yaml'
 require "SBA/ServiceConfiguration.rb"
 
-cxxh_file="#{@@dirpath}/#{@@prefix_SC}SystemConfiguration.h"
-if (@@sysc==1)
-    sysc_consts_file="#{@@dirpath}/#{@@prefix_SC}SystemConfigurationConsts.h"
+def loadLibraryConfig(lib)
+    if File.exists?("./Gannet/#{lib}.yml")
+        libcfg=  YAML.load(File.open("./Gannet/#{lib}.yml"))
+    elsif File.exists?("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml")
+        libcfg=  YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml"))
+    else
+        raise "Can't find Library Config File #{lib}.yml"
+    end
+    return libcfg
 end
 
-if ENV.has_key?('GANNET_DIR') and (SBA_YML=='SBA.yml')
-	cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{SBA_YML}"))
-else
-	cfg = YAML.load(File.open(SBA_YML))
-end
+#if ENV.has_key?('GANNET_DIR') and (SBA_YML=='SBA.yml')
+#	cfg = YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{SBA_YML}"))
+#else
+#	cfg = YAML.load(File.open(SBA_YML))
+#end
 
-if cfg['System']['Version'].to_f >= 2.0
-  NEW=1
-else
-  NEW=0
-end 
+appcfg =  YAML.load( File.open("#{SBA_YML}") )
 
-if cfg['System']['Version'].to_f >= 2.1
-  NEWER=1
-else
-  NEWER=0
-end 
-
-
-if NEWER==1
-       @@sclib=cfg['System']['Library']
-else
-  @@sclib='SBAnew'
-end
+@@sclibs=appcfg['System']['Libraries']
   
-if NEW==1
 require "SBA/SystemConfigurationNew.rb"
-else
-require "SBA/SystemConfiguration.rb"
-end
   
 
-# NEW CODE ====================================================================  
-if NEW==1
-    def cxx_serviceclasses(cfg)
-     if NEWER==1
-          require "SBA/ServiceCoreLibraries/#{@@sclib}.rb"        
-          sclibclass=Object.const_get(@@sclib) #.new()
-      end
-      
+# ====================================================================  
+=begin
+We need to read the libraries from the Application YAML file,
+   then for each of these generate the tuples. 
+
+=end
+
+
+    def cxx_serviceclasses(appcfg)
         cxx_service_tuples=[] 
-        for service_id_str in cfg['System']['Services'].keys
-            scid_wrapper=cfg['System']['Services'][service_id_str] # BEGIN: [ 1, ls_BEGIN, 1 ]
-            scid=scid_wrapper[0].to_i 
-            wrapper=scid_wrapper[1]
-#            puts "KERNEL: #{wrapper}"
-            if SBAnew.method_defined?(:"#{wrapper}")
-#              puts "#{@@sclib} has no method #{wrapper}"
-              lsclib='SBAnew' #TODO: check the other classes              
-            else
-              lsclib=@@sclib
-            end  
-            # We must check somehow id a method exists in a given class
-            # So we load the class and test ...
-            if @@sysc==1
-                t_setup=0
-                t_proc=0  
-                timing_str=",#{t_setup},#{t_proc}"
-            else
-                timing_str=""                
-            end             
-            cxx_service_tuples.push("\tservices[#{scid}]=ServicePair( #{0},&#{@@prefix_SC}SBA::#{lsclib}::#{wrapper}#{timing_str} );" )      
-        end
+	    libs = appcfg['System']['Libraries']
+	    for lib in libs
+    	    libcfg =  loadLibraryConfig(lib)
+
+	        for service_id_str in libcfg['System']['Services'].keys
+    	        scid_wrapper=libcfg['System']['Services'][service_id_str] # BEGIN: [ 1, ls_BEGIN, 1 ]
+        	    scid=scid_wrapper[0].to_i 
+            	wrapper=scid_wrapper[1]
+            
+	            if @@sysc==1
+    	            t_setup=0
+        	        t_proc=0  
+            	    timing_str=",#{t_setup},#{t_proc}"
+	            else
+    	            timing_str=""                
+        	    end             
+            	cxx_service_tuples.push("\tservices[#{scid}]=ServicePair( #{0},&#{@@prefix_SC}SBA::#{lib}::#{wrapper}#{timing_str} );" )      
+	        end
+		end
         return cxx_service_tuples
     end    
     
@@ -152,8 +138,8 @@ if NEW==1
         return cxx_servicenode_constants.join("\n")        
     end
             
-   	def cxx_nservices(cfg)
-		cfg['System']['Services'].length
+   	def cxx_nservicenodes(cfg)
+		cfg['System']['ServiceNodes'].length
 	end
 
 def cxx_opcodes(cfg)
@@ -174,252 +160,10 @@ def cxx_opcodes(cfg)
 end  
 
 
-# END of NEW CODE ====================================================================  
-    
-else
-    
-# OLD CODE ====================================================================  
-# Service Id: { Service Core name: [Service Core Id, Core Function name, Nthreads,[Tsetup,Tproc]], Addr: Service NoC Address }  
+# ====================================================================  
 
-@@has_let=0
+cxxh_file="#{@@dirpath}/#{@@prefix_SC}SystemConfiguration.h"
 
-def cxx_services(cfg)
-    gw_addr = cfg['System']['ServiceInstances'][0]['Addr'].to_i
-    if gw_addr!=0
-        raise "Gateway address MUST be 0!"
-    end
-    cxx_service_tuples=[] 
-    for service_id_str in cfg['System']['ServiceInstances'].keys
-        service_id =service_id_str.to_i
-        ServiceInstances[service_id]={}
-        noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
-#        if noc_addr<gw_addr
-        for service_name_str in cfg['System']['ServiceInstances'][service_id_str].keys            
-            if service_name_str!='Addr'
-                if service_name_str=='LET'
-                    @@has_let=1
-                end    
-                entries=cfg['System']['ServiceInstances'][service_id_str][service_name_str]
-                sctype=entries[0]
-                scid=entries[1].to_i
-                core_method_name=entries[2]
-                nthreads=entries[3].to_i
-                if @@sysc==1
-                    t_setup=entries[4][0].to_i
-                    t_proc=entries[4][1].to_i   
-                    timing_str=",#{t_setup},#{t_proc}"
-                else
-                    timing_str=""                
-                end             
-                #ServiceInstances[service_id][scid]=[method,service_name_str,nthreads]
-                ServiceInstances[service_id][scid]=[SBA_SCLib.method(:"#{core_method_name}"),service_name_str,nthreads]
-                if (service_id!=0)                
-                    cxx_service_tuples.push("\tservices[#{service_id}]=ServicePair( #{noc_addr},&#{@@prefix_SC}SBA::SCLib::#{core_method_name}#{timing_str} );" )      
-                end                        
-            else
-                #noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
-                ServiceInstances[service_id]['Addr']=noc_addr
-            end                
-        end
-#        end
-    end
-    return cxx_service_tuples
-end
-
-def cxx_aliases(cfg)
-    gw_addr = cfg['System']['ServiceInstances'][0]['Addr'].to_i
-    if gw_addr!=0
-        raise "Gateway address MUST be 0!"
-    end        
-    cxx_alias_tuples=[]
-            
-    for alias_str in cfg['System']['Aliases'].keys
-        next if alias_str=='NONE'
-        entries=cfg['System']['Aliases'][alias_str]
-        service_name_str=entries[0]
-        service_id_str=entries[1]
-        noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
-        service_id=service_id_str.to_i
-        opcode=entries[2].to_i
-        if @@sysc==1
-            t_setup=entries[3][0].to_i
-            t_proc=entries[3][1].to_i  "Level 1 labs" 
-            timing_str=",#{t_setup},#{t_proc}"
-        else
-            timing_str=""                
-        end         
-#        if noc_addr<gw_addr
-            cxx_alias_tuples.push("\t"+'aliases["'+ "#{alias_str}" + '"]=AliasPair("' + "#{service_name_str}" +'",' + "#{opcode}#{timing_str} );")            
-#        end
-    end
-    return cxx_alias_tuples.join("\n") 
-end
-
-# configurations in C++ should actually be read at run time. But that's a detail
-# We only care about 'native' for C++, so we have simply
-#
-# configurations[cfgid]=DynCfgPair(libstr,symbolstr);
-# configurations can be a List<CfgTuple>
-# class CfgTuple {
-#string lib;
-#string symbol; 
-#}
-def cxx_configurations(cfg)
-    cxx_cfg_tuples=[]
-    if (cfg['System'].has_key?('Configurations') and
-    cfg['System']['Configurations'].has_key?('native') )
-    for cfgid in cfg['System']['Configurations']['native'].keys 
-    cfgpair=cfg['System']['Configurations']['native'][cfgid]           
-      if @@sysc==1
-        config_str=", #{cfgpair[2]}, #{cfgpair[3]}, #{cfgpair[4]}"
-      else
-        config_str=''
-      end
-            cxx_cfg_tuples.push("\t"+'configurations['+"#{cfgid}"+']=DynConfigTuple("'+cfgpair[0]+'","'+cfgpair[1]+'"'+config_str+');')            
-    end
-    end
-    return cxx_cfg_tuples.join("\n") 
-end
-
-if @@sysc==1
-  
-def sysc_timings(cfg)
-  gw_addr = cfg['System']['ServiceInstances'][0]['Addr'].to_i
-    if gw_addr!=0
-        raise "Gateway address MUST be 0!"
-    end
-      
-  cxx_timings_tuples=[]
-    servicetypes={}
-  for service_id_str in cfg['System']['ServiceInstances'].keys
-      service_id =service_id_str.to_i
-      ServiceInstances[service_id]={}
-      noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
-#      if noc_addr<gw_addr
-        for service_name_str in cfg['System']['ServiceInstances'][service_id_str].keys            
-            if service_name_str!='Addr'   
-                entries=cfg['System']['ServiceInstances'][service_id_str][service_name_str]
-                    sctype=entries[0]
-                    scid==entries[1].to_i
-                t_setup=entries[3][0].to_i
-                t_proc=entries[3][1].to_i   
-                opcode=entries[0].to_i
-                if (service_id!=0)                
-                  cxx_timings_tuples.push("\t"+"timings[#{service_id}][#{opcode}]= TimingTuple(#{t_setup},#{t_proc});")    
-                end                        
-            end                
-        end
-#      end
-  end    
-
-  for alias_str in cfg['System']['Aliases'].keys
-      next if alias_str=='NONE'
-      entries=cfg['System']['Aliases'][alias_str]
-      service_name_str=entries[0]
-      service_id_str=entries[1]
-      noc_addr=cfg['System']['ServiceInstances'][service_id_str]['Addr']
-      service_id=service_id_str.to_i
-      opcode=entries[2].to_i # FIXME: should this not be combined with scid << FS_SCId ???
-      t_setup=entries[3][0].to_i
-      t_proc=entries[3][1].to_i      
-#      if noc_addr<gw_addr
-        cxx_timings_tuples.push("\t"+"timings[#{service_id}][#{opcode}]= TimingTuple(#{t_setup},#{t_proc});")            
-#      end
-  end
-    if cfg['System'].has_key?('Services')
-      interfaces={}
-        interface_timings={}
-        serviceids={}
-            for servicetype in cfg['System']['Services'].keys
-                interfaces[servicetype]={}
-                methods = cfg['System']['Services'][servicetype]
-                serviceids[servicetype]=methods['ServiceId']
-                for methname in methods.keys
-                    next if methname == 'ServiceId'
-                    entry=methods[methname]
-                    interfaces[servicetype][methname]=entry[0].to_i
-                    interface_timings[servicetype][methname]=entry[1]
-                end
-            end  
-           
-      #FIXME: need to add timings for methods in SystemC as well
-        for st_key in interfaces.keys    
-            scid = serviceids[st_key]
-            scid_field = scid  << FS_SCId
-    
-            for m_key in interface_timings[st_key].keys
-                methid= interfaces[st_key][m_key]
-                opcode=methid+scid_field
-                entries= interface_timings[st_key][m_key]
-                t_setup=entries[0].to_i
-                t_proc=entries[1].to_i     
-                # FIXME: only if noc_addr<gw_addr
-                cxx_timings_tuples.push("\t"+"timings[#{service_id}][#{opcode}]= TimingTuple(#{t_setup},#{t_proc});") 
-            end 
-        end 
-    end
-  return cxx_timings_tuples.join("\n")   
-end
-
-end # of @@sysc
-
-def cxx_constants(cfg)
-    services=cfg['System']['ServiceInstances']
-    cxx_service_core_constants=[]
-    cxx_service_constants=[]
-    cxx_alias_constants=[] 
-    cxx_method_constants=[]
-	service_names={}
-    for service_id in services.keys
-        for sc_name in services[service_id].keys
-            next if sc_name=='Addr'             
-            scid=services[service_id][sc_name][1]
-            scid_field = scid << FS_SCId
-            cxx_service_core_constants.push("const UINT SC_#{sc_name} = #{scid_field};")
-            cxx_service_constants.push("const UINT S_#{sc_name} = #{service_id};")
-			service_names[sc_name]=service_id
-        end            
-    end
-	for control_service in ['LET','IF','APPLY','LAMBDA']
-		if not service_names.has_key?(control_service)
-			cxx_service_constants.push("const UINT S_#{control_service} = 0;")
-		end
-	end
-    
-    for key in aliases.keys
-        next if key=='NONE' or key=='none'        
-        service_id = aliases[key][1]        
-        scid = aliases[key][0]
-        scid_field = 0 # FIXME!!! scid  << FS_SCId
-        key_lc=key.sub(/[:.]/,'_').downcase
-        key_uc=key.sub(/[:.]/,'_').upcase
-        cxx_alias_constants.push("const UINT A_#{key_lc} = #{scid_field+aliases[key][2]};")
-        cxx_alias_constants.push("const UINT A_#{key_uc} = #{scid_field+aliases[key][2]};")
-    end
-    
-    for st_key in interfaces.keys    
-        scid = servicetypes[st_key]
-        scid_field = 0 # FIXME!!! scid  << FS_SCId
-        st_key_lc=st_key.sub(/[\.:]/,'_').downcase
-        st_key_uc=st_key.sub(/[\.:]/,'_').upcase
-        
-        for m_key in interfaces[st_key].keys
-            m_key_lc=m_key.downcase
-            m_key_uc=m_key.upcase        
-            cxx_method_constants.push("const UINT M_#{st_key}_#{m_key} = #{scid_field+interfaces[st_key][m_key]};")
-            cxx_method_constants.push("const UINT M_#{st_key_uc}_#{m_key_uc} = #{scid_field+interfaces[st_key][m_key]};")
-            cxx_method_constants.push("const UINT M_#{st_key_lc}_#{m_key_lc} = #{scid_field+interfaces[st_key][m_key]};")
-            cxx_method_constants.push("const UINT A_#{st_key_uc}_#{m_key_uc} = #{scid_field+interfaces[st_key][m_key]};")
-            cxx_method_constants.push("const UINT A_#{st_key_lc}_#{m_key_lc} = #{scid_field+interfaces[st_key][m_key]};")
-        end 
-    end 
-    
-    return cxx_service_core_constants.join("\n")+"\n\n"+cxx_service_constants.join("\n")+"\n\n"+cxx_alias_constants.join("\n")+"\n\n"+cxx_method_constants.join("\n")
-end  
-# END of OLD CODE ====================================================================  
-
-end # of NEW  
-    
 cxxh=File.open(cxxh_file,"w")
     
 cxxh.puts '
@@ -453,16 +197,8 @@ cxxh.puts '
 #include <map>
 #endif
 '
-if NEW==0
-cxxh.puts '#include "ServiceCoreLibrary.h"'
-else
-  if NEWER!=1
-    cxxh.puts '#include "ServiceCoreLibraryNew.h"'
-  else
-    cxxh.puts '#include "ServiceCoreLibraries/'+@@sclib+'.h"'
-  end
+cxxh.puts '#include "ServiceCoreLibraries/'+@@sclib+'.h"'
 
-end
 else
 cxxh.puts '
 #include <map>
@@ -480,20 +216,12 @@ namespace #{@@prefix_SC}SBA {
 
 "
 if (@@sysc==0)
-if NEW==1
     cxxh.puts cxx_opcodes(cfg)
     cxxh.puts cxx_servicenodes(cfg)
-else
-	cxxh.puts cxx_constants(cfg)
-end
 end
 cxxh.puts '
 // Not elegant, but static arrays are a lot faster than linked lists!'
-if NEW==1
-    cxxh.puts "const UINT NSERVICES = #{cxx_nservices(cfg)};"
-else 
-    cxxh.puts "const UINT NSERVICES = #{cxx_services(cfg).length()};"
-end
+    cxxh.puts "const UINT NSERVICES = #{cxx_nservicenodes(cfg)};"
 
 cxxh.puts '
 class Config {
@@ -513,9 +241,6 @@ end
 cxxh.puts '
 	Config()
 	{
-#ifndef NEW	
-	unsigned int gw_address=0; // NSERVICES; // must be 0 from 16/12/2010 on (was the LAST address)
-#endif	
 '
 if @@sysc==0
 cxxh.puts '
@@ -531,9 +256,6 @@ cxxh.puts '
 #endif // NO_DRI    
 #endif
 '
-if NEW==0	
-cxxh.puts '	services[0]= ServicePair(gw_address,&SBA::SCLib::sba_GATEWAY);'
-end
 else
 cxxh.puts '
 	services[0]= ServicePair(gw_address,&SC_SBA::SCLib::sba_GATEWAY);
@@ -551,20 +273,11 @@ end
 #// services[service_id]=ServicePair(service_address,&SBA::SCLib::ls_LET);
 #'
 cxxh.puts '#ifndef NO_SERVICES'
-if NEW==1
     cxxh.puts cxx_serviceclasses(cfg)
-else
-    cxxh.puts cxx_services(cfg)
-end
 
 cxxh.puts '#endif // NO_SERVICES'
-if NEW==0
-cxxh.puts '#ifndef NO_DRI'
-cxxh.puts cxx_configurations(cfg)
-cxxh.puts '#endif // NO_DRI'
-else
 cxxh.puts '// NO DRI SUPPORT YET for NEW!'
-end	
+
 if @@sysc==1
   cxxh.puts sysc_timings(cfg)
 end
@@ -582,6 +295,8 @@ cxxh.close
 
 # FOR SYSTEMC ================================================================= 
 if (@@sysc==1) 
+
+sysc_consts_file="#{@@dirpath}/#{@@prefix_SC}SystemConfigurationConsts.h"
 sysc_consts=File.open(sysc_consts_file,"w")
 sysc_consts.puts '
 #ifndef _SC_SBA_SYSTEM_CONFIGURATION_CONSTS_H_
@@ -602,11 +317,7 @@ const UINT S_LET = 3;
 const UINT SC_LET = 0;    
 '
 end
-if NEW==1
-    sysc_consts.puts cxx_opcodes(cfg)
-else
-    sysc_consts.puts 
-end
+sysc_consts.puts cxx_opcodes(cfg)
 
 sysc_consts.puts '
 } // SC_SBA

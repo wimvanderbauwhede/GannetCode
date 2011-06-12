@@ -1057,7 +1057,7 @@ public:
 #else // STATIC_ALLOC
 		class Services {
 		private:
-			ServicePair mem[MAX_NSERVICES];
+			ServicePair mem[MAX_NSERVICES]; // should become 256*256
 		public:
 			Services () {}
 			// Note that the return value must be a ref to be able to assign to it

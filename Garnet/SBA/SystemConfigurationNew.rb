@@ -183,11 +183,11 @@ if version>=2.0
                 opcode+=1
             end
         end
-sclid+=1
-end
-sclid=1
-
-for libservice in services
+        sclid+=1
+    end
+    
+    sclid=1
+    for libservice in services
         for scid in libservice.keys
             sc_str = libservice[scid][1]
             eval "SC_#{sc_lib}_#{sc_str} = #{scid}"
