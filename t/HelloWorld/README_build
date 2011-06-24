@@ -1,0 +1,1 @@
+PYTHONPATH=/Users/wim/SoC_Research/Code/GitHub/GannetCode/VirtualMachine/build/ scons --debug=explain

@@ -1,0 +1,12 @@
+""" \file SConstruct
+   
+ \brief Gannet SBA - SCons script for building GannetVM
+"""
+
+##  (c) 2004-2011 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+
+from GannetBuilder import build
+
+binname='gannetvm'
+
+build('',binname,[])
