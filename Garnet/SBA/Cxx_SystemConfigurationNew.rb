@@ -38,7 +38,8 @@ opts=OptionParser.new()
 
 @@sysc=0
 @@prefix_SC=''
-@@dirpath='./'
+@@dirpath="./"
+@@sba_dir="./"
 
 SBA_YML='SBA.yml'
 TO_YAML=0
@@ -54,11 +55,14 @@ WORDSZ=64
 opts.on("-W wordsz","--wordsz=wordsz",Integer) { |wordsz| WORDSZ=wordsz }
 opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| SBA_YML=yml_file }
 opts.on("-D dirpath","--dir=dirpath",String) {|dir_path| @@dirpath=dir_path }
+opts.on("-C cwd","--cwd=cwd",String) {|cwd| @@sba_dir=cwd }
 opts.on("-h","--help") {
 puts help
 exit
 }
 opts.parse(ARGV)
+
+SBA_WD=@@sba_dir
 
 require 'yaml'
 require "SBA/ServiceConfiguration.rb"
@@ -66,8 +70,8 @@ require "SBA/ServiceConfiguration.rb"
 
 
 def loadLibraryConfig(lib)
-    if File.exists?("./Gannet/#{lib}.yml")
-        libcfg=  YAML.load(File.open("./Gannet/#{lib}.yml"))
+    if File.exists?("#{SBA_WD}/Gannet/#{lib}.yml")
+        libcfg=  YAML.load(File.open("#{SBA_WD}/Gannet/#{lib}.yml"))
     elsif File.exists?("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml")
         libcfg=  YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml"))
     else
@@ -96,8 +100,8 @@ end
     for lib in libs
         libcfgs[i] =  loadLibraryConfig(lib)
                 
-        if File.exists?("./Gannet/#{lib}.rb") or File.exists?("./Gannet/#{lib}.h")
-            sclibs[i]='#include "./Gannet/'+lib+'.h"'
+        if File.exists?("#{SBA_WD}/Gannet/#{lib}.rb") or File.exists?("#{SBA_WD}/Gannet/#{lib}.h")
+            sclibs[i]='#include "'+SBA_WD+'/Gannet/'+lib+'.h"'
         elsif File.exists?("#{ENV['GANNET_DIR']}/Garnet/SBA/ServiceCoreLibraries/#{lib}.rb") or 
             File.exists?("#{ENV['GANNET_DIR']}/Garnet/SBA/ServiceCoreLibraries/#{lib}.h")
             sclibs[i]='#include "SBA/ServiceCoreLibraries/'+lib+'.h"'

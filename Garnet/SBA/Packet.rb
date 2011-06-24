@@ -744,9 +744,9 @@ end
                 for i in 0..maxnwords-1 #t uint
 #C++	        outs << ppSymbol(wl[i]) <<"\n";
                     if wl[i].kind_of?( Integer) #skip	
-                    os+="#{ppSymbol(wl[i])}\n" #skip
+                        os+="#{ppSymbol(wl[i])}\n" #skip
                     else #skip
-                        os+="#{ppSymbol(NIHIL)}\n"
+                        os+="#{ppSymbol(NIHIL)}\n" #skip
                     end #skip
                 end
                 rest=wl.length()-maxnwords #t uint

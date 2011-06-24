@@ -39,7 +39,7 @@ opts=OptionParser.new()
 @@sysc=0
 @@prefix_SC=''
 @@dirpath='./'
-
+@@sba_dir='./'
 SBA_YML='SBA.yml'
 TO_YAML=0
 USE_THREADS=0
@@ -54,11 +54,14 @@ WORDSZ=64
 opts.on("-W wordsz","--wordsz=wordsz",Integer) { |wordsz| WORDSZ=wordsz }
 opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| SBA_YML=yml_file }
 opts.on("-D dirpath","--dir=dirpath",String) {|dir_path| @@dirpath=dir_path }
+opts.on("-C cwd","--cwd=cwd",String) {|cwd| @@sba_dir=cwd }
 opts.on("-h","--help") {
 puts help
 exit
 }
 opts.parse(ARGV)
+
+SBA_WD=@@sba_dir
 
 require 'yaml'
 require "SBA/ServiceConfiguration.rb"
@@ -83,7 +86,7 @@ end
 appcfg =  YAML.load( File.open("#{SBA_YML}") )
 
 @@sclibs=appcfg['System']['Libraries']
-  
+
 require "SBA/SystemConfigurationNew.rb"
   
 
@@ -197,6 +200,7 @@ cxxh.puts '
 #include <map>
 #endif
 '
+
 cxxh.puts '#include "ServiceCoreLibraries/'+@@sclib+'.h"'
 
 else

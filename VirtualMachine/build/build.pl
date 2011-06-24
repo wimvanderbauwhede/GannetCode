@@ -10,6 +10,7 @@ use Getopt::Std;
 use YAML::Syck;
 
 my $gannet_dir = $ENV{GANNET_DIR};
+my $sba_dir=cwd();
 my $platform = 'macosx';
 my $os=`uname`;
 if ($os=~/Linux/) {
@@ -112,7 +113,7 @@ if ($clean) {
 		chdir "$gannet_dir/Garnet";
 # 1. Generate SystemConfiguration from YAML file 
 #TODO: this should go into the GannetBuilder
-		my $create_config_scons_str="scons $c -f SConstruct.SystemConfiguration.py Y='$ymlpath' D='$cxx_source_path' $scons_distr $scons_wordsz gen";
+		my $create_config_scons_str="scons $c -f SConstruct.SystemConfiguration.py Y='$ymlpath' D='$cxx_source_path' WD='$sba_dir' $scons_distr $scons_wordsz gen";
         $create_config_scons_str=~s/\s+/ /g;
 		print "$create_config_scons_str\n";
 		system($create_config_scons_str);
