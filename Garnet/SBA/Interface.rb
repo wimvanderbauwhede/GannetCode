@@ -185,9 +185,9 @@ Bytecode Interface::read_bytecode(uint status){ //H
                 if result.length>1                    
                     result_payload=result #t Word_List
                     #iv
-                    if VERBOSE==1 #skip
+                    if VERBOSE==1 
                                         print "RESULT (VMIF): ( "
-                    end #skip 
+                    end # VERBOSE
                     #ev                    
                     if FP==0
                         int_result=to_signed_int_list(result_payload) #t deque<Int>
@@ -197,15 +197,16 @@ Bytecode Interface::read_bytecode(uint status){ //H
                              
                             if first and elt == 0xcd000100
                             #iv   
-                                if VERBOSE==1 #skip
+                                if VERBOSE==1
                                 print "0x#{sprintf('%x',elt)} " if @v #skip
                                 #C++ cout << "0x" << hex << elt << " ";
-                                end #skip 
+                    end # VERBOSE
                             #ev                                    
                             else
-                                if VERBOSE==1 #skip
+                                if VERBOSE==1 
                                 print elt, " " #C++ cout << dec << elt << " ";
-                                end #skip 
+                    end # VERBOSE
+                               end #skip  
                             end
                             first=false
                         end
@@ -217,20 +218,20 @@ Bytecode Interface::read_bytecode(uint status){ //H
 #                                  print "0x#{sprintf('%x',elt)} "  #C++ cout << "0x" << hex << elt << " ";
                                   first=false
                               else
-                                  if VERBOSE==1 #skip
+                                  if VERBOSE==1 
                                   print elt, " " #C++ cout << dec << elt << " ";
-                                  end #skip 
+                                  end # VERBOSE
                               end
                         end
                     end # FP
 #iv
-                    if VERBOSE==1 #skip
+                    if VERBOSE==1
                     print ")" 
-            end #skip 
+            end # VERBOSE
 #ev                    
-                    if VERBOSE==1 #skip
+                    if VERBOSE==1
                     print "\n"
-        end #skip          
+        end # VERBOSE  
                 elsif result.length==0
                     puts "RESULT (VMIF): []"           
                 else
