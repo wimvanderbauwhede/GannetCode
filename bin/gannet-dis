@@ -22,7 +22,8 @@
 #
 # $Id$
 
-WORDSZ=32
+DISTR=0
+WORDSZ=64  # FIXME! need switch!
 NUM=1
 TO_YAML=0
 VERBOSE=1

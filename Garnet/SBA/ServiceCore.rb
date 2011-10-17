@@ -171,10 +171,11 @@ end #skip
     end
 #endskip
 #skipcc
-=begin #C++
+
+=begin #C++ 
     Word iterate();
     Word iterate(Word v);
-=end #C++
+=end #C++ 
 #endskipcc
 #skiph
 =begin #C++
@@ -188,6 +189,9 @@ end #skip
     }
 =end #C++
 #endskiph
+=begin KEEPVIMHAPPY
+=end
+    
     def init() #t bool ()
         puts "init()" #skip
         if @state_register[0]==0
@@ -234,14 +238,14 @@ end #skip
         return @sba_tile.service_manager.arg_addresses
     end    
     def arg(argn) #t Word_List (uint)
-        puts "ARGN: #{argn}"
+        puts "ARGN: #{argn}" if @verbose #skip
         #tile
         argmode = @sba_tile.service_manager.subtask_list.argmodes(@sba_tile.service_manager.current_subtask)[argn] & 0x3 #t uint
-        puts argmode
+#puts argmode
         words =[] #C++  Word_List words;
         if argmode == 0
             addr=@sba_tile.service_manager.arg_addresses[argn] #t MemAddress
-            puts @sba_tile.data_store.inspect            
+#            puts @sba_tile.data_store.inspect            
             words=@sba_tile.data_store.mget(addr)            
         elsif argmode ==1 or argmode == 2            
             if argmode == 2    
@@ -254,11 +258,15 @@ end #skip
         else 
             raise "ARGMODE must be 0,1 or 2"
         end
-        puts ">>"
+#iv    
+        if @verbose
+        puts ">>" 
         puts @sba_tile.service_manager.arg_addresses.inspect()
         puts @sba_tile.service_manager.subtask_list.arguments(@sba_tile.service_manager.current_subtask).inspect()
         puts words.inspect()
         puts "<<"
+        end
+#ev        
         return words
     end
     def addr(argn) #t MemAddress (uint)

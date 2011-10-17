@@ -37,6 +37,7 @@ help= <<EOH
     -t, --threads: use Ruby threads
     -Y, --yaml: YAML configuration file
     -N, --new: flag to enable new features for testing    
+    -C, --cwd: current working directory
 EOH
 
 DISTR=0
@@ -74,10 +75,13 @@ tSBA_YML='SBA.yml'
 opts.on("-Y yml-file","--yml=yml-file",String) {|yml_file| tSBA_YML=yml_file }
 task_data=""
 opts.on("-D datafile","--data-file",String) {|data_file| task_data = data_file }
+@@sba_dir='.'
+opts.on("-C cwd","--cwd=cwd",String) {|cwd| @@sba_dir=cwd }
 opts.on("-h","--help") {
 puts help
 exit
 }
+SBA_WD=@@sba_dir
 # TODO: this allows only a single task description. 
 td_file=opts.parse(ARGV).join('')
 

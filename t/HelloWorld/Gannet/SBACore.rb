@@ -1758,7 +1758,7 @@ end # WORDSZ
             result="" #skip
             for argn in 0..parent.nargs()-1 #t uint
 				data=parent.arg(argn) #t Word_List
-				puts data.inspect
+#puts data.inspect
 #skip				
 				case getDatatype(data[0])
 					when T_i
