@@ -1124,7 +1124,7 @@ so we have:
             #ev
 
             #WV23072008: replace by for ?
-            i=0 #t uint
+            argidx=0 #t uint
             while subtask.length>0
                 elt=subtask.shift #C++ Word elt=subtask.front(); subtask.pop_front();
                 if @data_address_stack.size==0
@@ -1141,8 +1141,8 @@ so we have:
                 # WV11012011 PASS-BY-VALUE
                 # for this to work properly we need a bit in the subtask record to indicate if the arg is an address (0) or a value (1)
                 pass_by_value = 0 #t uint
-                if getKind(elt)!=K_C
-                    argmode=0 #t unsigned char
+                argmode=0 #t unsigned char
+                if getKind(elt)!=K_C                    
                     #WV20110612: I think we can do this for K_L, K_A as well, maybe for
                     # K_C and K_D as well but I forgot what these do.
                     if getKind(elt)==K_B && getExt(elt)==0
@@ -1188,12 +1188,13 @@ so we have:
                     @subtask_list.arguments(parent_subtask).push(subtask.shift)                    
                 end 
                 argmode+=((getKind(elt)&0x7)<<5)+((getDatatype(elt)&0x7)<<2)               
-                @subtask_list.argmodes(parent_subtask).push(argmode)
+                @subtask_list.argmodes(parent_subtask).push(argmode) #skip
+                #C++ subtask_list.argmodes(parent_subtask,argidx,argmode);
                 #else
                 #FIXME: not OK for pass-by-value!
-                #C++ subtask_list.arguments(parent_subtask)[i]=data_address;
+                #C++ subtask_list.arguments(parent_subtask)[argidx]=data_address;
                 #endif
-                i=i+1
+                argidx=argidx+1
                 # -------------------- Identify Symbol by Kind and Quoted -----------------
                 # R|C|D|U|L
                 # Actually, only R really matters.
@@ -1586,9 +1587,10 @@ end
                 # That means the core_control should decide based on the type of the ServiceClass of the active subtask
                 # i.e. we want
                 # if @servicetype!=CONTROL
-                # and this "@servicetype" is determined by parse_subtask based on the SCId?
-                # All this can only reasonably work in 64-bits, then I can use a bit in the the Task field
-                if @service!=S_LET and @service!=S_IF
+                # and this "@servicetype" is determined by parse_subtask, based on the SCId?
+                # All this can only reasonably work in 64-bits, then I can use a bit in the the Task field to indicate Control or Data
+                # As a temporary fix we assume a single LET or IF core and no other control services...
+                if @service!=S_LET and @service!=S_IF 
                     if subtask_status==STS_skip
                         @core_status = CS_skip
                     else

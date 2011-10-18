@@ -70,6 +70,7 @@ require "SBA/ServiceConfiguration.rb"
 
 
 def loadLibraryConfig(lib)
+    puts "WD:#{SBA_WD}"
     if File.exists?("#{SBA_WD}/Gannet/#{lib}.yml")
         libcfg=  YAML.load(File.open("#{SBA_WD}/Gannet/#{lib}.yml"))
     elsif File.exists?("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml")
@@ -236,8 +237,12 @@ end
         for node_id in servicenodes(appcfg).keys
             servicenode_name_str = servicenodes(appcfg)[node_id]['Name']
             if servicenode_name_str=~/\.LET$/
-                eval "S_LET = #{node_id}"
+                #eval "S_LET = #{node_id}"
+                servicenode_constants.push("const UINT S_LET = #{node_id};")
             end
+            if servicenode_name_str=~/\.IF$/            
+                servicenode_constants.push("const UINT S_IF = #{node_id};")
+            end            
             const_name_str=servicenode_name_str.sub('.','_') 
             servicenode_constants.push("const UINT S_#{const_name_str} = #{node_id};")
         end

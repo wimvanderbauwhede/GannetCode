@@ -108,9 +108,9 @@ int main(int ac, char* av[]) {
 
 // Now for the real stuff
 		StringPair sp;
-		sp.Taskfile=tdc_file;//"../../Tasks/task_pre_alu.tdc";
+		sp.taskfile=tdc_file;//"../../Tasks/task_pre_alu.tdc";
 #if DATA==1
-		sp.Datafile=data_file;//"../../Tasks/task_pre_alu.data";
+		sp.datafile=data_file;//"../../Tasks/task_pre_alu.data";
 #endif
 		TaskDescList tds;
 		tds.push_back(sp);

@@ -1,1 +1,3 @@
 PYTHONPATH=/Users/wim/SoC_Research/Code/GitHub/GannetCode/VirtualMachine/build/ scons --debug=explain
+
+./../VirtualMachine/build/build.pl -Z -Y hello.yml

@@ -7,6 +7,6 @@
 
 from GannetBuilder import build
 
-binname='gannetvm'
+binname='../../VirtualMachine/build/gannetvm'
 
 build('',binname,[])

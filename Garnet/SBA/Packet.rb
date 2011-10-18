@@ -242,7 +242,7 @@ end # WORDSZ
 end
 
 def getChar(words) #t char (Word_List)
-    val = getInt(words[0]) #t uint
+    val = getInt(words) #t uint
     ch = val & 0xFF #C++ char ch=(char)(val & 0xFF);
     return ch
 end

@@ -16,12 +16,12 @@
 #include <dlfcn.h>
 #include <fstream>
 #include <sstream>
-#include "../Types.h" //skipcc
-#include "../Packet.h" //skipcc
-#include "../Base/ServiceCore.h" //skipcc
-#include "../System.h" //skiph
-#include "../Tile.h" //skiph
-#include "../ServiceCore.h" //skiph
+#include "Types.h" //skipcc
+#include "Packet.h" //skipcc
+#include "Base/ServiceCore.h" //skipcc
+#include "System.h" //skiph
+#include "Tile.h" //skiph
+#include "ServiceCore.h" //skiph
 #include "SBACore.h"
 =end #inc 
 
@@ -39,7 +39,7 @@ require "SBA/Packet.rb"
 
 #skipcc
 #C++ namespace SBA {
-#C++ namespace SBAnew {
+#C++ namespace SBACore {
 #endskipcc
 
 #skiph
@@ -47,9 +47,9 @@ require "SBA/Packet.rb"
 #endskiph
 class SBACore  #skip
   include SBA #skip
-    def initialize(verbose)
-        @v=(verbose==1)
-    end
+    def initialize(verbose) #skip
+        @v=(verbose==1) #skip
+    end #skip
 #ifndef NO_SERVICES    
 if WORDSZ==64    
     # Helper functions for FPU
