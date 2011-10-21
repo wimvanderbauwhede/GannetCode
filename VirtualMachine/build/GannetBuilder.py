@@ -259,7 +259,8 @@ def build(classname,binname,sources):
 
     env = Environment(variables = opts, CXX = cxx, CXXFLAGS = FLAGS+SWITCHES)
 #   Help(opts.GenerateHelpText(env))
-
+    GANNET_DIR=os.environ["GANNET_DIR"]
+    print "GANNET_DIR:"+GANNET_DIR
     if H==1:
         print(opts.GenerateHelpText(env))
         exit(1)
@@ -337,7 +338,7 @@ def build(classname,binname,sources):
         LIBpaths+=[os.environ['SYSTEMC_LIB']]
 
     if OSX==1:
-        INCpaths=['.']
+        INCpaths=['.',GANNET_DIR+'/VirtualMachine/SBA/']
         LIBpaths=['/usr/local/lib/']
         libs=['m']
         if boost==1:

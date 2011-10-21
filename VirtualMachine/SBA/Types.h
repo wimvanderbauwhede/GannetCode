@@ -1067,11 +1067,11 @@ public:
 		};
 		class Configurations {
 		private:
-			DynConfigPair mem[MAX_NDYNCONFIGS];
+			DynConfigTuple mem[MAX_NDYNCONFIGS];
 		public:
 			Configurations () {}
 			// Note that the return value must be a ref to be able to assign to it
- 			inline DynConfigPair& operator[] (const unsigned int i) {
+ 			inline DynConfigTuple& operator[] (const unsigned int i) {
 				return mem[i];
  			}
 		};		
