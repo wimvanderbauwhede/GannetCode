@@ -74,7 +74,7 @@ my $wordsz = (exists $opts{'W'})?1*$opts{'W'}: (exists $opts{'H'}?32:$Config{lon
 my $scons_wordsz=($wordsz ==32)?'':'wordsz='.$wordsz;
 
 my $wd=cwd();
-
+my $scons_wd='wd='.$wd;
 my $ymlpath=$ymlfile;
 if ($ymlfile!~/^\//) {
 	$ymlpath="$wd/$ymlfile";
@@ -92,7 +92,8 @@ if($opts{'Z'}) {
 my $cxx_source_path="$gannet_dir/VirtualMachine/SBA";
 my $cxx_testbench_path="$gannet_dir/VirtualMachine/build";
 
-my $run_scons_str="GANNET_YML_CONFIG=$ymlpath scons $scons_c $scons_new $scons_sclib $scons_v $scons_d $scons_cycles $scons_dyn $scons_vm $scons_sock $scons_pthreads $scons_wordsz $scons_nogen
+my $run_scons_str="GANNET_YML_CONFIG=$ymlpath scons $scons_c $scons_new $scons_sclib $scons_v $scons_d $scons_cycles $scons_dyn $scons_vm $scons_sock
+$scons_pthreads $scons_wordsz $scons_nogen $scons_wd
 -f SConstruct$scons_ext";
 $run_scons_str=~s/\s+/ /g;
 
@@ -131,18 +132,16 @@ if ($clean) {
 			my $r2nh_sclib='';
 			my $r2ncc_sclib='';
 			if (-e "$sba_dir/Gannet/$sclib.rb") {
-#			my $r2nh_sclib= "perl -I../../util ../../util/r2n.pl -Y $ymlpath -H $sba_dir/Gannet/$sclib.rb > $gannet_dir/VirtualMachine/SBA/ServiceCoreLibraries/$sclib.h";
-#			my $r2ncc_sclib="perl -I../../util ../../util/r2n.pl -Y $ymlpath -CC $sba_dir/Gannet/$sclib.rb > $gannet_dir/VirtualMachine/SBA/ServiceCoreLibraries/$sclib.cc";
 			$r2nh_sclib= "perl -I../../util ../../util/r2n.pl -Y $ymlpath -H $sba_dir/Gannet/$sclib.rb > $sba_dir/Gannet/$sclib.h";
 			$r2ncc_sclib="perl -I../../util ../../util/r2n.pl -Y $ymlpath -CC $sba_dir/Gannet/$sclib.rb > $sba_dir/Gannet/$sclib.cc";
 			} else {
 			$r2nh_sclib= "perl -I../../util ../../util/r2n.pl -Y $ymlpath -H $gannet_dir/Garnet/SBA/ServiceCoreLibraries/$sclib.rb > $gannet_dir/VirtualMachine/SBA/ServiceCoreLibraries/$sclib.h";
 			$r2ncc_sclib="perl -I../../util ../../util/r2n.pl -Y $ymlpath -CC $gannet_dir/Garnet/SBA/ServiceCoreLibraries/$sclib.rb > $gannet_dir/VirtualMachine/SBA/ServiceCoreLibraries/$sclib.cc";
 			}
-			print "$r2nh_sclib\n";
-			system($r2nh_sclib);
-			print "$r2ncc_sclib\n";
-			system($r2ncc_sclib);
+#			print "$r2nh_sclib\n";
+#			system($r2nh_sclib);
+#			print "$r2ncc_sclib\n";
+#			system($r2ncc_sclib);
 		}
 		print $run_scons_str,"\n";
 		system($run_scons_str);

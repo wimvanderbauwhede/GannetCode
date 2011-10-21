@@ -136,7 +136,7 @@ else # WORDSZ==32
         # 4 bytes, idem
         wordstr=str.unpack("N"*nwords) 
 end # WORDSZ  
-#puts wordstr.inspect 
+# puts wordstr.inspect 
         sym=[sheader]+wordstr 
 #endskip
         return sym
@@ -746,7 +746,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         print "LET (#{parent.service}) CORE: #{parent.current_subtask}: (#{ppservice}<>#{SC_SBACore_LET}\n" 
 		end #skip
 #ev        
-        method=parent.method()
+        method=parent.method() #t uint
 #        puts "METHOD: #{method}",M_SBACore_LET_assign
         if method==M_SBACore_LET_let or method==M_SBACore_LET_lettc
 #iv
@@ -973,7 +973,7 @@ So what happens if it's a tail call?
 #iv            
 			if @v #skip
                     try_array=sba_tile.data_store.mget(address) #t Word_List
-					puts try_array.inspect
+					puts try_array.inspect #skip
                     print "LET (#{parent.service}) CORE: #{address}\t#{ppPayload(try_array)}\n"
 			end #skip 
 #ev
@@ -1126,6 +1126,7 @@ So what happens if it's a tail call?
             sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_cleanup)
             parent.result([result])  #C++  Word_List result_list; result_list.push_back(result); parent.result(result_list);
         end # of not M_SBACore_LET_let
+#C++ } // of not M_SBACore_LET_let
     end # of ls_LET        
 # -----------------------------------------------------------------------------    
     # SEQ is like a LET but it does not provide scope, all it does is sequence the arguments. It's like BEGIN with seq support.
@@ -1173,9 +1174,9 @@ def ls_SEQ(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/p
                 sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
                 # -create a ref packet and send it off
                 to=getName(numval) #t To_t
-                return_to=S_SEQ #t Return_to_t
+                return_to=S_SBACore_SEQ #t Return_to_t
                 var_label = setSubtask(label,address) #t Word
-                var_label = setName(var_label,S_SEQ)
+                var_label = setName(var_label,S_SBACore_SEQ)
                 return_as=var_label #t Word
                 ack_to=0 #t Word
                 packet_type=P_reference #t Packet_Type
@@ -1191,7 +1192,7 @@ def ls_SEQ(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/p
                     # so the return packet will be an ACK
                     # CORE decides to redirect
                     parent.core_status=CS_managed
-                    send_ack_to=setName(label,S_SEQ) #t Word
+                    send_ack_to=setName(label,S_SBACore_SEQ) #t Word
                     send_ack_to=setSubtask(send_ack_to,address)
                     parent.ack_ok=0 # If a core redirects, it doesn't send an ACK
                     # set "waiting for ACK" flag
@@ -1204,7 +1205,7 @@ def ls_SEQ(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/p
                     ref_packet_payload=reslist #t Word_List 
                     ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
                     puts ppPacket(ref_packet) if @v #skip
-                    if to!=S_SEQ
+                    if to!=S_SBACore_SEQ
                       #sysc           OSTREAM << std::setw(12) << setfill(' ') << sc_time_stamp() << ": 3 SEQ CORE sends packet To:"<<to<<"\n"; 
                         sba_tile.transceiver.tx_fifo.push(ref_packet)
                     else
@@ -1225,7 +1226,7 @@ def ls_SEQ(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/p
                     ref_packet_payload=reslist #t Word_List 
                     ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
                     puts ppPacket(ref_packet) if @v #skip
-                    if to!=S_SEQ
+                    if to!=S_SBACore_SEQ
                         sba_tile.transceiver.tx_fifo.push(ref_packet)
                     else
                         if SEQVM==0
@@ -1632,7 +1633,7 @@ No, we must do it like in IF or LET
         addresses=parent.addresses() #t MemAddresses&
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word        
 	
-		#puts parent.current_subtask #skip
+		# puts parent.current_subtask #skip
     	service=getName(service_word) #t Name_t
         parent.core_return_type=P_data
     # we use the lookup_table to map ports to file descriptors
@@ -1758,7 +1759,7 @@ end # WORDSZ
             result="" #skip
             for argn in 0..parent.nargs()-1 #t uint
 				data=parent.arg(argn) #t Word_List
-#puts data.inspect
+# puts data.inspect
 #skip				
 				case getDatatype(data[0])
 					when T_i

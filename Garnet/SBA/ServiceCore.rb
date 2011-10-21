@@ -29,7 +29,7 @@ class SBA_ServiceCore
     attr_accessor :state_register,#t State_Register;
                     :lookup_table, #t LookupTable;
                     :core_status,:core_return_type,:ack_ok,:n_args #t Core_Status;Packet_Type;uint;uint;
-    attr_reader :service,:nservice,:address,:current_subtask,:tid,:scid,:sclid,:opcode #t Service;Service;ServiceAddress;Subtask;uint;uint;uint;uint;
+    attr_reader :service,:nservice,:address,:current_subtask,:tid,:scid,:sclid,:opcode,:verbose #t Service;Service;ServiceAddress;Subtask;uint;uint;uint;uint;bool;
  #skipcc    
 =begin #constructor
         ServiceCore(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_, ServiceAddress& addr_, uint tid_) :
@@ -121,12 +121,19 @@ For a HW core in the SW ServiceManager, we have CS_managed until
             @core_return_type=@sba_tile.service_manager.core_return_type
             @ack_ok=@sba_tile.service_manager.ack_ok         
             @opcode=@sba_tile.service_manager.opcode 
+#iv
+            puts "CALL TO CORE #{@sclid-1} #{@scid} "
+#ev            
 
-#                @sba_tile.service_manager.results_store=@sba_system.services[@scid][0].call(@sba_tile,self,@sba_tile.service_manager.arg_addresses) #skip
             @sba_system.services[@sclid-1][@scid][0].call(@sba_tile,self) #skip                    
-    #C++        FuncPointer fp=sba_system.cfg.services[scid].core;
-#    #C++        sba_tile.service_manager.results_store=(*fp)((Base::ServiceCore*)this,sba_tile.service_manager.arg_addresses);
+    #C++        FuncPointer fp=sba_system.cfg.services[(sclid<<8)+scid].core;
+#iv                
+                puts "CALL FUNCPOINTER"
+#ev                
     #C++        (*fp)((Base::ServiceCore*)this);
+#iv                
+        puts "DONE CALL TO CORE"
+#ev
             @sba_tile.service_manager.core_return_type=@core_return_type
             @sba_tile.service_manager.ack_ok=@ack_ok   
             @sba_tile.service_manager.n_args=@n_args    
@@ -259,15 +266,15 @@ end #skip
         else 
             raise "ARGMODE must be 0,1 or 2"
         end
-#iv    
-        if @verbose
-        puts ">>" 
-        puts @sba_tile.service_manager.arg_addresses.inspect()
-        puts @sba_tile.service_manager.subtask_list.arguments(@sba_tile.service_manager.current_subtask).inspect()
-        puts words.inspect()
-        puts "<<"
-        end
-#ev        
+    
+        if @verbose #skip
+        puts ">>"  #skip
+        puts @sba_tile.service_manager.arg_addresses.inspect() #skip
+        puts @sba_tile.service_manager.subtask_list.arguments(@sba_tile.service_manager.current_subtask).inspect() #skip
+        puts words.inspect() #skip
+        puts "<<" #skip
+        end #skip
+
         return words
     end
     def addr(argn) #t MemAddress (uint)

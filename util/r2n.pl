@@ -15,7 +15,7 @@ use YAML::Syck;
 #use Perl6::Say;
 
 my %opts;
-getopts( 'dHCsShvY:c:', \%opts );
+getopts( 'dHCsSLhvY:c:', \%opts );
 
 if ( $opts{'h'} ) {
 	die "
@@ -30,11 +30,12 @@ if ( $opts{'h'} ) {
 	-Y: YAML config file for Gannet (defaults to SBA.yml)
 	-c: YAML config file for r2n (defaults to r2n.yml)
 	-d: use default types (will use uint for loops)
+	-L: Input file is a Service Core Library
 	\n";
 }
 
 my $infile = $ARGV[0] or die "Please specifiy input file\n";
-
+my $is_library = $opts{'L'}?1:0;
 my $STATIC_ALLOC = $opts{'s'} ? 1 : 0;
 my $H            = $opts{'H'} ? 1 : 0;
 my $CC           = 1 - $H;
@@ -52,7 +53,11 @@ my $sysc_ostream =
 my $ymlfile = $opts{'Y'} || 'SBA.yml';
 my $r2n_yml_default=$0; $r2n_yml_default=~s/\.pl/.yml/;
 my $r2n_yml= $opts{'c'} || $r2n_yml_default;
-my %servicecore_names = get_servicecore_names($ymlfile);
+
+my %servicecore_names = ();
+if ($is_library) {
+    %servicecore_names =get_servicecore_names($ymlfile);
+}
 
 my $switches = 'NUML|NUMK|NUM|SYM|BYC|REDIR|QUOTEFLD';
 # methods means they'll get a () appended
@@ -247,8 +252,12 @@ sub main {
 	my @lines3 = translate(@lines2);
 	unshift @lines3, $header;
 	# FIXME
-	if ( $infile =~ /ServiceCoreLibrary\.rb/ ) {
-		my @lines4 = process_ServiceCoreLibrary(@lines3);
+#	if ( $infile =~ /ServiceCoreLibrary\.rb/ ) {
+	if ($is_library) {
+		my $libname=$infile;
+		$libname=~s/^.*\///;
+		$libname=~s/\..*$//;
+		my @lines4 = process_ServiceCoreLibrary($libname,\@lines3);
 		print_out(@lines4);
 	} else {
 		print_out(@lines3);
@@ -1402,18 +1411,23 @@ sub print_out {
 
 # ========================================================================================
 sub process_ServiceCoreLibrary {
-	my @in_lines  = @_;
+	(my $libname, my $in_lines_ref)=@_;
+	my @in_lines  = @{$in_lines_ref};
 	my @out_lines = ();
 	my $skipf     = 0;
 	my $prev_name = '';
 	my $name      = '';
+	if ($SYSC_SCLIB == 1) {
+		die "BROKEN for SYSTEMC!";
+	}
 	for my $line (@in_lines) {
+		# FIXME: BROKEN for SYSTEMC!!!
 		if ( ($SYSC_SCLIB == 0) and $H and $line =~
-/^\s*(?:Word_List|Result)\s+(\w+)\(Base::ServiceCore\*.*MemAddresses\&.*\)/
+/^\s*(?:void)\s+(\w+)\(Base::ServiceCore\*.*\)/
 or ($SYSC_SCLIB == 1) and $H and $line =~
 /^\s*(?:Word_List|Result)\s+(\w+)\(void\*.*MemAddresses\&.*\)/
 or ($SYSC_SCLIB == 0) and (not $H) and $line =~
-/^\s*(?:Word_List|Result)\s+(?:SCLib::)(\w+)\(Base::ServiceCore\*.*MemAddresses\&.*\)/
+/^\s*(?:void)\s+(?:\w+::)(\w+)\(Base::ServiceCore\*.*\)/
 or ($SYSC_SCLIB == 1) and (not $H) and $line =~
 /^\s*(?:Word_List|Result)\s+(?:SCLib::)(\w+)\(void\*.*MemAddresses\&.*\)/
 
@@ -1421,7 +1435,10 @@ or ($SYSC_SCLIB == 1) and (not $H) and $line =~
 		{
 			$prev_name = $name;
 			$name      = $1;
-			if ( exists $servicecore_names{$name} ) {
+			my $guessed_name=$name;
+			$guessed_name=~s/^\w+_//; # FIXME! HACK! We need to do proper YAML parsing!!! 			
+ 			
+			if ( exists $servicecore_names{$libname}{$guessed_name}) {
 				if ( $skipf == 1 ) {
 					$skipf = 0;
 					push @out_lines, "#endif // SKIP $prev_name\n";
@@ -1444,17 +1461,19 @@ or ($SYSC_SCLIB == 1) and (not $H) and $line =~
 sub get_servicecore_names {
 	my $ymlfile      = shift;
 	my %servicenames = ();
-	$servicenames{'sba_GATEWAY'} = ['GATEWAY'];
+#	$servicenames{'sba_GATEWAY'} = ['GATEWAY'];
 	$servicenames{'none'}        = ['none'];
-	$servicenames{'ls_S_IF'}     = ['S_IF'];
+#	$servicenames{'ls_S_IF'}     = ['S_IF'];
 	if ( -e $ymlfile ) {
+		
 		open my $YMLF, '<', $ymlfile;
 		my $services = 0;
 		my $aliases  = 0;
 
 		while (<$YMLF>) {
+			
 			/^\s*\#/ && next;
-			if (/^\s+ServiceInstances:/) {
+			if (/^\s+ServiceNodes:/) {				
 				$services = 1;
 				next;
 			}
@@ -1468,16 +1487,22 @@ sub get_servicecore_names {
 				# do nothing
 			}
 
-			if ($services) {
-				#15: { BEGIN: [BEGIN, 0, ls_BEGIN, 1], Addr: 0 }
-				my $name = $_;
-				chomp $name;
-				$name =~ s/^\s+\d+:\s+\{\s+//;    # BEGIN: [BEGIN, 0, ls_BEGIN, 1], Addr: 0 }
-				my $scname = $name;
-				$name   =~ s/:.*$//; # BEGIN [BEGIN, 0, ls_BEGIN, 1], Addr
-				$scname =~ s/^.*?\[\s*\w+\s*\,\s*\d+\s*\,\s*//; # ls_BEGIN, 1], Addr
-				$scname =~ s/\s*\,.*$//;  # ls_BEGIN
-				push @{ $servicenames{$scname} }, $name;
+			if ($services) {				
+				#c1: { 5, [SBACore.BEGIN, OtherLib.LET, ...] }
+				my $names = $_;
+				chomp $names;
+				$names =~ s/^.*\[//;    # SBACore.BEGIN, OtherLib.LET, ...] }
+				$names =~ s/\].*$//;    # SBACore.BEGIN, OtherLib.LET, ...
+				
+				my @scnames=split(/\s*\,\s*/,$names);				
+				for my $name (@scnames) {									
+					my @parts=split(/\./,$name);
+					my $sclib= shift @parts;					
+					$servicenames{$sclib}{'none'}=1;
+					my $scname=shift @parts;
+				    $servicenames{$sclib}{$scname}=1;
+				}				
+				
 			}
 		}
 		close $YMLF;

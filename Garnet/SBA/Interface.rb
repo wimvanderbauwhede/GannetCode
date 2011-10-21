@@ -200,13 +200,12 @@ Bytecode Interface::read_bytecode(uint status){ //H
                                 if VERBOSE==1
                                 print "0x#{sprintf('%x',elt)} " if @v #skip
                                 #C++ cout << "0x" << hex << elt << " ";
-                    end # VERBOSE
+                                end # VERBOSE
                             #ev                                    
                             else
                                 if VERBOSE==1 
                                 print elt, " " #C++ cout << dec << elt << " ";
-                    end # VERBOSE
-                               end #skip  
+                                end # VERBOSE                                 
                             end
                             first=false
                         end
