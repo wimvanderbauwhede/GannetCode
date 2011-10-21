@@ -10,11 +10,15 @@
 #SetOption('implicit_cache', 1)
 
 from GannetBuilder import build
-
+#FIXME: these should be based on the YAML file: read
+# the Application YAML file, look for the libraries,
+# see which ones are Ruby (for r2n) and which ones C++.
 libname=ARGUMENTS.get('sclib','SBAnew')
 corelibsrc='../SBA/ServiceCoreLibraries/SBAnew.cc'
-sclibs=[corelibsrc]
+#sclibs=[corelibsrc]
+sclibs=[]
 if libname!='SBAnew':
+FIXME: must be local path!
     libsrc='../SBA/ServiceCoreLibraries/'+libname+'.cc'
     sclibs+=[libsrc]
 classname = 'gannet'

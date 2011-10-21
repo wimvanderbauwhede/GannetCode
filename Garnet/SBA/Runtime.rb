@@ -79,19 +79,19 @@ class SBA_Runtime
 	
 	def run(ncycles=500) #t Word_List& (uint) #s/=...//
 #iv
-        if VERBOSE==1 #skip
+        if VERBOSE==1
 		puts "=========================================================================="
 		puts "Running ..."
-        end #skip
+        end # VERBOSE
 #ev
 if USE_THREADS==0            
         t=0 #t uint
         while t<ncycles
             t=t+1
             #iv
-            if VERBOSE==1 #skip
+            if VERBOSE==1
             puts " *** STEP #{t} ***"
-            end #skip
+            end # VERBOSE
             #ev
             @sba.run()		 
             if @sba.finished == 1                    

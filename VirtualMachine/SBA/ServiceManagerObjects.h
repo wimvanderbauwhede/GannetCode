@@ -568,8 +568,12 @@ public:
 		return subtasks_list[subtask].arguments;
 	}
 
-	Subtask_Argument_List& argmodes(const Subtask subtask) { // but not const
+	char* argmodes(const Subtask subtask) { // but not const
 		return subtasks_list[subtask].argmodes;
+	}
+
+    void argmodes(const Subtask subtask, unsigned int idx, char argmode) { // but not const
+		subtasks_list[subtask].argmodes[idx]=argmode;
 	}
 
 	Subtask_Status status (const Subtask subtask) {

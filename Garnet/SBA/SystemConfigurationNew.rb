@@ -17,12 +17,13 @@ require 'yaml'
 require "SBA/Packet.rb"
 
 def loadLibraryConfig(lib)
-    if File.exists?("./Gannet/#{lib}.yml")
-        libcfg=  YAML.load(File.open("./Gannet/#{lib}.yml"))
+    if File.exists?("#{SBA_WD}/Gannet/#{lib}.yml")
+        libcfg=  YAML.load(File.open("#{SBA_WD}/Gannet/#{lib}.yml"))
     elsif File.exists?("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml")
         libcfg=  YAML.load(File.open("#{ENV['GANNET_DIR']}/SystemConfigurations/#{lib}.yml"))
     else
-        raise "Can't find Library Config File #{lib}.yml"
+        wd=SBA_WD
+        raise "Can't find Library Config File #{lib}.yml (#{wd})"
     end
     return libcfg
 end
@@ -44,8 +45,8 @@ module SBA_SystemConfiguration
     for lib in libs
         libcfgs[i] =  loadLibraryConfig(lib)
         #FIXME: the library will be stored either at ./Gannet or in $GANNET_DIR/SBA/ServiceCoreLibraries        
-        if File.exists?("./Gannet/#{lib}.rb")
-            require "./Gannet/#{lib}.rb"
+        if File.exists?("#{SBA_WD}/Gannet/#{lib}.rb")
+            require "#{SBA_WD}/Gannet/#{lib}.rb"
         elsif File.exists?("#{ENV['GANNET_DIR']}/Garnet/SBA/ServiceCoreLibraries/#{lib}.rb")
             require "SBA/ServiceCoreLibraries/#{lib}.rb"
         else

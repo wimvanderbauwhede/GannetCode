@@ -242,7 +242,7 @@ end # WORDSZ
 end
 
 def getChar(words) #t char (Word_List)
-    val = getInt(words[0]) #t uint
+    val = getInt(words) #t uint
     ch = val & 0xFF #C++ char ch=(char)(val & 0xFF);
     return ch
 end
@@ -744,9 +744,9 @@ end
                 for i in 0..maxnwords-1 #t uint
 #C++	        outs << ppSymbol(wl[i]) <<"\n";
                     if wl[i].kind_of?( Integer) #skip	
-                    os+="#{ppSymbol(wl[i])}\n" #skip
+                        os+="#{ppSymbol(wl[i])}\n" #skip
                     else #skip
-                        os+="#{ppSymbol(NIHIL)}\n"
+                        os+="#{ppSymbol(NIHIL)}\n" #skip
                     end #skip
                 end
                 rest=wl.length()-maxnwords #t uint
