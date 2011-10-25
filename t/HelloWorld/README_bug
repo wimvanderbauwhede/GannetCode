@@ -1,0 +1,170 @@
+25/10/2011
+
++
+ subtask code:
+ 0:0:0:0:1:2:33620738
+ 3:1:0:1:1:1:33554433
+ 6:1:0:1:1:0:42
+-Word: 4:1:0:0:1:17:33620738
+-Service: 2 | Page: 1 | Address: 17 => 4145
+-2 store_subtask_code(): stored 4756082754528019202 at 4145
+-0:0:0:0:1:2:33620738
+-3:1:0:1:1:1:33554433
+-6:1:0:1:1:0:42
++
++Word: 0:0:0:0:0:0:33620738
++Service: 2 | Page: 0 | Address: 0 => 4096
++2 store_subtask_code(): stored 4756082754528019202 at 4096
+ 2 store_subtask_code(): packet:
+ 1:0:0:3:2:0
+ 0:1:0:0:0:0:0
+@@ -168,45 +122,20 @@
+ 4:1:0:1:1:17:33620738
+ 4:0:0:1:1:16:67176198
+ 
++
+ subtask code:
+ 0:0:0:0:1:2:33620737
+ 4:1:0:1:1:17:33620738
+ 4:0:0:1:1:16:67176198
+-Word: 4:1:0:0:1:16:33620737
+-Service: 1 | Page: 1 | Address: 16 => 2096
+-2 store_subtask_code(): ACTIVATE 2096 NOW!
+-2 activate_subtask_helper(): service_id 33620737 <> @service 2
+-2 SUBTASK STACK SIZE: 256
+-2 pop 255 off SUBTASK STACK
+-2 NEW SUBTASK for code 2096: 255 1
+-2 SUBTASK requested by 
+-1:0:0:3:2:0
+-0:1:0:0:0:0:0
+-4:1:0:0:1:16:33620737
+-------------
+-0:0:0:0:1:2:33620737
+-4:1:0:1:1:17:33620738
+-4:0:0:1:1:16:67176198
+ 
++Word: 0:0:0:0:0:0:33620737
++Service: 1 | Page: 0 | Address: 0 => 2048
++2 store_subtask_code(): ACTIVATE 2048 NOW!
++2 activate_subtask_helper(): service_id 33620737 <> service 2
++2 SUBTASK STACK SIZE: 256
+ 2 activate_subtask_helper(): address: 255
+-2 activate_subtask_helper(): <2096> [72057606922960896, 144115188075855872, 4756082750233051905, 281483600265985, 4774097153037501186, 4629981960700233478]
+-1:0:0:3:2:0
+-0:1:0:0:0:0:0
+-4:1:0:0:1:16:33620737
+-------------
+-0:0:0:0:1:2:33620737
+-4:1:0:1:1:17:33620738
+-4:0:0:1:1:16:67176198
+-
+-{2096=>2, 4145=>2}
+-2 store_subtask_code(): stored 4756082750233051905 at 2096
+-0:0:0:0:1:2:33620737
+-4:1:0:1:1:17:33620738
+-4:0:0:1:1:16:67176198
+-
+-2 parse_subtask(255): parsing 255 (2096)
+-2096: [281483600265985, 4774097153037501186, 4629981960700233478]
+-2 parse_subtask(): MODE: 0
++2 store_subtask_code(): stored 4756082750233051905 at 2048
++2 parse_subtask(255): parsing 255 (2048)
+ 2 parse_subtask(255): NARGS:2
+ 2 parse_subtask(255): Subtask length: 2
+ 2 parse_subtask(255): stack size 1014
+@@ -231,180 +160,57 @@
+ 2 core_control(): subtask status 1
+ 2 core_control(): set status for subtask 255 to STS_processing
+ 2 build_value_address_list(): 2<>2
+-2 CORE CONTROL: SCLId:1, SCId:3, Opcode:1
+-2 CORE CONTROL: [1022, 1021]
++2 CORE CONTROL: 1022
+ 2 ServiceCore: 2 addresses
+ CALL TO CORE 0 3 
+-255
+-LET (33620737) CORE: 255: (33620737<>3
+-LET (33620737) CORE: 255
+-LET (33620737) CORE: TO: 0
+-LET (33620737) CORE: RETURN TO: 0
+-LET (33620737) CORE: RETURN AS: 4756082750233051905
+-LET (33620737) CORE: CALLED AS: 281483600265985
+-LET (33620737) CORE: LABEL:4774098175239717634 last?false
+-Found Q: 4774097153037501186 at 4756083776730235650
+-LET (33620737) CORE: BLOCKED 255
+-NOT LAST arg, sequencing
+-3:0:0:1:2:2
+-0:0:0:0:0:0:0
+-4:1:0:0:2:1022:2
+-------------
+-4:1:0:1:1:17:33620738
+-
+-LET (33620737) CORE: LABEL:4629982987197417222 last?true
+-Found Q: 4629981960700233478 at 4611968588687935238
+-LET (33620737) CORE: BLOCKED 255
+-LET CORE: last arg quoted, REDIR/wait for ACK
+-3:0:1:1:4:0
+-4:0:0:0:2:1021:2
+-4:1:0:0:1:16:33620737
+-------------
+-4:0:0:1:1:16:67176198
+-
+-Packet will go to: 0 as type 5
+-Code address: 255
+-LET CORE: got ACK
++LET (769) CORE: 255: (33620737<>3
++LET (769) CORE: 255
++LET (769) CORE: TO: 0
++LET (769) CORE: RETURN TO: 0
++LET (769) CORE: RETURN AS: 4756082750233051905
++LET (769) CORE: CALLED AS: 281483600265985
++LET (769) CORE: LABEL:4774098175239717634 last?0
++LET (769) CORE: BLOCKED 255
++LET (769) CORE: LABEL:4629982987197417222 last?1
++LET (769) CORE: BLOCKED 255
+ LET CORE: ACK REDIR: 0
+-[1022, 1021]
+-{5=>1153013863583580162, 6=>1153018261630091266, 7=>1153022659676602370, 2=>1153000669444046850, 8=>1153027057723113474, 3=>1153005067490557954, 1021=>4612250063664645894, 9=>1153031455769624578, 4=>1153009465537069058, 1022=>4756365251706946306}
+ LET-ASSIGN	Found 1022
+ LET-ASSIGN	Found 1021
+-LET (33620737) CORE: Passing on 4629981960700233478
+ DONE CALL TO CORE
+ ServiceCore: CORE STATUS : 4=4
+-2 TRX:transmit_packets(): FIFO status: 1
+-
+-2 (addr:2) TRX TX:Sending: 
++FIFO length: 2
+ HEADER:
+-4
++0
+ PACKET:
+-3:0:1:1:4:0
+-4:0:0:0:2:1021:2
+-4:1:0:0:1:16:33620737
+-------------
+-4:0:0:1:1:16:67176198
+-
+-
+-service id: 4; dest addr: 4
+-3 4756082750233051905 to 4 (addr:4)
+-2 activate_subtask()
+-3:0:0:1:2:2
++3:0:0:1:0:2
+ 0:0:0:0:0:0:0
+ 4:1:0:0:2:1022:2
+ ------------
+ 4:1:0:1:1:17:33620738
+ 
+-Service: 2 : REF_LABEL: 4774097153037501186
+-4:1:0:1:1:17:33620738
+-Word: 4:1:0:1:1:17:33620738
+-Service: 2 | Page: 1 | Address: 17 => 4145
+-2 activate_subtask_helper(): service_id 33620738 <> @service 2
+-2 SUBTASK STACK SIZE: 255
+-2 pop 254 off SUBTASK STACK
+-2 NEW SUBTASK for code 4145: 254 2
+-2 SUBTASK requested by 
+-3:0:0:1:2:2
+-0:0:0:0:0:0:0
+-4:1:0:0:2:1022:2
+-------------
+-4:1:0:1:1:17:33620738
