@@ -156,7 +156,7 @@ Bytecode Interface::read_bytecode(uint status){ //H
 #                end
                 @sba_system.task_data=tdc_file[1] #s/file.../file.datafile/    
                 @tdcs.push(read_bytecode(tdc_file[0])) #C++ Bytecode bycl=read_bytecode(tdc_file.taskfile);tdcs.push(bycl);                    
-                @tdcs.inspect #skip                  
+#                @tdcs.inspect #skip                  
 #                puts "done read_bytecode()"      
                 return 1
             elsif @sba_system.task_descriptions.length>1 #skip

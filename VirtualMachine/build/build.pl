@@ -53,6 +53,7 @@ my $clean=$opts{'c'}?1:0;
 my $scons_c=$clean?'-c':'';
 my $debug=$opts{'d'}?1:0;
 
+$opts{'Z'}=1;
 my $scons_ext=$opts{'N'}?'.New':'';
 $scons_ext=$opts{'Z'}?'.Newer':'';
 

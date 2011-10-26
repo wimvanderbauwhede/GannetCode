@@ -122,17 +122,18 @@ For a HW core in the SW ServiceManager, we have CS_managed until
             @ack_ok=@sba_tile.service_manager.ack_ok         
             @opcode=@sba_tile.service_manager.opcode 
 #iv
+            if @verbose #skip
             puts "CALL TO CORE #{@sclid-1} #{@scid} "
+                end #skip
 #ev            
 
             @sba_system.services[@sclid-1][@scid][0].call(@sba_tile,self) #skip                    
     #C++        FuncPointer fp=sba_system.cfg.services[(sclid<<8)+scid].core;
-#iv                
-                puts "CALL FUNCPOINTER"
-#ev                
     #C++        (*fp)((Base::ServiceCore*)this);
 #iv                
+                if @verbose #skip
         puts "DONE CALL TO CORE"
+                end #skip
 #ev
             @sba_tile.service_manager.core_return_type=@core_return_type
             @sba_tile.service_manager.ack_ok=@ack_ok   

@@ -116,9 +116,9 @@ end # VM
             # the latter has the structure {Symbol.Name => value}
             # so: [[Symbol,...],[{Symbol.Name => value},...]]
 #            task_id=0 #t uint # dummy            
-#iv
-    puts "Gateway: Interface receive()" if @v #skip
-#ev
+if VERBOSE
+    puts "Gateway: Interface receive()" 
+end # VERBOSE
                 ntdcs=@vmif.receive(@core_status) #t uint    
                 if ntdcs!=0 and @tasks_stack.size>0 # ntdcs = 0 means no action
                     @core_status = CS_busy
@@ -137,7 +137,7 @@ end # VM
                        # puts task_description_packet_list 
                         exit(1)                
                     end # QUIT              
-                    puts   task_description_packet_list.inspect if @v #skip
+#                    puts   task_description_packet_list.inspect if @v #skip
                     # Put all packets in the TX FIFO
                     # I guess we could put them straight into the gwtile.tx_fifo
                     for task_description_packet in task_description_packet_list #t Packet_List
@@ -163,7 +163,7 @@ end # VM
     def receive_packets() 
         #tile
         #iv
-        puts "GW: receive_packets()" if @v #skip 
+#        puts "GW: receive_packets()" if @v #skip 
         print_ok=0 #C++ uint print_ok=0;         
         if @gw_tile.transceiver.rx_fifo.status()==1         
             print_ok=1 
@@ -275,9 +275,9 @@ end # DISTR
         end #skip 
         #ev
                 @gw_tile.transceiver.tx_fifo.push(packet)
-        #iv
-                puts "running TRX" if @v #skip
-        #ev
+#        #iv
+#                puts "running TRX" if @v #skip
+#        #ev
 if DISTR==1
                 @gw_tile.transceiver.transmit_packets() # to avoid deadlock, VM-specific # was run()
 else # DISTR

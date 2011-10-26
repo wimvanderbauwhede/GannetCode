@@ -35,15 +35,21 @@ class SBA_GatewayTile #< public Base::Tile
 	end
 	
 	def run(sba_system)
-    	puts "Running Gatewaytile #{@service}"  if @verbose #skip
-	    # The Gateway must run until all packets are sent, then block until it receives an result
+        if VERBOSE==1
+    	puts "Running Gatewaytile #{@service}" 
+        end # VERBOSE
+	    # The Gateway must run until all packets are sent, then block until it receives an result        
 		@gateway.run()
-		puts "Gateway listening for reply" if @verbose #skip	
+#        if VERBOSE==1
+#		puts "Gateway listening for reply" 
+#        end # VERBOSE
 		@transceiver.run()
 	end
 if USE_THREADS==1	
     def run_th(sba_system)
-        puts "Starting Gateway" if @verbose #skip
+        if VERBOSE==1
+        puts "Starting Gateway" 
+        end # VERBOSE
         @th=Thread.new("GWInstance") do    
             while (!@finished)
                 run(sba_system)

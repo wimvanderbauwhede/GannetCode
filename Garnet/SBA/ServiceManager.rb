@@ -218,11 +218,12 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
         if @subtask_code_fifo.length>0
             store_subtask_code()
         end
-
+        puts "SId: #{@service_id}"
         # This is for use by the DATA service and also, later, neighbours
         if @request_fifo.length>0
             dispatch_data_packets()
         end
+        puts "SId: #{@service_id}"
         #ifdef CYCLES_DETAILED
         #C++      ticks t1_3=getticks();
         #endif
@@ -365,11 +366,11 @@ void demux(Packet packet) {
         #C++      ticks t1=getticks();
         #endif
         #tile
-        #iv
-        if @debug_all or @service==@debug_service
-            puts "#{@service} receive_packets(): #{@sba_tile.transceiver.rx_fifo.length};"  #sysc
-        end
-        #ev
+#        #iv
+#        if @debug_all or @service==@debug_service
+#            puts "#{@service} receive_packets(): #{@sba_tile.transceiver.rx_fifo.length};"  #sysc
+#        end
+#        #ev
         while @sba_tile.transceiver.rx_fifo.length>0
             rx_packet= @sba_tile.transceiver.rx_fifo.shift #t Packet_t
             #iv
@@ -401,7 +402,7 @@ void demux(Packet packet) {
         #iv
         if @debug_all or @service==@debug_service
         if (@service!=tservice_id)
-            puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> @service #{@service}"
+            puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> service #{@service}"
         end
         end
         #ev
@@ -466,6 +467,7 @@ void demux(Packet packet) {
             @subtask_list.code_address(subtask_address,task_address)
             @subtask_list.service_id(subtask_address,tservice_id)
             # FIXME sysc should support service_id!
+            puts "#{@service_id} <> #{tservice_id}"
             @service_id=tservice_id #skipsysc
         end
     end # of activate_subtask_helper
@@ -531,7 +533,7 @@ void demux(Packet packet) {
             #iv
             if @debug_all or @service==@debug_service
                 puts "#{@service} store_subtask_code(): stored #{code_label} at #{code_address}" #sysc
-                puts ppPayload(@sba_tile.code_store.mget(code_address)) if @v #skip
+                puts ppPayload(@sba_tile.code_store.mget(code_address)) 
             end
             #ev
         end
@@ -1042,6 +1044,7 @@ so we have:
             puts  "#{code_address}: #{subtask.inspect}" if @v #skip
             # remove first elt, i.e. the actual service
             service_symbol=subtask.shift #C++ Word service_symbol=subtask.front(); subtask.pop_front();
+            puts ppSymbol(service_symbol)
             # Extended service symbol for tuple/struct support (not fully implemented)
             if getExt(service_symbol)==1
                 service_symbol_ext=subtask.shift #C++ Word service_symbol_ext=subtask.front(); subtask.pop_front();
@@ -1648,13 +1651,17 @@ end
             @sclid=getSCLId(called_as)
             #iv
             if @debug_all or @service==@debug_service            
-                puts "#{@service} CORE CONTROL: SCLId:#{@sclid}, SCId:#{@scid}, Opcode:#{@opcode}" #skip
-                puts "#{@service} CORE CONTROL: #{@arg_addresses.inspect}" #skip
-            else #skip
-                if @v #skip
-                puts "#{@service} CORE CONTROL: #{@arg_addresses[0]}"
-            end #skip
+                puts "#{@service} CORE CONTROL: SCLId:#{@sclid}, SCId:#{@scid}, Opcode:#{@opcode}, SId:#{@service_id}" 
+                print "#{@service} CORE CONTROL: ["
+                for arg_addr in @arg_addresses #t MemAddresses
+                    print " #{arg_addr}"
+                end
+                puts " ]"                
             end
+#                if @v #skip
+#                puts "#{@service} CORE CONTROL: #{@arg_addresses[0]}"
+#                end #skip
+            
             #ev
             # push the result_address on the stack
             # FIXME! Either this or the other occurence (line 1989) is redundant! 
