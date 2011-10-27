@@ -218,12 +218,12 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
         if @subtask_code_fifo.length>0
             store_subtask_code()
         end
-        puts "SId: #{@service_id}"
+
         # This is for use by the DATA service and also, later, neighbours
         if @request_fifo.length>0
             dispatch_data_packets()
         end
-        puts "SId: #{@service_id}"
+
         #ifdef CYCLES_DETAILED
         #C++      ticks t1_3=getticks();
         #endif
@@ -416,9 +416,11 @@ void demux(Packet packet) {
                 raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++ std::cerr << service << " SUBTASK STACK ("<< SUBTASKS_SZ <<") OVERFLOW\n"; exit(0);
             end
             subtask_address=@subtasks_address_stack.pop #t CodeAddress
-            puts "#{@service} pop #{subtask_address} off SUBTASK STACK" if @v  #skip
-            puts "#{@service} NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" if @v #skip
-            puts "#{@service} SUBTASK requested by \n#{ppPacket(packet)}" if @v #skip
+if VERBOSE==1
+            puts "#{@service} pop #{subtask_address} off SUBTASK STACK" 
+            puts "#{@service} NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" 
+            puts "#{@service} SUBTASK requested by \n#{ppPacket(packet)}" 
+end # VERBOSE            
         else # VM==0
             subtask_address=task_address #t CodeAddress
         end # VM
@@ -436,9 +438,11 @@ void demux(Packet packet) {
         else # VM==0
             subtask_word=task_address #C++ Word subtask_word=(Word)task_address;
         end # VM
-        puts "#{@service} activate_subtask_helper(): <#{task_address}> #{packet.inspect}" if @v #skip
-        puts ppPacket(packet) if @v #skip
-        puts @code_status.inspect if @v #skip
+        if VERBOSE==1        
+        puts "#{@service} activate_subtask_helper(): <#{task_address}>"        
+        puts ppPacket(packet) 
+        end # VERBOSE
+#        puts @code_status.inspect if @v #skip
         # really, this should be redundant as we should send task packets, not code & ref
         # WV23072008: and with direct mem transfers there should never be a race condition!
         if VM==1
@@ -467,7 +471,7 @@ void demux(Packet packet) {
             @subtask_list.code_address(subtask_address,task_address)
             @subtask_list.service_id(subtask_address,tservice_id)
             # FIXME sysc should support service_id!
-            puts "#{@service_id} <> #{tservice_id}"
+#            puts "#{@service_id} <> #{tservice_id}"
             @service_id=tservice_id #skipsysc
         end
     end # of activate_subtask_helper
@@ -1044,7 +1048,7 @@ so we have:
             puts  "#{code_address}: #{subtask.inspect}" if @v #skip
             # remove first elt, i.e. the actual service
             service_symbol=subtask.shift #C++ Word service_symbol=subtask.front(); subtask.pop_front();
-            puts ppSymbol(service_symbol)
+            
             # Extended service symbol for tuple/struct support (not fully implemented)
             if getExt(service_symbol)==1
                 service_symbol_ext=subtask.shift #C++ Word service_symbol_ext=subtask.front(); subtask.pop_front();

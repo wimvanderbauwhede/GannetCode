@@ -737,7 +737,7 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
         addresses=parent.addresses() #t MemAddresses&
         service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word
         
-		puts parent.current_subtask if @v #skip
+#		puts parent.current_subtask if @v #skip
 		service=getName(service_word) #t Name_t
         parent.core_return_type=P_data
 #iv
@@ -768,14 +768,15 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                 label=sba_tile.service_manager.symbol_table[address] #t Word     
             #iv
 				if @v #skip
-                print "LET (#{parent.service}) CORE: ", "LABEL:", label," last?",last,"\n"             
+				    yn= ( last ? "Y" : "N" ) #t string
+                print "LET (#{parent.service}) CORE: ", "LABEL:", label," last? ",yn,"\n"             
 				end #skip
             #ev
                 
                 if getQuoted(label)==1
                     label=setQuoted(label,0) # Next time it's a proper value, not a quoted symbol
                     numval=sba_tile.data_store.mget(address)[0] #t Word
-                    print "Found Q: ",numval," at ",label,"\n" if @v #skip
+#                    print "Found Q: ",numval," at ",label,"\n" if @v #skip
                     # -reset the datastatus:
                     label=setStatus(label,DS_requested)
                     # for the new status calculation
@@ -792,11 +793,10 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
                     #ev                    
                     sba_tile.service_manager.subtask_list.status(parent.current_subtask,STS_blocked)
                     # -create a ref packet and send it off
-                    to=getName(numval) #t To_t
-#                    puts "S_LET: #{S_SBACore_LET}"
-#                    puts "TO: #{to}" # is a FQA
-                    to=getSNId(to)
+#                    to=getName(numval) #t To_t
+                    to=getSNId(numval) #t To_t
                     return_to=S_SBACore_LET #t Return_to_t
+#                    puts "TO:#{to},RETURN_TO:#{return_to}"
                     var_label = setSubtask(label,address) #t Word
 					var_label = setName(var_label,S_SBACore_LET)
                     return_as=var_label #t Word
@@ -852,14 +852,18 @@ So what happens if it's a tail call?
                         puts "Packet will go to: #{sba_tile.service_manager.subtask_list.to(parent.current_subtask)} as type #{parent.core_return_type}" if @v #skip
                         puts "Code address: #{getSubtask(label)}" if @v #skip
                     else
-                        puts "NOT LAST arg, sequencing" if @v #skip
+                    if VERBOSE==1                        
+                        puts "NOT LAST arg, sequencing"
+                    end # VERBOSE 
                         # -set the core status to CS_managed
                         parent.core_status=CS_managed                    
                         # if redirection is not supported, the value of the last arg should return in the end
                         ref_packet_header= mkHeader(packet_type,prio,redir,payload_length,to,return_to,ack_to,return_as)
                         ref_packet_payload=reslist #t Word_List 
                         ref_packet=mkPacket(ref_packet_header,ref_packet_payload)
-                        puts ppPacket(ref_packet) if @v #skip
+                        if VERBOSE==1
+                        puts ppPacket(ref_packet)
+                        end # VERBOSE 
                         if to!=S_SBACore_LET
                             sba_tile.transceiver.tx_fifo.push(ref_packet)
                         else
@@ -1787,6 +1791,40 @@ end # WORDSZ
 				end
 #endskip				
 =begin #C++
+                if (data.size()==1 || data.size()==2) {
+                switch (getDatatype(data[0])) {
+    				case T_i:
+                    #ifdef VERBOSE
+                        std::cout << ">>>Int: ";
+    				#endif
+    				    std::cout << getInt(data) << std::endl;
+    				    break;
+				    case T_f:
+#ifdef VERBOSE
+                        std::cout << ">>>Float: ";
+#endif
+                        std::cout << getFloat(data) << std::endl;
+                        break;
+                    case T_c:
+#ifdef VERBOSE
+                        std::cout << ">>>Char: ";
+#endif
+                        std::cout << getChar(data) << std::endl;
+                        break;
+                    case T_s:
+#ifdef VERBOSE
+                        std::cout << ">>>String: ";
+#endif
+                        std::cout << getString(data) << std::endl;
+                        break;				
+                    default:
+                        std::cout << data[0] << std::endl;
+                        if (data.size()==2) {
+                            std::cout << data[1] << std::endl;
+                            }
+                    }
+                } else {
+
 #ifndef STATIC_ALLOC
                  	for(Word_List::iterator ai=data.begin(); ai!=data.end(); ++ai) {
                  		std::cout <<">>>"<< *ai << "\n";
@@ -1797,6 +1835,7 @@ end # WORDSZ
 #endif                 		
                  		}
                  	std::cout << "----------------\n";
+				}
 =end #C++
 
 =begin

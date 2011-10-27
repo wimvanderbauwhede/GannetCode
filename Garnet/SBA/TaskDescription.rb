@@ -174,7 +174,7 @@ class SBA_TaskDescription
         end
         #iv
 if @v #skip
-        puts "YAML file name: <#{ymlfile}>"
+#        puts "YAML file name: <#{ymlfile}>"
 end #skip         
         #ev
 #endskip       

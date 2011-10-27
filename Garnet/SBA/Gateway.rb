@@ -116,7 +116,7 @@ end # VM
             # the latter has the structure {Symbol.Name => value}
             # so: [[Symbol,...],[{Symbol.Name => value},...]]
 #            task_id=0 #t uint # dummy            
-if VERBOSE
+if VERBOSE==1
     puts "Gateway: Interface receive()" 
 end # VERBOSE
                 ntdcs=@vmif.receive(@core_status) #t uint    

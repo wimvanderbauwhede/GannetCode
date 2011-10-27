@@ -64,8 +64,8 @@ typedef uint8 Ctrl_t; //2
 typedef uint8 Redir_t; //3    
 
 #if WORDSZ==64
-typedef uint32 Name_t; //16
-typedef uint32 Value_t; //16
+typedef uint32 Name_t; //32
+typedef uint32 Value_t; //32
 typedef uint16 NSymbols_t; //16    
 typedef uint16 Count_t; //16
 

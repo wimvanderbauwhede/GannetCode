@@ -144,9 +144,11 @@ For a HW core in the SW ServiceManager, we have CS_managed until
             if (@sba_tile.service_manager.subtask_code_fifo.length>0) or (@sba_tile.service_manager.subtask_reference_fifo.length>0) or (@sba_tile.service_manager.core_status!=CS_idle)
               @sba_tile.service_manager.status=true
             end
+#iv            
 if @verbose #skip
             puts "ServiceCore: CORE STATUS : #{@sba_tile.service_manager.core_status}=#{@core_status}"
-end #skip 
+end #skip
+#ev 
 #                #C++ cout << "CORE "<< service << " has returned \n";
         end                
             
@@ -247,7 +249,7 @@ end #skip
         return @sba_tile.service_manager.arg_addresses
     end    
     def arg(argn) #t Word_List (uint)
-        puts "ARGN: #{argn}" if @verbose #skip
+#        puts "ARGN: #{argn}" if @verbose #skip
         #tile
         argmode = @sba_tile.service_manager.subtask_list.argmodes(@sba_tile.service_manager.current_subtask)[argn] & 0x3 #t uint
 # puts argmode
@@ -268,13 +270,13 @@ end #skip
             raise "ARGMODE must be 0,1 or 2"
         end
     
-        if @verbose #skip
-        puts ">>"  #skip
-        puts @sba_tile.service_manager.arg_addresses.inspect() #skip
-        puts @sba_tile.service_manager.subtask_list.arguments(@sba_tile.service_manager.current_subtask).inspect() #skip
-        puts words.inspect() #skip
-        puts "<<" #skip
-        end #skip
+#        if @verbose #skip
+#        puts ">>"  #skip
+#        puts @sba_tile.service_manager.arg_addresses.inspect() #skip
+#        puts @sba_tile.service_manager.subtask_list.arguments(@sba_tile.service_manager.current_subtask).inspect() #skip
+#        puts words.inspect() #skip
+#        puts "<<" #skip
+#        end #skip
 
         return words
     end
