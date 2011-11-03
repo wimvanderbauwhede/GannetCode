@@ -50,7 +50,7 @@ if USE_THREADS==0
       if @transceiver.rx_fifo.has_packets() 
         @status=true
         while (@status==true)
-    #puts "TRX #{@service}: #{@transceiver.rx_fifo.packets.length}"
+    # puts "TRX #{@service}: #{@transceiver.rx_fifo.packets.length}"
             @service_manager.run()	
     #		end
     		if (@service_manager.core_status==CS_busy)

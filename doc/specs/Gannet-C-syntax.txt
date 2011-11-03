@@ -1,0 +1,484 @@
+Draft Specification: Gannet-C syntax
+====================================
+
+Wim Vanderbauwhede, Nov 2008
+
+## General remarks
+
+### The Gannet System Architecture
+
+Gannet is an architecture for multicore systems, a framework for describing (programming) the interactions between heterogeneous computational cores.
+Gannet adopts a functional composition paradigm with the default assumption that all function arguments are evaluated in parallel. This way Gannet aims to exploit the inherent parallelism present in multicore systems. 
+
+It should be stressed that a "core" is not necessarily a microprocessor core but can be an arbitrary computational resource, an entity that consumes and/or produces data.
+
+Because such generic cores are in general unaware of the system they're part of, the Gannet framework provides a special interface, the Gannet Service Manager, to make the core system-aware. Furthermore, Gannet radically adopts a local memory paradigm, so every core has its own local memory. The combination of a core, local memory and the service manager is in Gannet parlance called a _service_. Services are connected using some communication framework, e.g. a bus or (more likely) an on-chip network.
+
+### The Gannet language
+
+The Gannet language is a minimal-syntax, no-sugar Intermediate Representation (IR) language which aims to be as close as possible to the Gannet assembly language while still be usable as an actual programming language.
+Gannet consists of S-expressions without any special forms. 
+
+    service-exp ::= "(" service-token service-exp* ")" 
+
+Every expression represents a call to a Gannet service. A Gannet service is a computational resource, similar to a function but with the optional capability for storing state information. The idea is however that a Gannet service will behave as a service, i.e. the stored state should not cause ambiguities.
+
+Every service consists of a service manager and a service core. The service manager evaluates the arguments and the core produces a result using the evaluated arguments. This is fine for pure data-processing cores. However, service cores that perform a control function (e.g. an if-then-else) need to have the option to conditionally evaluate arguments. For that reason, Gannet has  a quoting mechanism. Quoting an expression results in the expression being passed unevaluated to the service core. With this extension, the Gannet syntax becomes:
+
+    service-exp ::= "'"? "(" service-token service-exp* ")" 
+
+### Gannet-C Syntax
+
+Essentially, Gannet-C is a layer of syntactic sugar over the Gannet language.
+The proposed syntax is C-like in the following sense:
+
+* Statements are separated by semicolons ';'
+* Blocks are delimited by curly brackets '{...}'
+* Functions have the syntax f(arg_1,...,arg_n)
+* Variables and functions are typed (support C++ style: first assignment and declaration combined)
+
+### Gannet-C semantics and consequences on syntax
+
+Gannet is a functional language with fully managed memory. As Gannet-C has Gannet semantics, there are two important consequences:
+
+* No pointers: Gannet-C does not allow or support pointers or any other mechanism of accessing memory by address.
+* Every construct returns an assignable value as in most non-functional languages, control constructs (e.g. if-then-else) in C do not return a value. In Gannet-C they do.
+
+## Gannet-C Types and Typing
+
+The Gannet-C should perform type inference. Explicit typing is optional but strongly recommended.
+
+### Basic types
+
+Apart from the C++-style built-in types `int`, `float`,`string`, Gannet introduces a few special types:
+
+    Data // this type is used for complex services that do not return a built-in type but some unspecified data
+    Symbol // this type is used for control services 
+
+### List type
+
+Gannet-C supports lazy lists. Lists in Gannet can only contain quoted expressions, which means that a Gannet is a list of Symbols. As every expression can have a different return values, lists are heterogeneous.
+The list type is simply:
+
+    List l=[list-elt_1,...,list_elt_n];
+
+### Streaming types
+
+As Gannet-C has built-in stream support, there are special typing constructs for streams:
+
+    Stream<Type> // indicates that a function will be used in a streaming context
+    Buf<Type> // indicates that the result of an operation is buffered (for streaming operation)
+    
+### Types for functions
+
+Gannet-C uses C-style function types but in a slightly more abstract way:  
+
+    return-type(arg-type_1,...,arg-type_n) f(arg_1,...,arg_n);
+
+### Higher-order types
+    
+As Gannet-C functions can return lambda functions, the type notation should be able to express this.
+Therefore, Gannet-C uses `typedef` in a more generic way than C/C++:
+
+    typedef FType int(int,float)    
+    typedef HOType FType(int,FType)
+
+## Lexically scoped variables
+
+The Gannet flow control service implements a number of familiar flow control constructs as services. By default, Gannet always evaluates all arguments of a function in parallel; quoting is used to change the default semantics. As Gannet-C has no quoting syntax, we use keywords to indicated parallel or sequential execution.
+
+### Parallel block (is the default, so the keyword can be omitted)
+
+    (let
+        (assign 'v1 expr1)
+        (S1 ... (read 'v1) ...)
+        ...
+    )
+    
+    par {
+            Type1 v1=expr1;
+            s1(...,v1,...);
+    
+        }
+
+### Sequential block
+
+    (let
+        '(assign 'v1 expr1)
+        '(update 'v1 expr2)
+        ...
+    )    
+        
+    seq {
+            Type1 v1=expr1;
+            v1=expr2;
+            ...;
+        }                   
+
+
+## Alternative syntax for service calls
+    
+I propose two types of syntax for a service:
+
+    (S1 a_1 ... a_n)
+    
+    S1(a_1,...,a_n);
+    
+    S1 {
+            a1;
+            ...
+            a_n;
+        }
+    
+
+
+## Lists
+
+    (let
+        (assign 'l1 (list 'exp1 ... 'expn))
+        (S (head l1))
+    )    
+    
+    
+    par {
+            List l1 = [exp1,...,expn];
+            S(head(l1));
+        }
+    
+Other list services are:
+     
+     tail(), length(), join(), cons()
+
+Alternatively we could use C++ syntax:
+
+    l1.head() etc.
+    
+Also, we could have operators for join() and cons(), e.g. ++ or an overloaded +    
+
+
+## If-Then-Else
+
+    (if (S_cond ...) '(S_true ...) '(S_false ...))
+    
+    if (S_cond()) {
+            S_true(...);
+        } else {
+            S_false(...);
+        }
+
+OBSOLETE, use seq -- Gannet does not enforce quoting. It might be good to have an `if()` that
+always evaluates both branches. I propose the following syntax:
+
+    if (S_cond()) {
+            S_true(...);
+            S_false(...);
+    }
+    
+
+## Return and distributed control
+
+The Gannet return() call is essentially an unconditional if() with the added peculiarity (a consequence of Gannet's variadic calls) that it can be used as a block construct, and by nesting return() calls it is possible to emulate seq {} sequencing behaviour:
+
+    seq {
+            expr1;
+            expr2;
+            expr3;
+        }
+    
+    (return 'expr3 (return 'expr2 expr1))            
+
+This might seem like a redundant construct as Gannet has a proper `let` (`seq`,`par` in Gannet-C).
+However, the `if` and `return` can be implemented very efficiently in the Service Manager circuit. This allows distributed control. The implication for the compiler is that it should work out if a let-block or an if-then can be compiled into `return` and `if` calls local to a particular service. If that is not possible, the control is provided by the dedicated flow control service. This is the service that also implements lambdas, lists and lexical variables. Purely for convenience, for the remainder of the document we will use the `(let ...)` notation instead of the `(return ...)` one.
+         
+
+## Lambda
+
+In functional languages anonymous functions are very important constructs. Similar to Scheme, Gannet has a `lambda`. Unlike Scheme, Gannet's `lambda` requires an explicit `apply` to bind the lambda expression to the arguments and evaluate the result.
+
+    (lambda 'a1 ... 'an '(S ... a1 ... an ...))
+    
+    sub (a1,...,an) {
+                        S(...,a1,...,an,...);
+                    } 
+                    
+    (let
+        '(assign 'f (lambda 'x '(S x)))
+        '(apply (read f) expr1)
+    )
+    
+    seq {
+            Type_lambda(Type_x) f = sub (x) {S(x)};
+            f(expr1);
+        }        
+
+I'm not sure about the curly brackets for the lambda. There is no C/C++ equivalent;
+if S is a special construct like let or if, it becomes even more redundant.
+But without the curly brackets, it looks a bit strange.
+
+
+## Goto label
+
+It might be better to call this `gosub` as the `goto LABEL` call results in execution of the function labellel with `LABEL`. Functional programmers and language designers have a dislike for `goto` resulting from decontextualising Dijkstra's famous paper. However, for implementing loops, a `goto` with mutable variables is much more efficient (at machine level) than recursive lambdas. As Gannet is very close to the machine, `goto` is essential.
+
+    (label L (if ...
+                ...
+                (return L ...)
+              )                  
+    )
+    
+    L: if (...) {
+    
+        } else {
+           ...;
+            goto L; 
+        }
+        
+
+## Buffers and pipelining
+
+Gannet is aimed at Systems-on-Chip for streaming data processing applications. For that reason, it is essential to support buffering and pipelining at machine level and thus in the language.
+
+    (let
+        '(buf 'b1 (S_in ...))
+        '(S2 (stream b1) ...)
+    )            
+    
+    seq {
+            Buf<Type> b1=S_in(...); // S_in must be of type Stream<Type>
+            S2(stream(b1),...);
+        }
+
+Other buffer operations are:
+    
+    peek(), get(), put(), eos() ("end of stream")
+
+We could use a more C++-like syntax:
+    
+    Buf<Type> b1( S_in(...) );
+    S2(b1.stream());
+
+Very importantly: pipelines can be implicit in Gannet-C, the compiler should work them out:
+
+    Stream<Type> S_in();
+    S_out(S_2(S_1(S_in())));
+
+
+## Service-bound variables, Accumulation and Caching
+
+The Gannet machine allows services to store a limited number of variables. The design purpose for these "service-bound" variables is mainly to act accumulators, caches or buffers. However, they are general-purpose variables active within the scope of the service call in which they are declared. Consequently, whenever possible, the compiler should try to use these variables rather than the "let-scoped" variables that are stored exclusively at the control service.
+
+The following constructs should be infered by the compiler:
+
+    (let
+        '(var 'a1 (S1 ...))
+        '(acc 'a1 (S1 ... a1 ...)) ; note that acc is simpy an alias for var
+    )    
+    
+    seq {
+            Type a1=S1(...);
+            a1=S1(... a1 ...);
+        }
+    
+    
+    (S1 (cache 'c1 (S2 ...)) (S3 ... c1 ...))
+    
+    S1 {
+        c1=S2(...),
+        S3(...,c1,...);
+        };
+    
+
+
+## For and While loops
+
+Gannet loops are based on recursively calling a labeled subroutine. 
+
+    (let
+        (var 'n (return n_init))
+        (var 'a (S ... n ...))
+        '(label L (if (condition 'n)
+                a
+                (return L (let (acc 'n (modify n)) '(acc 'a (S ... n ...))))
+            )                  
+        )
+    )
+    
+    seq {
+        n=n_init;
+        a=S(...,n,...);
+        for (n=n_init;condition(n);modify(n)) {
+            a=S(...,n....);    
+        };
+        return a; //  we could simply write `a` without the `return`.
+    }
+
+A simple example:
+
+    int fact = seq {
+        int a=1;
+        for (int n=1;n<6;n++) {
+            a=a*n;
+        }
+        return a;
+    }
+
+The let-style Gannet code for this example is:
+
+    (let
+        (assign 'fact 
+            (let
+                '(var 'n (return '1))
+                '(var 'a (return '1))
+                '(label L (if (< n 6)
+                            '(return 'L (let '(acc 'n (+ n 1)) '(acc 'a (* a n))))
+                            '(return a)
+                            )
+                    )
+            )
+        )
+    )
+
+## Iterator support
+
+In general, a Gannet service performs a coarse-grained operation (e.g. MPEG-encode a video frame). To allow distributed control, the Service Manager will always implement a minimal control service providing `if` and (as a consequence) `return`. Combined with `label`, which is a compiler construct, this is almost sufficient to support loops.
+The missing part is an iteration counter. To add support for iteration, the  Service Manager should also implement a minimal signed-integer ALU which provides the `+` and `==` or `!=` operations.
+
+## Tuples
+
+Gannet does not currently have the notion of tuples. A service simply returns Data, i.e. a list of Words. In Gannet-C, tuples are quite crucial. The syntax is very similar to the C `struct`, e.g.
+    
+    tuple ScoreTup {
+        Data data;
+        Score score;
+    }
+    
+Accessing the fields uses the familiar dot notation:
+
+    ScoreTup st;
+    st.data=...
+
+Implementing tuple read access support in Gannet is quite straightforward: we use the buffer infrastructure and simply extend requests to the buffered data with the offset and size of the requested field. Expressing this in pure Gannet is not straightforward as the information about the field sizes etc is not present in the language. A possible implementation is
+
+    (get bufname offset size) 
+    
+Where offset and size are integers. The compiler will create an extended request symbol with the offset and size encoded in the extension word.    
+
+Implementing tuple write access support in Gannet is less easy. Suppose for example we have this:
+
+    st.data=getDataTuple().data;
+    st.score=getScoreTuple().score;
+    
+Somehow the assignment must include the offset (and preferably the size). 
+
+    Assuming local variables, we have:
+    
+    (S1-return '(S1 ...)    
+        (cache 'c1  (getDataTuple<datat_offset, data_size> ) data_offset data_size)
+        (cache 'c1  (getScoreTuple<scoret_offset, score_size> ) score_offset score_size)
+    )
+
+So either we forbid constructs like `getDataTuple().data` and demand that tuples can only be accessed after buffering; or we generate the appropriate buffer instructions; or we have a mechanism to indicate which field of a result should be returned.
+For caching, we can have an extended K_C symbol, that fits the bill nicely; for specifying the field on a call we need to extend the K_S, I think. That way we can control what to return. But for a `buf` call we need to be able to express e.g. 
+
+    Buf<ScoreTup> buf2.data=getDataTuple().data;
+
+    (buf 'b1<offset, size>  (getDataTuple<offset,size> ))
+    
+This is problematic as (buf 'b1 (S ...)) is actually S<buf,b1>. So we'd need a double extension for this case.
+
+## Services
+
+[This should come much earlier!!!]
+
+A Gannet Service is opaque but its type must be declared. As a service can support multiple operations, each with its own type, we need something like this:
+
+	service MyService {
+		ReturnType1 op1(ArgType11,ArgType12,ArgType13,...);
+		ReturnType2 op2(ArgType21,ArgType22,ArgType23,...);
+		...
+	}
+
+So a Service is like a class interface. We could actually inherit from some very abstract Service class which would be
+
+	service Service {
+		Data run(Data,...) ;
+	}
+
+So the assumption is that the `service` keywords means just this: that this 'class interface' inherits from the abstract Service class.
+
+## Dynamic Reconfiguration support
+
+From the outset Gannet was envisaged as a platform for dynamic reconfiguration. The Dynamic Reconfiguration Infrastructure consists of a Configuration server and a number of Dynamic service cores. The cores request a configuration from the server, apply it and run it. This sounds rather trivial but the implementation details are not:
+
+### Configurations
+
+To define the interface for a configuration, we introduce a new keyword `configuration`, it is very much an alias for `namespace` in C++. 
+
+	configuration YCbCr2RGB {
+		typedef Y2R Data(Data);	
+	}
+
+  	configuration MatrixALU {
+		typedef Add Matrix<int>(Matrix<int>,Matrix<int>);
+		typedef Sub Matrix<int>(Matrix<int>,Matrix<int>);
+		typedef Mult Matrix<int>(Matrix<int>,Matrix<int>);
+		typedef Trans Matrix<int>(Matrix<int>,Matrix<int>);
+		typedef Det int(Matrix<int>,Matrix<int>);
+	}
+            
+Then we instantiate a configuration as:
+
+	MatrixALU::Add add(ST1);
+
+The `configuration` keyword carries the following semantics: any type declare inside a configuration namespace is an instance of an abstract Configuration type. This is the main reason for having the keyword.	
+
+(Alternatively, a `configuration` could very much like a class declaration in C++. 
+
+	configuration YCbCr2RGB {
+		 Data(Data) y2r;	
+	}
+
+  	configuration MatrixALU {
+		Matrix<int>(Matrix<int>,Matrix<int>) add;
+		...
+	}
+            
+Then we instantiate a configuration as:
+
+	MatrixALU.add add(ST1); 
+	
+But that does not work very well.)
+	
+Now given a dynamic service which is called `DynService`. 
+
+	service DynService {
+		Data(Data,...) run; // this is inherited from Service
+		Data(Configuration,Data,...) run;
+		Data(ConfigId,Configuration,...) configure;
+	}
+
+This dynamic service can in principle have more than one reconfigurable substrate, so we get an instance like this:
+
+	Service dynservice[substrate_id]=DynService(service_address, substrate_id);
+
+In the default case of a dynamic service with a single substrate, we can simply write	
+
+	Service dynservice=DynService(service_address);
+
+To configure the service with a particular configuration, we write
+
+	dynservice=add;
+
+or
+
+	dynservice(add);
+	
+The compiler can now deduce the type of dynservice. However, this is very tricky as a reconfiguration will result in a new type. We will assume simple lexical scope.
+
+To run the dynservice, we can now simply call
+
+	dynservice.run(...);
+
+[note: for services with only one operation, we could have some macro that transforms e.g.
+img.run(...) into img(...) or we could have the compiler work it out]
+
