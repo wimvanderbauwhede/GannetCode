@@ -337,6 +337,8 @@ def build(classname,binname,sources):
         libs+=['boost_program_options']
 
     INCpaths=['.']
+    if SC!=1:
+        INCpaths=['.',GANNET_DIR+'/VirtualMachine/SBA/']
     LIBpaths=[]
 
     if boost==1:

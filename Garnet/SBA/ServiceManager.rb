@@ -1154,10 +1154,10 @@ so we have:
                     # K_C and K_D as well but I forgot what these do.
                     if getKind(elt)==K_B && getExt(elt)==0
                         argmode=1
-#                        pass_by_value = 1
+                        pass_by_value = 1
                     elsif getKind(elt)==K_B && getExt(elt)==1 && getNSymbols(elt)==1
                         argmode=2
-#                        pass_by_value = 1
+                        pass_by_value = 1
                     end    
                     if pass_by_value==0                        
                         data_address=@data_address_stack.pop
@@ -1194,6 +1194,7 @@ so we have:
                     raise "BOOM!"
                     @subtask_list.arguments(parent_subtask).push(subtask.shift)                    
                 end 
+                # actual argument passing mode is 2 bits but we use the next 6 bits for Kind and Datatype
                 argmode+=((getKind(elt)&0x7)<<5)+((getDatatype(elt)&0x7)<<2)               
                 @subtask_list.argmodes(parent_subtask).push(argmode) #skip
                 #C++ subtask_list.argmodes(parent_subtask,argidx,argmode);
