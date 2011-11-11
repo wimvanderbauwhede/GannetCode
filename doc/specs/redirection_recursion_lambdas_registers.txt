@@ -1,0 +1,82 @@
+# Interaction between result redirection and recursion in the GannetVM
+
+## Result redirection
+
+If a service is a control service, it is bypassed by the data flow. However, a stateful service (e.g. a LET) needs to know that the computation finished.
+This is achieved by sending an ACK packet down the call chain. An ACK packet is a Data packet with as payload the Return_as symbol of the caller.
+The subtask has three fields to manage result redirection:
+
+    @redir=0 
+    @ack_to=0 # Symbol with destination info for the ACK
+    @waiting_for_ack=0 
+
+The machinery to support these ACK packets is divided between the Service Manager and the Control services IF, LET, SEQ and APPLY:
+
+* In the Service Manager
+
+    @ack_ok=1 # by default
+    def send_ack()
+        to=getName( @subtask_list.ack_to(@current_subtask) )
+        return_to=@service 
+        return_as=@subtask_list.ack_to(@current_subtask) 
+        payload_length=1      
+        ctrl=1 # Ctrl set to 1 to denote that this is an ACK, for debugging 
+        redir=0 
+        ack_to=@subtask_list.ack_to(@current_subtask)      
+        packet_header=mkHeader(P_data,ctrl,redir,payload_length,to,return_to,ack_to,return_as)
+        packet_payload=[return_as] 
+        packet=mkPacket(packet_header,packet_payload)
+        @sba_tile.transceiver.tx_fifo.push(packet)
+    end # of send_ack
+    
+`send_ack()` is called from inside `core_control()`:
+
+        if @core_status == CS_done or @core_status == CS_managed 
+            redir=@subtask_list.redir(@current_subtask)
+            if redir && @ack_ok
+                send_ack()
+            end 
+            ...
+            
+* In the Control Services
+
+Non-control services will always send/forward ack packets. However, in some cases the control service can't do this. 
+
+### Redirection and Tail Calls in IF
+
+What happens is this: 
+- If waiting_for_ack==0, it's normal operation
+- If the selected branch is quoted (which in practice it should always be), and it's an expression (usually)
+then the core will redirect the result of the evaluation of this expression. 
+It does so by creating a new reference packet, putting it on the TX queue and bypassing the normal packet generation 
+by setting the status to CS_managed. However, now it gets complicated"
+    - If the IF or RETURN call was NOT a tail call then the core will wait for an ACK, and forward this ACK to the caller. That means:
+        - The reference packet has redir=1, and send_ack_to is set to the current service and subtask;
+        - The parent.ack_ok is false because on redirect, no ACK is sent.
+        - The subtask status is set to STS_blocked, else it would be cleaned up; its absent arguments count is incremented so it will expect a data packet
+        - The subtask's waiting_for_ack is set to true
+    - However, if the call was a tail call (IFTC or RETURNTC), there is no need for the redirected task to send an ACK, as there is nothing to clean up. That means:
+        - send_ack_to is 0 and redir is 0, so no ACK will be sent
+        - parent.ack_ok is true, meaning the current call can send an ACK back immediately (in the other case it doesn't until it gets an ACK)
+        - The subtask is set to STS_inactive. This results in a call to `clean_up()` and the subtask is pushed back on the stack but crucially, the 
+        content of the subtask record is not deleted (as is the case with STS_processed) because a tail call can mean a recursion, and then we reuse the task
+(WV: check this: how can we be sure that we'll get @current_subtask back? Will this work with nested if's? Also, "removing" the subtask means simply putting the argcount to 0)
+[ `STS_inactive` differs only from `STS_processed` in that `STS_processed` goes to `STS_cleanup` after the call to `clean_up()`. That in its turn leads to a call to `@subtask_list.remove(@current_subtask)`. 
+The `remove` method does the following:
+        - set the substask status to STS_deleted
+        - nargs_absent=MAX_NARGS, nargs=0 
+There is one place where the substask status should not be `STS_deleted`: in `store_data()`. However, I don't see why the if should have to receive data. So I guess we might use `STS_processed` here. ]
+
+### Redirection and Tail Calls in SEQ
+
+`SEQ` is a LET without assignments.
+
+
+
+### Redirection and Tail Calls in LET
+
+
+### Redirection and Tail Calls in APPLY
+
+
+
