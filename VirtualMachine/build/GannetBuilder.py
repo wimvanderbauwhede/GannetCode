@@ -27,6 +27,7 @@ from cxxtestgenlib import createRunner
 
 
 def build(classname,binname,sources):
+
     destdir='../SBA/'
     global opts
 
@@ -170,8 +171,8 @@ def build(classname,binname,sources):
 #            yaml_config=opts.args[option.key]
         if option.key == 'sock' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             NO_SOCKET='NO_SOCKET'
-            sockpatt=re.compile('^\.\.\/SBA')
-            nsources=filter(sockpatt.search,sources)
+            sockpatt=re.compile('^\.\.\/GannetSocket')
+            nsources=filter(lambda s: not(sockpatt.search(s)),sources)
             sources=nsources
         if option.key == 'wordsz' and opts.args.has_key(option.key) and opts.args[option.key]!=option.default:
             wordsz=opts.args[option.key]
@@ -285,21 +286,29 @@ def build(classname,binname,sources):
             if not re.search('test_|LookupTable|Types|SystemConfiguration|gannet|Socket|Timings|cs_',csource):
                 tsource=re.sub(destdir,'../../Garnet/SBA/',csource)
                 source=re.sub('\.cc','.rb',tsource)
-                pl=csource.split('/')
-                if pl[-2]=='ServiceCoreLibraries':
-                    target='ServiceCoreLibraries/'+pl[-1]
-                    add=1
+                islib=''
+                if not re.search('\/Gannet\/',csource):
+                    pl=csource.split('/')
+                    if pl[-2]=='ServiceCoreLibraries':
+                        target='ServiceCoreLibraries/'+pl[-1]
+                        add=1
+                        islib='-L'
+                    else:
+                        target=pl[-1]
+                        add=1
+                    target=destdir+re.sub('\.cc','',target)
                 else:
-                    target=pl[-1]
+                    target=csource
+                    target=re.sub('\.cc','',target)
                     add=1
-                target=destdir+re.sub('\.cc','',target)
+                    islib='-L'
                 if STATIC_ALLOC!='':
-                    targetcc=envr2n.Command(target+'.cc',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -s -CC $SOURCE > $TARGET")
+                    targetcc=envr2n.Command(target+'.cc',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+' '+islib+" -s -CC $SOURCE > $TARGET")
                 else:
-                    targetcc=envr2n.Command(target+'.cc',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -CC $SOURCE > $TARGET")
+                    targetcc=envr2n.Command(target+'.cc',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+' '+islib+" -CC $SOURCE > $TARGET")
                 if add==1:
                     targetscc.append(targetcc)
-                    targetsh.append(envr2n.Command(target+'.h',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+" -H $SOURCE > $TARGET"))
+                    targetsh.append(envr2n.Command(target+'.h',source,"perl -I../../util ../../util/r2n.pl -Y "+yaml_config+' '+islib+" -H $SOURCE > $TARGET"))
 #        if re.search('SystemConfiguration',csource):
 #            targetsh.append(envr2n.Command(target+'.h',source,'/usr/bin/ruby -I ../../ ../../create_Cxx_SystemConfiguration.rb && cp -f SystemConfiguration.h ../SBA'))
 
@@ -328,6 +337,8 @@ def build(classname,binname,sources):
         libs+=['boost_program_options']
 
     INCpaths=['.']
+    if SC!=1:
+        INCpaths=['.',GANNET_DIR+'/VirtualMachine/SBA/']
     LIBpaths=[]
 
     if boost==1:

@@ -1,11 +1,11 @@
 { 
-unsigned long int n=10;
-int a=1();
-if (n<2) {
-    return a
-} else seq {
-    a= a*n;
-    n=n+1
-};
-io.display(a)
+    unsigned long int n=10;
+    int a=1();
+    if (n<2) {
+        return a
+    } else seq {
+        a= a*n;
+        n=n+1
+    };
+    io.display(a)
 }

@@ -1,0 +1,22 @@
+
+
+digraph GannetCoreStatus {
+    labelloc=t
+    fontname="Helvetica-Bold"
+    label = "Core Status State Diagram\n "
+        node [ fontname="Helvetica"]
+    {rank=same; Ready; EOS; Skip }
+    {rank=same; Managed; Done }
+    Idle -> Ready [label="if\nSTS_Pending", fontname="Helvetica"] 
+    Idle -> EOS  [label="if\nSTS_EOS", fontname="Helvetica"] 
+    Idle -> Skip  [label="if\nSTS_Skip", fontname="Helvetica"] 
+    EOS -> Done
+    Skip -> Done
+    Ready -> Busy -> Done
+    Done -> "Idle "     [style=dashed]
+    Busy -> Managed
+    Managed -> "Idle "     [style=dashed]
+    Busy -> DoneEOS -> Done
+}
+
+

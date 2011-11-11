@@ -68,12 +68,10 @@ end #skip
 
 #include "Types.h"
 
-//using namespace std;
 using namespace SBA;
 
 namespace SBA {
 
-//Word pow2(uint bits);
 Word bitmask(uint8 n,uint8  m);
 Word getrange(Word w,uint8 n,uint8  m);
 Word field(uint8 n,uint8 m, uint f);
@@ -87,24 +85,8 @@ Word setrange(Word w, uint8 n, uint8 m,uint f);
 
 #include "Bytecode.h"
 
-//using namespace std;
-//using namespace SBA;
-/*
-Word SBA::pow2(uint bits) {
-if (bits>0) {
-    return (Word)std::pow((double)2,(double)bits);
-    } else {
-    return (Word)1;
-    }
-}
-*/
 Word SBA::bitmask(uint8 n,uint8  m) {
-/*
-        Word bm=pow2(m);
-        for (unsigned short i=n;i>m;i--) {
-                bm+=SBA::pow2(i); // why not shifting?
-        }
-*/        
+
         Word bm=(((Word)1<<(1+n-m))-(Word)1)<<m;       
         return bm;
 }

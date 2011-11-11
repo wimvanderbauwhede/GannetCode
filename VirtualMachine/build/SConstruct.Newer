@@ -14,12 +14,12 @@ from GannetBuilder import build
 # the Application YAML file, look for the libraries,
 # see which ones are Ruby (for r2n) and which ones C++.
 libname=ARGUMENTS.get('sclib','SBAnew')
+wd=ARGUMENTS.get('wd','.')
 corelibsrc='../SBA/ServiceCoreLibraries/SBAnew.cc'
 #sclibs=[corelibsrc]
 sclibs=[]
 if libname!='SBAnew':
-FIXME: must be local path!
-    libsrc='../SBA/ServiceCoreLibraries/'+libname+'.cc'
+    libsrc=wd+'/Gannet/'+libname+'.cc'
     sclibs+=[libsrc]
 classname = 'gannet'
 binname='gannetvm'
@@ -27,7 +27,7 @@ binname='gannetvm'
 # below Bytecode
 # ../SBA/Types.cc
 
-sources=Split("""
+sbasources=Split("""
 ../GannetSocket/Debug.cc
 ../GannetSocket/Socket.cc
 ../GannetSocket/DataTransfer.cc
@@ -57,4 +57,4 @@ sources=Split("""
 #../SBA/BridgeTransceiver.cc
 #../SBA/Network.cc
 
-build(classname,binname,sources+sclibs)
+build(classname,binname,(sclibs+sbasources))

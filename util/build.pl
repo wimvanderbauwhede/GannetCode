@@ -21,7 +21,7 @@ if ($os=~/Linux/) {
 my %opts;
 getopts( 'hvNZnsHSTPW:dbgcCY:', \%opts );
 
-if ( $opts{'h'} or scalar( keys %opts)==0) {
+if ( $opts{'h'} or ((scalar( keys %opts)==0)&&(scalar @ARGV==0))) {
 	die "
     Gannet build script for VirtualMachine GannetVM
     $0 [opts] 
@@ -70,12 +70,18 @@ my $scons_pthreads=$opts{'T'}?'pthreads=1':'';
 my $scons_distr=$opts{'P'}?'distr=1':'';
 my $scons_xc=$opts{'X'}?'xc=1':'';
 my $scons_cycles=$opts{'C'}?'cycles=1':'';
-my $ymlfile = $opts{'Y'}||"$gannet_dir/SystemConfigurations/SBA.yml";
 my $wordsz = (exists $opts{'W'})?1*$opts{'W'}: (exists $opts{'H'}?32:$Config{longsize}*8);
 my $scons_wordsz=($wordsz ==32)?'':'wordsz='.$wordsz;
 
 my $wd=cwd();
 my $scons_wd='wd='.$wd;
+my $ymlfile = $opts{'Y'}||"$gannet_dir/SystemConfigurations/SBA.yml";
+if ((not $opts{'Y'}) and @ARGV==1) {
+    $ymlfile=$ARGV[0];
+    $ymlfile=~s/\.*$//;
+    $ymlfile.='.yml';
+#    die $ymlfile;
+}
 my $ymlpath=$ymlfile;
 if ($ymlfile!~/^\//) {
 	$ymlpath="$wd/$ymlfile";

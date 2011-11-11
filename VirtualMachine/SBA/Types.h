@@ -55,8 +55,13 @@ namespace SBA {
 		typedef MemAddress Subtask;
 		typedef unsigned int Bit;
 		typedef unsigned int Counter;
+#if WORDSZ==32        
 		typedef unsigned short int Service; // 2 bytes
-
+#elif WORDSZ==64
+		typedef unsigned int Service; // 4 bytes
+#else
+#error "WORDSZ not set!"
+#endif        
 // FIXME: must be replaced by a custom lookup table, see Lookup_table.cc
 //#ifndef STATIC_ALLOC
 //		typedef map<Word,Word> LookupTable; // Typically the address will be the Subtask field, so we can use the rest for status, offset etc
@@ -1067,11 +1072,11 @@ public:
 		};
 		class Configurations {
 		private:
-			DynConfigPair mem[MAX_NDYNCONFIGS];
+			DynConfigTuple mem[MAX_NDYNCONFIGS];
 		public:
 			Configurations () {}
 			// Note that the return value must be a ref to be able to assign to it
- 			inline DynConfigPair& operator[] (const unsigned int i) {
+ 			inline DynConfigTuple& operator[] (const unsigned int i) {
 				return mem[i];
  			}
 		};		

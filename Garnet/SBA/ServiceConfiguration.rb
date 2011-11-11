@@ -569,6 +569,7 @@ FW_SCLId = 0xFF
 FS_SCLId = 16
 FB_SCLId=8
 
+# This is the Node ID, which of course we need for routing.
 # let's say 256 nodes is enough; we could go to 1024 by taking 2 bits from SCLId
 F_SNId= 0xFF000000
 FW_SNId = 0xFF

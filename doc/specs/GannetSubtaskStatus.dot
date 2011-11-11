@@ -1,0 +1,18 @@
+digraph GannetSubtaskStatus {
+    labelloc=t;
+    fontname="Helvetica-Bold";
+    label = "Subtask Status State Diagram\n ";
+    node [ fontname="Helvetica"]
+    { rank = same; Pending; EOS; Skip }
+    { rank = same; Processed; Inactive; Blocked }
+    New -> Pending -> Processing -> Processed -> CleanedUp -> Deleted
+    New -> EOS -> Processed
+    New -> Skip -> Processed
+    Processing -> Inactive
+    Processing -> Blocked 
+    Blocked -> "New " [style=dashed]
+    Deleted -> "New " [style=dashed]
+    Inactive -> "New " [style=dashed]
+
+}
+

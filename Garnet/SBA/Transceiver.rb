@@ -183,14 +183,14 @@ end # USE_THREADS
     #system
 #iv        
         if @verbose #skip
-        puts "#{@service} TRX:transmit_packets(): FIFO status: #{@tx_fifo.status()}" #skip
+        puts "#{@service} TRX:transmit_packets(): FIFO length: #{@tx_fifo.length()}" #skip
         end #skip
-        #C++ cout << "FIFO length: "<< tx_fifo.length() << endl;
+        #C++ cout << service <<" TRX:transmit_packets(): FIFO length: "<< tx_fifo.length() << endl;
 #ev            
         if @tx_fifo.status()==1 # packets in FIFO 
-        #iv
-            print "\n",@service," (addr:#{@address}) TRX TX:","Sending: \n" if @verbose #skip
-            #ev
+#        #iv
+#            print "\n",@service," (addr:#{@address}) TRX TX:","Sending: \n" if @verbose #skip
+#            #ev
             while @tx_fifo.status()==1
                 packet=@tx_fifo.shift #t Packet_t
                 service_id= getTo(getHeader(packet)) #t Service                

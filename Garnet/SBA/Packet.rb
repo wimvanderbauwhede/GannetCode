@@ -64,8 +64,8 @@ typedef uint8 Ctrl_t; //2
 typedef uint8 Redir_t; //3    
 
 #if WORDSZ==64
-typedef uint32 Name_t; //16
-typedef uint32 Value_t; //16
+typedef uint32 Name_t; //32
+typedef uint32 Value_t; //32
 typedef uint16 NSymbols_t; //16    
 typedef uint16 Count_t; //16
 
@@ -314,7 +314,7 @@ end
 # Well, let's assume that we use 8:2:8, then we can address 4 Tasks, 256 Services, 256 subtasks per service.
 #++
 
-def getCodeAddress(word) #t CodeAddress
+def getCodeAddress(word) #t CodeAddress (Word)
     # extract page form word
     page=(word & F_CodePage)>> FS_Task #t Word
     # extract address from Word
@@ -724,13 +724,9 @@ end
         w3=wl[2] #t Word
 
 #C++	ostringstream outs;
-#C++	outs << (uint)getPacket_type(wl) << ":" << (uint)getCtrl(wl) <<":"<< (uint)getRedir(wl) <<":"<<(uint)getLength(wl)<<":"<< (uint)getTo(wl) <<":"<<(uint)getReturn_to(wl) <<"\n"<< (uint)w2<<"\n"<<(uint)w3;
-#        if VERBOSE==1
-#        os="#{packettype_l(getPacket_type(wl))}:#{getCtrl(wl)}:#{getRedir(wl)}:#{getLength(wl)}:#{num2name(getTo(wl)).downcase}:#{num2name(getReturn_to(wl)).downcase}\n#{w2}\n#{ppSymbol(w3)} (#{w3})" #skip
-#        else # VERBOSE==0
+#C++	outs << (uint)getPacket_type(wl) << ":" << (uint)getCtrl(wl) <<":"<< (uint)getRedir(wl) <<":"<<(uint)getLength(wl)<<":"<< (uint)getTo(wl) <<":"<<(uint)getReturn_to(wl) <<"\n"<< ppSymbol(w2)<<"\n"<<ppSymbol(w3);
         os="#{getPacket_type(wl)}:#{getCtrl(wl)}:#{getRedir(wl)}:#{getLength(wl)}:#{getTo(wl)}:#{getReturn_to(wl)}\n#{ppSymbol(w2)}\n#{ppSymbol(w3)}" #skip
-#        end # VERBOSE
-        #C++	string os=outs.str();
+#C++	string os=outs.str();
 		return os
     end
     

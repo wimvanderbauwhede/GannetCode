@@ -95,9 +95,9 @@ class SBA_TaskDescription
             end
         end # loop over all packets
         @Packets.push(subtask_packet)
-        for packet in @Packets #skip
-            puts ppPacket(packet) #skip
-        end #skip       
+#        for packet in @Packets #skip
+#            puts ppPacket(packet) #skip
+#        end #skip       
 #C++        fclose(fd); 
     end
 
@@ -105,14 +105,16 @@ class SBA_TaskDescription
     def wl2td(tdc_wl) #t void (Bytecode&)
        
     	npackets = tdc_wl.shift #C++ Word npackets=(Word)tdc_wl.front();tdc_wl.pop_front();
-        #iv
-         puts "NPackets Word: #{npackets}" if @v #skip
-         #ev
+#        #iv
+#        if @v #skip
+#         puts "NPackets Word: #{npackets}"
+#        end #skip 
+#         #ev
     	npackets = npackets >> (NBYTES*8-16); # 32 -> 16; 64 -> 48  
-    	#iv
-    	puts "NPackets: #{npackets}" if @v #skip
-    	#ev
-    	puts tdc_wl.inspect if @v #skip
+#    	#iv
+#    	puts "NPackets: #{npackets}" if @v #skip
+#    	#ev
+#    	puts tdc_wl.inspect if @v #skip
         if npackets==0
             exit(0)
         end            
@@ -129,7 +131,9 @@ class SBA_TaskDescription
              ptype= getPacket_type(header_words) #t Packet_type_t                    
              header= header_words #C++ Header_t header(header_words);
             #iv
-            puts "Length: #{length}" if @v #skip
+            if @v #skip
+            puts "Length: #{length}"
+            end #skip 
             #ev
     
             # extract payload bytewords and put into array nw
@@ -141,8 +145,10 @@ class SBA_TaskDescription
                      
              packet=mkPacket(header,payload) 
 #iv
-                      puts "========" if @v #skip
-                      puts ppPacket(packet) if @v #skip
+            if @v #skip
+                      puts "========" 
+                      puts ppPacket(packet) 
+              end #skip
 #ev                      
             if (ptype==P_subtask)
                 subtask_packet=packet
@@ -167,7 +173,9 @@ class SBA_TaskDescription
             # ymlfile+=0.chr() #skip
         end
         #iv
-        puts "YAML file name: <#{ymlfile}>" if @v #skip
+if @v #skip
+#        puts "YAML file name: <#{ymlfile}>"
+end #skip         
         #ev
 #endskip       
     end

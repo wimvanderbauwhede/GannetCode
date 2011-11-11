@@ -223,6 +223,7 @@ ServiceManager(Base::System* sba_s_, Base::Tile* sba_t_, Service& s_,ServiceAddr
         if @request_fifo.length>0
             dispatch_data_packets()
         end
+
         #ifdef CYCLES_DETAILED
         #C++      ticks t1_3=getticks();
         #endif
@@ -365,11 +366,11 @@ void demux(Packet packet) {
         #C++      ticks t1=getticks();
         #endif
         #tile
-        #iv
-        if @debug_all or @service==@debug_service
-            puts "#{@service} receive_packets(): #{@sba_tile.transceiver.rx_fifo.length};"  #sysc
-        end
-        #ev
+#        #iv
+#        if @debug_all or @service==@debug_service
+#            puts "#{@service} receive_packets(): #{@sba_tile.transceiver.rx_fifo.length};"  #sysc
+#        end
+#        #ev
         while @sba_tile.transceiver.rx_fifo.length>0
             rx_packet= @sba_tile.transceiver.rx_fifo.shift #t Packet_t
             #iv
@@ -401,7 +402,7 @@ void demux(Packet packet) {
         #iv
         if @debug_all or @service==@debug_service
         if (@service!=tservice_id)
-            puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> @service #{@service}"
+            puts "#{@service} activate_subtask_helper(): service_id #{tservice_id} <> service #{@service}"
         end
         end
         #ev
@@ -415,9 +416,11 @@ void demux(Packet packet) {
                 raise "#{@service} SUBTASK STACK (#{SUBTASKS_SZ}) OVERFLOW"  #C++ std::cerr << service << " SUBTASK STACK ("<< SUBTASKS_SZ <<") OVERFLOW\n"; exit(0);
             end
             subtask_address=@subtasks_address_stack.pop #t CodeAddress
-            puts "#{@service} pop #{subtask_address} off SUBTASK STACK" if @v  #skip
-            puts "#{@service} NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" if @v #skip
-            puts "#{@service} SUBTASK requested by \n#{ppPacket(packet)}" if @v #skip
+if VERBOSE==1
+            puts "#{@service} pop #{subtask_address} off SUBTASK STACK" 
+            puts "#{@service} NEW SUBTASK for code #{task_address}: #{subtask_address} #{SUBTASKS_SZ-@subtasks_address_stack.size}" 
+            puts "#{@service} SUBTASK requested by \n#{ppPacket(packet)}" 
+end # VERBOSE            
         else # VM==0
             subtask_address=task_address #t CodeAddress
         end # VM
@@ -435,9 +438,11 @@ void demux(Packet packet) {
         else # VM==0
             subtask_word=task_address #C++ Word subtask_word=(Word)task_address;
         end # VM
-        puts "#{@service} activate_subtask_helper(): <#{task_address}> #{packet.inspect}" if @v #skip
-        puts ppPacket(packet) if @v #skip
-        puts @code_status.inspect if @v #skip
+        if VERBOSE==1        
+        puts "#{@service} activate_subtask_helper(): <#{task_address}>"        
+        puts ppPacket(packet) 
+        end # VERBOSE
+#        puts @code_status.inspect if @v #skip
         # really, this should be redundant as we should send task packets, not code & ref
         # WV23072008: and with direct mem transfers there should never be a race condition!
         if VM==1
@@ -466,6 +471,7 @@ void demux(Packet packet) {
             @subtask_list.code_address(subtask_address,task_address)
             @subtask_list.service_id(subtask_address,tservice_id)
             # FIXME sysc should support service_id!
+#            puts "#{@service_id} <> #{tservice_id}"
             @service_id=tservice_id #skipsysc
         end
     end # of activate_subtask_helper
@@ -531,7 +537,7 @@ void demux(Packet packet) {
             #iv
             if @debug_all or @service==@debug_service
                 puts "#{@service} store_subtask_code(): stored #{code_label} at #{code_address}" #sysc
-                puts ppPayload(@sba_tile.code_store.mget(code_address)) if @v #skip
+                puts ppPayload(@sba_tile.code_store.mget(code_address)) 
             end
             #ev
         end
@@ -1042,6 +1048,7 @@ so we have:
             puts  "#{code_address}: #{subtask.inspect}" if @v #skip
             # remove first elt, i.e. the actual service
             service_symbol=subtask.shift #C++ Word service_symbol=subtask.front(); subtask.pop_front();
+            
             # Extended service symbol for tuple/struct support (not fully implemented)
             if getExt(service_symbol)==1
                 service_symbol_ext=subtask.shift #C++ Word service_symbol_ext=subtask.front(); subtask.pop_front();
@@ -1147,10 +1154,10 @@ so we have:
                     # K_C and K_D as well but I forgot what these do.
                     if getKind(elt)==K_B && getExt(elt)==0
                         argmode=1
-#                        pass_by_value = 1
+                        pass_by_value = 1
                     elsif getKind(elt)==K_B && getExt(elt)==1 && getNSymbols(elt)==1
                         argmode=2
-#                        pass_by_value = 1
+                        pass_by_value = 1
                     end    
                     if pass_by_value==0                        
                         data_address=@data_address_stack.pop
@@ -1187,6 +1194,7 @@ so we have:
                     raise "BOOM!"
                     @subtask_list.arguments(parent_subtask).push(subtask.shift)                    
                 end 
+                # actual argument passing mode is 2 bits but we use the next 6 bits for Kind and Datatype
                 argmode+=((getKind(elt)&0x7)<<5)+((getDatatype(elt)&0x7)<<2)               
                 @subtask_list.argmodes(parent_subtask).push(argmode) #skip
                 #C++ subtask_list.argmodes(parent_subtask,argidx,argmode);
@@ -1648,13 +1656,17 @@ end
             @sclid=getSCLId(called_as)
             #iv
             if @debug_all or @service==@debug_service            
-                puts "#{@service} CORE CONTROL: SCLId:#{@sclid}, SCId:#{@scid}, Opcode:#{@opcode}" #skip
-                puts "#{@service} CORE CONTROL: #{@arg_addresses.inspect}" #skip
-            else #skip
-                if @v #skip
-                puts "#{@service} CORE CONTROL: #{@arg_addresses[0]}"
-            end #skip
+                puts "#{@service} CORE CONTROL: SCLId:#{@sclid}, SCId:#{@scid}, Opcode:#{@opcode}, SId:#{@service_id}" 
+                print "#{@service} CORE CONTROL: ["
+                for arg_addr in @arg_addresses #t MemAddresses
+                    print " #{arg_addr}"
+                end
+                puts " ]"                
             end
+#                if @v #skip
+#                puts "#{@service} CORE CONTROL: #{@arg_addresses[0]}"
+#                end #skip
+            
             #ev
             # push the result_address on the stack
             # FIXME! Either this or the other occurence (line 1989) is redundant! 
