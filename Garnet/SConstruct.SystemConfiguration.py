@@ -39,3 +39,4 @@ cmd='GANNET_DIR='+os.environ['GANNET_DIR'] +' ruby '+script+' '+sc_flag+' '+flag
 gen=env.Command(target_file, src_file, cmd)
 env.Alias('gen',target_file)
 env.Depends(gen,script)
+env.Depends(gen,ymlpath)

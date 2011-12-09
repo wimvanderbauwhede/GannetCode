@@ -90,7 +90,7 @@ end
   Application config has ServiceNodes and Aliases
   Library config has Services and ServiceClasses
 =end
-
+puts "GENERATING SystemConfiguration"
     appcfg =  YAML.load( File.open("#{SBA_YML}") )
     libs = appcfg['System']['Libraries']
     NServiceNodes=appcfg['System']['ServiceNodes'].keys.length
@@ -161,10 +161,14 @@ end
             services=cfg['System']['Services']
             for sc_str in services.keys
                 entry=services[sc_str]
-                service_id_str =entry[0]
-                scid = service_id_str.to_i            
-                sc_lib=cfg['System']['Library']
-                serviceclass_constants.push("const UINT SC_#{sc_lib}_#{sc_str} = #{scid};")                
+# FIXME: rather ad-hoc, if it's a CTRL service there can be only one, if it's a COMP service the ServiceManager doesn't need to know
+                ctrl_or_comp=entry[2]
+                if ctrl_or_comp.to_i==1
+                    service_id_str =entry[0]
+                    scid = service_id_str.to_i            
+                    sc_lib=cfg['System']['Library']                
+                    serviceclass_constants.push("const UINT SC_#{sc_lib}_#{sc_str} = #{scid};")                
+                end
             end
         end
         return serviceclass_constants.join("\n")
@@ -231,7 +235,7 @@ end
         return method_constants.join("\n")
     end
     
-    def cxx_servicenode_constants(appcfg)
+    def cxx_servicenode_constants(appcfg,libcfgs)
         
         servicenode_constants=[]
         for node_id in servicenodes(appcfg).keys
@@ -244,7 +248,20 @@ end
                 servicenode_constants.push("const UINT S_IF = #{node_id};")
             end            
             const_name_str=servicenode_name_str.sub('.','_') 
-            servicenode_constants.push("const UINT S_#{const_name_str} = #{node_id};")
+            serviceclass=servicenode_name_str.split('.')
+            sc_lib=serviceclass[0]
+            sc_str=serviceclass[1]
+            for cfg in libcfgs
+            if sc_lib==cfg['System']['Library']
+                services=cfg['System']['Services']
+                entry=services[sc_str]
+# FIXME: rather ad-hoc, if it's a CTRL service there can be only one, if it's a COMP service the ServiceManager doesn't need to know
+                ctrl_or_comp=entry[2]
+                if ctrl_or_comp.to_i==1
+                    servicenode_constants.push("const UINT S_#{const_name_str} = #{node_id};")
+                end
+            end
+            end
         end
         return servicenode_constants.join("\n")
     
@@ -310,7 +327,7 @@ namespace #{@@prefix_SC}SBA {
 "
 if (@@sysc==0)
     cxxh.puts cxx_method_constants(libcfgs)
-    cxxh.puts cxx_servicenode_constants(appcfg)
+    cxxh.puts cxx_servicenode_constants(appcfg,libcfgs)
     cxxh.puts cxx_serviceclass_constants(libcfgs)    
 end
 cxxh.puts '

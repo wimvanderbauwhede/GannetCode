@@ -1760,32 +1760,40 @@ end # WORDSZ
         elsif method==M_SBACore_IO_display
 
         # just because DISPLAY is logically an IO function
-            result="" #skip
+            result="" #t string
             for argn in 0..parent.nargs()-1 #t uint
 				data=parent.arg(argn) #t Word_List
-# puts data.inspect
+#                puts data.inspect 
 #skip				
 				case getDatatype(data[0])
 					when T_i
-						if @v
+#iv                    
+						if @v #skip
 							result+=">>>Int: "
-						end
-						result+="#{getInt(data)}" 
+						end #skip
+#ev                        
+						result+="#{getInt(data)}" #skip
 					when T_f
-						if @v
-							result+=">>>Float: "
-						end
-						result+="#{getFloat(data)}" 
+#iv                    
+						if @v #skip
+							result+=">>>Float: " 
+						end #skip
+#ev                        
+						result+="#{getFloat(data)}"  #skip
 					when T_c
-						if @v
-							result+=">>>Char: "
-						end
-						result+="#{getChar(data)}" 
+#iv                    
+						if @v #skip
+							result+=">>>Char: " 
+						end #skip
+#ev                        
+						result+="#{getChar(data)}" #skip
 					when T_s
-						if @v
+#iv                    
+						if @v #skip
 							result+=">>>String: "
-						end
-						result +="#{getString(data)}" 
+						end #skip
+#ev                        
+						result +="#{getString(data)}" #skip
 					else
     		            result+=">>>#{data.inspect}\n" 
 				end
