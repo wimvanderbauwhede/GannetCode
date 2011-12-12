@@ -1644,7 +1644,7 @@ No, we must do it like in IF or LET
     # in fact, in Ruby we don't care at all what we store in the table.
         port_address=addresses[0] #t MemAddress
         port_symbol=sba_tile.data_store.mget(port_address) #t Word_List
-        builtin_symbol=port_symbol[0] #t Word
+        builtin_symbol=EXTSYM # port_symbol[0] #t Word
         # "255 filehandles is enough for everyone!" 
         port = port_symbol[0] & 255  #t Word
         eof=[builtin_symbol,0] #C++ Word_List eof; eof.push_back(builtin_symbol); eof.push_back((Word)(0));      
@@ -1851,6 +1851,7 @@ end # WORDSZ
             end    			
 			# This is the actual display line! Don't comment!
 			puts result #skip
+            puts pass.inspect
             parent.result( pass ) # result
         else
             raise "CORE IO does not support method #{method}"

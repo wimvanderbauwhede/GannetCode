@@ -1152,7 +1152,7 @@ so we have:
                 if getKind(elt)!=K_C                    
                     #WV20110612: I think we can do this for K_L, K_A as well, maybe for
                     # K_C and K_D as well but I forgot what these do.
-                    if getKind(elt)==K_B && getExt(elt)==0
+                    if (getKind(elt)==K_B && getExt(elt)==0) || getQuoted(elt)==1
                         argmode=1
                         pass_by_value = 1
                     elsif getKind(elt)==K_B && getExt(elt)==1 && getNSymbols(elt)==1
