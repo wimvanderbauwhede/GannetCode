@@ -43,7 +43,7 @@ K_B|T_x => 11|xx, so K_B spans 6 and 7
         'L'=>3, # 0011 # 'Lexical', this was used to request lexical variables but maybe K_D could take this function 
         'R'=> 4, # 0100 # 'Request', the most important Kind
         #'S'=> 0, # 0101 # 'Service', so we don't really need this
-        'C'=> 5,
+        'C'=> 5, # 0101 # 'Code'
         'B'=> 6, # 0110 # 'Built-in', for constants
         'Q'=> 7 # 0111 # used as spill-over for K_B|T_s and K_B|T_b in 64-bit
         # 'E'=>8, # 1000 # not used
@@ -338,6 +338,7 @@ NBYTES=8
 # Kind:Typ:E | Qu:Task   | Subtask       Padding | NSymbols 
 # 0110:000:1 | 01:000000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000
 # 6   :1     | 4   :0    | 0   :0    | 0   :0    | 0   :0    | 0   :0    | 0   :0    | 0   :1     
+# K_B :t_D:Ext:Q
 EXTSYM = 0x6140_0000_0000_0001
 #    EXTSYM = 0xC140_0001_0000_0000
 # 0110:000:0 | 01:000000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000 | 0000:0000

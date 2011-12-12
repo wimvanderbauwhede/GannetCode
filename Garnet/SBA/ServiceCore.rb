@@ -254,11 +254,13 @@ end #skip
         argmode = @sba_tile.service_manager.subtask_list.argmodes(@sba_tile.service_manager.current_subtask)[argn] & 0x3 #t uint
 # puts argmode
         words =[] #C++  Word_List words;
+        # Pass by reference 
         if argmode == 0
             addr=@sba_tile.service_manager.arg_addresses[argn] #t MemAddress
 #            puts @sba_tile.data_store.inspect            
             words=@sba_tile.data_store.mget(addr)            
         elsif argmode ==1 or argmode == 2            
+            # Pass by value, 1 = non-ext, 2=ext
             if argmode == 2    
                 hword=EXTSYM #t Word
                 hword=setKind(hword,(argmode>>5)&0x3)

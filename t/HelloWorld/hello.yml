@@ -9,7 +9,9 @@ System:
     c3: [ 2, [SBACore.LET] ]
     c4: [ 3, [SBACore.IF] ]
     io: [ 4, [SBACore.IO] ]
-    a: [ 5, [SBACore.ALU] ] 
+    b: [ 5, [SBACore.ALU] ] 
+    a: [ 6, [SBACore.ALU] ] 
+    d: [ 7, [SBACore.ALU] ] 
 
   Aliases:
   # Alias Name (case sensitive): FQN
@@ -23,9 +25,9 @@ System:
     read: c3.SBACore.LET.read
     display: io.SBACore.IO.display
 # These used to be "ALU_names"  
-    '+': a.SBACore.ALU.plus
+    '+': b.SBACore.ALU.plus
     '-': a.SBACore.ALU.minus
-    '*': a.SBACore.ALU.times
+    '*': b.SBACore.ALU.times
     '/': a.SBACore.ALU.over
     '<': a.SBACore.ALU.lt
     '>': a.SBACore.ALU.gt

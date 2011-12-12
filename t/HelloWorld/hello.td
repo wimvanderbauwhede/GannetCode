@@ -2,7 +2,7 @@
 ;(begin
     (let
         '(assign 'v '42)
-        '(display v)
+        '(display '43)
 ;    '(assign 'str "Hello, world!")
 ;    '(display str)
     )
