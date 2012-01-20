@@ -248,6 +248,10 @@ end #skip
         #tile
         return @sba_tile.service_manager.arg_addresses
     end    
+    def argmode() #t uint ()
+        #tile
+        return  @sba_tile.service_manager.subtask_list.argmodes(@sba_tile.service_manager.current_subtask)[argn] & 0x3
+    end
     def arg(argn) #t Word_List (uint)
 #        puts "ARGN: #{argn}" if @verbose #skip
         #tile

@@ -10,5 +10,5 @@ If you want to pass a scalar or a hash, they must be converted to arrays first
 
 The question is: how do I know what is inside @result?
 e.g. say @result=(11,"22",33.3) then this should result in a list of 3 symbols with the correct type
-So how can I know the type of an element in a list? Basically, Perl doesn't care. So maybe it is better to assume everyting is a string, and we actually have a list of String symbols.
-So we treat every value as a string and convert it into a list of unsigned in, see compiler
+So how can I know the type of an element in a list? Basically, Perl doesn't care. So maybe it is better to assume everything is a string, and we actually have a list of String symbols.
+So we treat every value as a string and convert it into a list of unsigned int, see compiler

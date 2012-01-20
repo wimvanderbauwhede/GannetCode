@@ -180,7 +180,44 @@ end # WORDSZ
 #endskip        
         return str
     end
-
+    
+    def wl2str(wl) #t string (Word_List)        
+        nwords=wl.length() #t uint
+        padding=0 #t uint
+=begin #C++
+        string str;
+        str.reserve(nwords*NBYTES-padding);
+        for(uint i=0;i<nwords;i++) {    
+            uint npad=(i==nwords-1)?padding:0;
+            Word strword=sym.front();sym.pop_front();
+            for (uint j=0;j<NBYTES-npad;j++) {
+                char byte=(char)((strword>>8*(NBYTES-j-1))&255);
+                str+=byte;
+            }
+        }       
+=end #C++               
+       
+=begin
+Keep Vim happy        
+=end
+    
+#skip        
+if WORDSZ==64
+        # 8 bytes, we don't do Unicode
+        str=sym.pack("Q"*nwords)       
+else # WORDSZ==32
+        # 4 bytes, idem
+        str=sym.pack("N"*nwords)
+end # WORDSZ       
+        # here we should remove any NULL bytes from the string. The problem is that we don't know how many
+        # so I have to scan the string from the back
+        if padding>0
+            str=str[0..str.length-1-padding]
+        end
+#endskip        
+        return str        
+    end
+    
     def sym2int(sym) #t Int (Word_List)
         return getInt(sym)
     end
@@ -747,7 +784,6 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
 		end #skip
 #ev        
         method=parent.method() #t uint
-#        puts "METHOD: #{method}",M_SBACore_LET_assign
         if method==M_SBACore_LET_let or method==M_SBACore_LET_lettc
 #iv
 			if @v #skip
@@ -762,6 +798,8 @@ So the assumption is that this IF always delivers locally, i.e. (S1 ... (S1-IF .
             last=false #t bool
             nargs=parent.n_args #t uint        
             argct=nargs #t uint
+# Assuming all elts of LET are services, they should all be passed by reference!
+#			letargs=parent.args #t List< Word_List >
             for address in addresses #t MemAddresses       
                 argct-=1
                 last=(argct==0)
@@ -812,9 +850,8 @@ So what happens if it's a tail call?
 - redirect
 - but exit, i.e. should jump past the return
 =end
+
 #C++                bool use_redir=false;
-
-
                     use_redir=true
 
                     if (last and use_redir)      
@@ -992,21 +1029,29 @@ So what happens if it's a tail call?
             print "<#{var_name}>" if @v #skip
             ###### ASSIGN ###### 
             case method
-            when M_SBACore_LET_assign 
+            when M_SBACore_LET_assign                 
                 # Take the addresses of Symbol and Data
                 puts "LET called as ASSIGN" if @v #skip
-#WV20110612: this could be pass-by-value
-                sym_address=addresses[0] #t MemAddress
-                data_address=addresses[1] #t MemAddress
-                #iv
-				if @v #skip
-                puts "ASSIGN addresses: #{sym_address} => #{data_address}"
-				end #skip
-                #ev
-                # Get the varname from the symbol
-#WV20110612: for pass-by-value, we pass the symbol, so we would not need the code below				
-                var_label=sba_tile.service_manager.symbol_table[sym_address] #t Word
-                puts "ASSIGN SYMBOL: #{ppSymbol(var_label)}" if @v #skip
+                sym=parent.arg(0) #t Word_List
+                val=parent.arg(1) #t Word_List
+                if @v #skip
+                puts "ASSIGN: #{ppSymbol(sym)} => #{ppSymbol(val)}"
+                end #skip
+                
+##WV20110612: this could be pass-by-value
+#                sym_address=addresses[0] #t MemAddress
+#                data_address=addresses[1] #t MemAddress
+#                #iv
+#				if @v #skip
+#                puts "ASSIGN addresses: #{sym_address} => #{data_address}"
+#				end #skip
+#                #ev
+#                # Get the varname from the symbol
+##WV20110612: for pass-by-value, we pass the symbol, so we would not need the code below				
+#                var_label=sba_tile.service_manager.symbol_table[sym_address] #t Word
+                
+                var_label=sym[0] #t Word
+#                puts "ASSIGN SYMBOL: #{ppSymbol(var_label)}" if @v #skip
                 var_name=getName(var_label) #t Name_t
                 # Check if this varname is in the lookup table
                 has_label=false #t bool
@@ -1031,7 +1076,14 @@ So what happens if it's a tail call?
 #ev                    
                     sba_tile.lookup_table.write(getName(word),word)
                 # Store variable definition
-                    var_value=sba_tile.data_store.mget(data_address) #t Word_List
+                    # C++ Word_List var_value; 
+                    if parent.argmode()==0                    
+                    var_value=sba_tile.data_store.mget(data_address) 
+                    else
+                        # For pass-by-value, what do we do?
+                        # use getWord()    
+                        var_value=getWord(val)
+                    end
 #iv
 					if @v #skip
                     puts "ASSIGN: storing",ppPayload(var_value), "@ #{var_address}"
@@ -1051,6 +1103,8 @@ So what happens if it's a tail call?
                 parent.result([result]) #C++ Word_List result_list; result_list.push_back(result); parent.result(result_list);
                 ###### UPDATE #######
             when M_SBACore_LET_update
+#WV20111227: FIXME: this should be pass-by-value!                
+                # (update 'v (val) )
                # Receives a quoted L, looks up the value and updates it.
                 sym_address=addresses[0] #t MemAddress
                 # Get the varname from the symbol
@@ -1082,6 +1136,7 @@ So what happens if it's a tail call?
                 ###### READ #######
                 # It turns out that if we use UPDATE, we need READ. That's because L-variables could be cached          
             when M_SBACore_LET_read
+#WV20111227: FIXME: this should be pass-by-value!                
                 # What does a call do? Very simple: it receives a quoted L, looks up the value and returns it.
                 sym_address=addresses[0] #t MemAddress
                 # Get the varname from the symbol
@@ -1136,6 +1191,7 @@ So what happens if it's a tail call?
     # SEQ is like a LET but it does not provide scope, all it does is sequence the arguments. It's like BEGIN with seq support.
 def ls_SEQ(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
     #core 
+    #WV20111227: FIXME: this should be pass-by-value!    
     addresses=parent.addresses() #t MemAddresses&
     service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word    
     puts parent.current_subtask if @v #skip
@@ -1282,6 +1338,7 @@ def ls_SEQ(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/p
 end # of ls_SEQ       
     # -----------------------------------------------------------------------------
     def ls_LAMBDA(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+        #WV20111227: FIXME: this should be pass-by-value!        
         #core
         addresses=parent.addresses() #t MemAddresses& 
 #iv
@@ -1325,7 +1382,8 @@ recursive calls and multiple calls...
 
 =end
 
-    def ls_APPLY(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr/
+    def ls_APPLY(sba_tile,parent) #t void (na;Base::ServiceCore*; MemAddresses&)  #s/parent/parent_ptr//
+        #WV20111227: FIXME: this should be pass-by-value!        
             #core 
 #        service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word  
 #    	service=getName(service_word) #t Name_t
@@ -1634,16 +1692,11 @@ No, we must do it like in IF or LET
 #     
     def ls_IO(sba_tile,parent) #t void (na;Base::ServiceCore*)  #s/parent/parent_ptr/
         #core
-        addresses=parent.addresses() #t MemAddresses&
-        service_word=sba_tile.service_manager.subtask_list.called_as(parent.current_subtask) #t Word        
-	
-		# puts parent.current_subtask #skip
-    	service=getName(service_word) #t Name_t
+        #WV20111227: FIXME: this should be pass-by-value!
         parent.core_return_type=P_data
     # we use the lookup_table to map ports to file descriptors
-    # in fact, in Ruby we don't care at all what we store in the table.
-        port_address=addresses[0] #t MemAddress
-        port_symbol=sba_tile.data_store.mget(port_address) #t Word_List
+    # in fact, in Ruby we don't care at all what we store in the table.        
+        port_symbol=parent.arg(0) #t Word_List
         builtin_symbol=EXTSYM # port_symbol[0] #t Word
         # "255 filehandles is enough for everyone!" 
         port = port_symbol[0] & 255  #t Word
@@ -1658,15 +1711,17 @@ end # WORDSZ
 #C++    FILE* fd;
         method=parent.method() #t uint
         if method==M_SBACore_IO_open
-            filename_address=addresses[1] #t MemAddress
-            filename_bytes=sba_tile.data_store.mget(filename_address) #t Word_List
+            filename_bytes=parent.arg(1) #t Word_List
+            #FIXME: this can only work if K_B's are stored in full!!!
+            # so either pass them by value or store them in full
             filename=sym2str(filename_bytes) #t string
 #iv
             puts "CORE FOPEN: HANDLE: #{port} FILENAME: #{filename}"
 #ev                        
-            if addresses.length==3
-                flag_address=addresses[2] #t MemAddress
-                flag=sym2str(sba_tile.data_store.mget(flag_address)) #t string
+            if parent.nargs()==3
+                flag_bytes=parent.arg(2) #t Word_List
+                #FIXME: needs wl2str!
+                flag=sym2str(flag_bytes) #t string
                 fd=File.open(filename,flag) #C++ fd=fopen(filename.c_str(),flag.c_str());
             else
                 fd=File.open(filename) #C++ fd=fopen(filename.c_str(),"r");
@@ -1682,9 +1737,9 @@ end # WORDSZ
             	parent.result(fail)
             end        
         elsif method==M_SBACore_IO_readline 
-            if addresses.length == 2
-                nbytes_address=addresses[1] #t MemAddress
-                nbytes=getValue(sba_tile.data_store.mget(nbytes_address)[0]) #t Word
+            if parent.nargs == 2
+                nbytes_wl=parent.arg(1) #t Word_List
+                nbytes=getWord(nbytes_wl) #t Word
                 if nbytes!=0 
                     raise "CORE IOREAD: reading chunks of #{nbytes} bytes is not yet implemented" #s/raise/std::cerr << /
                 end 
@@ -1711,9 +1766,8 @@ end # WORDSZ
                 parent.result(emptysymbol)
             end
                 # or maybe we need a conditional outside the function
-        elsif method==M_SBACore_IO_write
-            data_address=addresses[1]  #t MemAddress       
-            data_symbol = sba_tile.data_store.mget(data_address) #t Word_List
+        elsif method==M_SBACore_IO_write                   
+            data_symbol = parent.arg(1) #t Word_List
             #C++ string data;            
             kind=getKind(data_symbol[0]) #t Kind_t
             datatype=getDatatype(data_symbol[0]) #t Datatype_t
@@ -1851,7 +1905,7 @@ end # WORDSZ
             end    			
 			# This is the actual display line! Don't comment!
 			puts result #skip
-            puts pass.inspect
+            puts pass.inspect #skip
             parent.result( pass ) # result
         else
             raise "CORE IO does not support method #{method}"

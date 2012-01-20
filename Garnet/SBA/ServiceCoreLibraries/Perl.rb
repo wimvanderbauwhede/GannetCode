@@ -1,10 +1,10 @@
 # Perl.rb
 #   
-# :title: Gannet Service-based SoC project - Service Core Library for Perl 5
+# :title: Gannet Service-Based Architecture - Service Core Library for Perl 5
 #    
 #--
 # *
-# *  (c) 2004-2011 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
+# *  (c) 2004-2012 Wim Vanderbauwhede <wim@dcs.gla.ac.uk>
 # *  
 #++
 
@@ -25,9 +25,10 @@
 #include "Perl.h" //skiph
 =end #inc 
 
+=begin
 # This module contains the implementations of all Gannet-Perl services. 
+=end
 require "SBA/ServiceCoreLibraries/SBAnew.rb" 
-
 
 #C++ using namespace std;
 
@@ -129,58 +130,41 @@ def pl_ALU(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr
     puts "Perl ALU CORE: processing subtask #{parent.current_subtask}"
 #ev
     #C++ Word_List result_list;
-    operation=parent.opcode #t Uint
-    addresses=parent.addresses() #t MemAddresses
+    operation=parent.method() #t Uint
 # now if result is an extended Symbol, and assuming we us a single word for numbers,
 # we could just take the next element:
 
     # if @v #skip
 #iv        
-puts "ALU (#{parent.service}) CORE: #{addresses.length} addresses"
-#ev     
-#    if addresses.length==0 #skip
-#      exit(0) #skip
-#    end  #skip
-#    puts addresses.inspect #skip
-address=addresses[0] #t MemAddress
-res_symbol=sba_tile.data_store.mget(address)[0] #t Word
-#C++ Word result;   
-#C++ Int int_result;    
-if getExt(res_symbol)==1
-    result=sba_tile.data_store.mget(address)[1]
-    int_result=(result>2**(WORDSZ-1))?(result-2**WORDSZ):result #C++ int_result=(Int)result;        
-else
-    result=getValue(res_symbol) # FIXME: this assumes the ALU is WORDSZ only, i.e. number of words in ext symbol==1
-    one=1 #t Word
-    int_result= (result>(one<< (FB_Value-1)))?(result-(one<< FB_Value)):result              
-end                    
-            result=Integer(int_result) #skip
+puts "ALU (#{parent.service}) CORE: #{parent.nargs()} addresses"
+#ev
+ 		words=parent.arg(0) #t Word_List
+        res_symbol=words[0] #t Word
+        int_result=getInt(words) #t Int       
+        result=Integer(int_result) #C++ Word result=int_result;
 #iv
-            puts "ALU CORE: arg 1: Found int #{result} (#{T_i}) @ #{address}"   
+        puts "ALU CORE: arg 1: Found int #{result} (#{T_i}) @ #{parent.addr(0)}"   
 #ev                
-    if operation==M_ALU_not
-        result=1-result
-    else
-        ii=0; #t int
-        for address in addresses #t MemAddresses
-            ii+=1
-            if ii>1
-            tres_symbol=sba_tile.data_store.mget(address)[0] #t Word
-            #C++ Word tres;
-            #C++ Int int_tres;   
-            if getExt(tres_symbol)==1
-                tres=sba_tile.data_store.mget(address)[1]
-                int_tres=(tres>2**(WORDSZ-1))?(tres-2**WORDSZ):tres #C++ int_tres=(Int)tres;                    
-            else
-                tres=getValue(tres_symbol)
-                one=1 #t Word
-                int_tres= (tres>(one<<(FB_Value-1)))?(tres-(one<< FB_Value)):tres  
-            end    
-            
-            tres=Integer(int_tres) #skip            
+        n_args=parent.nargs() #t uint
+
+        if operation==M_SBACore_ALU_not
+            result=1-result
+        else
+            ii=0; #t int            
+            for argn in 0..n_args-1 #t uint
+#                if argn==n_args
+#                    break
+#                end    
+                ii+=1
+                if ii>1
+                twords=parent.arg(argn) #t Word_List
+                tres_symbol=twords[0] #t Word
+                int_tres=getInt(twords) #t Int       
+                tres=Integer(int_tres) #C++ Word tres=int_tres;                    
 #iv
-                    puts "ALU CORE: arg #{ii}: Found int #{tres} (#{T_i}) @ #{address}"   
+                        puts "ALU CORE: arg #{ii}: Found int #{tres} (#{T_i}) @ #{parent.addr(argn)}"   
 #ev                        
+                   
             case operation
             when M_ALU_plus
                 puts "ALU CORE operation: +" if @v #skip
@@ -214,20 +198,20 @@ end
     end
             puts "ALU CORE RESULT (signed int): #{result}" if @v #skip      
             result=Integer((result<0)?(2**WORDSZ+result):result) #C++ result=(Uint)int_result;                
-    #iv    
-    puts "ALU CORE RESULT: (uint#{WORDSZ}) #{result}" 
-    puts "ALU (#{parent.service}) CORE (#{parent.current_subtask}):  result: #{result}"
-    #ev
-    one=1 #t Word
-    if result>((one<< FB_Value)-1)
-        res_symbol=setExt(res_symbol,1) 
-        res_symbol=setNSymbols(res_symbol,1)
-        result_list=[res_symbol,result]  #C++ result_list.push_back(res_symbol);result_list.push_back(result);
-    else
-        res_symbol=setExt(res_symbol,0)
-        res_symbol=setValue(res_symbol,result)
-        result_list=[res_symbol]  #C++ result_list.push_back(res_symbol);            
-    end    
+        #iv    
+        puts "ALU CORE RESULT: (uint#{WORDSZ}) #{result}" 
+        puts "ALU (#{parent.service}) CORE (#{parent.current_subtask}):  result: #{result}"
+        #ev
+        one=1 #t Word
+        if result>((one<< FB_Value)-1)
+            res_symbol=setExt(res_symbol,1) 
+            res_symbol=setNSymbols(res_symbol,1)
+            result_list=[res_symbol,result]  #C++ result_list.push_back(res_symbol);result_list.push_back(result);
+        else
+            res_symbol=setExt(res_symbol,0)
+            res_symbol=setValue(res_symbol,result)
+            result_list=[res_symbol]  #C++ result_list.push_back(res_symbol);            
+        end    
     parent.result( result_list )
 end # of ALU
 # ----------------------------------------------------------------------------------------------------
@@ -578,15 +562,34 @@ def pl_Hash(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_pt
 end # of pl_Hash
 
 def pl_PCRE(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr/
+=begin
+	"m//", "pos", "quotemeta", "s///", "split", "study", "qr//"	
+=end
 end
 
 def pl_Math(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr/
+=begin	
+"abs", "atan2", "cos", "exp", "hex", "int", "log", "oct", "rand",
+		"sin", "sqrt", "srand"
+=end
 end
 
 def pl_Range(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr/
+=begin
+Range is separate from arrays
+=end
 end
 
 def pl_String(sba_tile,parent) #t void (na;Base::ServiceCore*) #s/parent/parent_ptr/
+=begin
+-- Functions for SCALARs or strings
+		"chomp", "chop"
+--		, "chr", "crypt", "hex", "index", "lc", "lcfirst",
+--		"length", "oct", "ord", "pack", "q//", "qq//", "reverse", "rindex",
+--		"sprintf", "substr", "tr///", "uc", "ucfirst", "y///",
+--		"eq","ne","lt","gt","le","ge","cmp"	
+
+=end
 end
 
 # --------------------------------------------------------------------------
