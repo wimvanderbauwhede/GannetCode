@@ -1,0 +1,24 @@
+--- # Conway's Game of Life Application Configuration
+System:
+  Version: 3.0
+  Libraries: [ConwayLife, SBACore]
+  NServiceNodes: 16 # excluding gateway
+  ServiceNodes:
+    c1: [ 1, [SBACore.BEGIN] ]
+    c2: [ 2, [SBACore.IF] ]
+    c3: [ 3, [ConwayLife.IO] ]
+    b00: [ 4, [ConwayLife.CORE] ]
+    b01: [ 4, [ConwayLife.CORE] ]
+    b10: [ 4, [ConwayLife.CORE] ]
+    b11: [ 4, [ConwayLife.CORE] ]
+
+  Aliases:
+  # Alias Name (case sensitive): FQN
+    begin: c1.SBACore.BEGIN.begin
+    return: c2.SBACore.IF.return
+    draw: c3.ConwayLife.IO.draw
+    img: c3.ConwayLife.IO.img
+    'b00.calc': b00.ConwayLife.CORE.calc
+    'b01.calc': b01.ConwayLife.CORE.calc
+    'b10.calc': b10.ConwayLife.CORE.calc
+    'b11.calc': b11.ConwayLife.CORE.calc

@@ -1,0 +1,12 @@
+--- # Conway Life Core Library Configuration
+System:
+  Version: 3.0
+  Library: ConwayLife
+     
+  Services: # last value is control bit (1=control, 0=computational)
+    CORE: [ 1, cs_CONWAY_LIFEi_CORE, 1 ]
+    IO: [ 1, cs_CONWAY_LIFE_IO, 1 ]
+      
+  ServiceClasses:
+    CORE: [ init, calc, brc, brow, blc, lcol, tlc, trow, trc, rcol ]
+    IO: [ img, draw ]
